@@ -13,6 +13,12 @@ enum UserRole {
   STUDENT
 }
 
+enum StudentLevel {
+  INICIANTE
+  MODERADO
+  AVANCADO
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String
@@ -29,6 +35,8 @@ model User {
   students      Student[] @relation("PersonalTrainer")
   managedWorkouts Workout[]
   managedDiets    DietPlan[]
+  workoutTemplates WorkoutTemplate[]
+  dietTemplates    DietTemplate[]
 
   // Student -> trainer (self-referential)
   trainerId     String?
@@ -72,6 +80,8 @@ model Workout {
   dayLetter   String
   dayOfWeek   String?
   isActive    Boolean  @default(true)
+  autoAdvance Boolean  @default(false)
+  deadlineDays Int?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -93,6 +103,7 @@ model Exercise {
   description String?
 
   workoutExercises WorkoutExercise[]
+  workoutTemplates WorkoutTemplateExercise[]
   completedExercises CompletedExercise[]
 }
 
@@ -109,6 +120,84 @@ model WorkoutExercise {
   workout     Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
   exerciseId  String
   exercise    Exercise @relation(fields: [exerciseId], references: [id])
+}
+
+model WorkoutTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  level       StudentLevel @default(INICIANTE)
+  isPreset    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  trainerId String?
+  trainer   User?   @relation(fields: [trainerId], references: [id], onDelete: SetNull)
+
+  exercises WorkoutTemplateExercise[]
+}
+
+model WorkoutTemplateExercise {
+  id          String  @id @default(cuid())
+  order       Int
+  sets        Int     @default(3)
+  reps        String
+  initialLoad String?
+  restTime    Int     @default(60)
+  notes       String?
+
+  workoutTemplateId String
+  workoutTemplate   WorkoutTemplate @relation(fields: [workoutTemplateId], references: [id], onDelete: Cascade)
+
+  exerciseId String
+  exercise   Exercise @relation(fields: [exerciseId], references: [id])
+}
+
+model DietTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  level       StudentLevel @default(INICIANTE)
+  isPreset    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  dailyProtein    Float?
+  dailyCarbs      Float?
+  dailyFat        Float?
+  dailyCalories   Float?
+  waterIntake     String?
+  supplementation String?
+
+  trainerId String?
+  trainer   User?   @relation(fields: [trainerId], references: [id], onDelete: SetNull)
+
+  meals DietTemplateMeal[]
+}
+
+model DietTemplateMeal {
+  id     String @id @default(cuid())
+  time   String
+  name   String
+  order  Int
+
+  dietTemplateId String
+  dietTemplate   DietTemplate @relation(fields: [dietTemplateId], references: [id], onDelete: Cascade)
+
+  foods DietTemplateFood[]
+}
+
+model DietTemplateFood {
+  id       String @id @default(cuid())
+  name     String
+  quantity String
+  protein  Float?
+  carbs    Float?
+  fat      Float?
+  calories Float?
+
+  mealId String
+  meal   DietTemplateMeal @relation(fields: [mealId], references: [id], onDelete: Cascade)
 }
 
 model WorkoutSession {

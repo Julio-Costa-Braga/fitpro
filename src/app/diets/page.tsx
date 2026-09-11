@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Plus, Apple, Search, ChevronRight } from "lucide-react";
+import { Loader2, Plus, Apple, Search, ChevronRight, Layers } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { api } from "@/lib/api";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Modal } from "@/components/ui/Modal";
+import Link from "next/link";
 
 interface Student {
   id: string;
@@ -130,9 +131,16 @@ export default function DietsPage() {
             <h1 className="text-2xl font-bold">Planos Alimentares</h1>
             <p className="text-muted text-sm">{diets.length} plano{diets.length !== 1 ? "s" : ""}</p>
           </div>
-          <Button icon={<Plus className="w-4 h-4" />} onClick={() => setShowCreate(true)}>
-            Novo Plano
-          </Button>
+          <div className="flex gap-3">
+            <Link href="/diets/templates">
+              <Button variant="secondary" icon={<Layers className="w-4 h-4" />}>
+                Modelos
+              </Button>
+            </Link>
+            <Button icon={<Plus className="w-4 h-4" />} onClick={() => setShowCreate(true)}>
+              Novo Plano
+            </Button>
+          </div>
         </div>
 
         {error && (

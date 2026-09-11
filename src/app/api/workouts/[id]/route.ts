@@ -73,7 +73,7 @@ export async function PUT(
   }
 
   const body = await request.json();
-  const { name, description, dayLetter, dayOfWeek, isActive, exercises } = body;
+  const { name, description, dayLetter, dayOfWeek, isActive, autoAdvance, deadlineDays, exercises } = body;
 
   if (exercises?.length) {
     await prisma.workoutExercise.deleteMany({ where: { workoutId: id } });
@@ -87,6 +87,8 @@ export async function PUT(
       ...(dayLetter !== undefined && { dayLetter }),
       ...(dayOfWeek !== undefined && { dayOfWeek }),
       ...(isActive !== undefined && { isActive }),
+      ...(autoAdvance !== undefined && { autoAdvance }),
+      ...(deadlineDays !== undefined && { deadlineDays }),
       ...(exercises?.length && {
         exercises: {
           create: exercises.map((ex: any) => ({

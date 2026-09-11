@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { Loader2, ArrowLeft, Plus, GripVertical, Pencil, Trash2, Play, Save, X, Search } from "lucide-react";
+import { Loader2, ArrowLeft, Plus, GripVertical, Pencil, Trash2, Play, Save, X, Search, Rocket } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { api } from "@/lib/api";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -40,6 +40,8 @@ interface Workout {
   dayLetter: string;
   dayOfWeek?: string | null;
   isActive: boolean;
+  autoAdvance: boolean;
+  deadlineDays?: number | null;
   studentId: string;
   student: { id: string; name: string };
   exercises: WorkoutExercise[];
@@ -82,6 +84,10 @@ export default function WorkoutDetailPage() {
   const [editForm, setEditForm] = useState({ sets: 3, reps: "10", initialLoad: "", restTime: 60 });
   const [savingExercise, setSavingExercise] = useState(false);
 
+  const [autoAdvance, setAutoAdvance] = useState(false);
+  const [deadlineDays, setDeadlineDays] = useState("");
+  const [savingSettings, setSavingSettings] = useState(false);
+
   const loadWorkout = useCallback(async () => {
     if (!user || !workoutId) return;
     try {
@@ -90,6 +96,8 @@ export default function WorkoutDetailPage() {
       setWorkout(data);
       setNameValue(data.name);
       setDescValue(data.description ?? "");
+      setAutoAdvance(data.autoAdvance);
+      setDeadlineDays(data.deadlineDays?.toString() ?? "");
     } catch (err: unknown) {
       if (err instanceof Error) setError(err.message);
     } finally {
@@ -220,6 +228,23 @@ export default function WorkoutDetailPage() {
       if (err instanceof Error) setError(err.message);
     } finally {
       setSavingExercise(false);
+    }
+  }
+
+  async function handleSaveSettings() {
+    try {
+      setSavingSettings(true);
+      await api.put(`/api/workouts/${workoutId}`, {
+        autoAdvance,
+        deadlineDays: autoAdvance && deadlineDays.trim()
+          ? Number(deadlineDays)
+          : null,
+      });
+      await loadWorkout();
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
+    } finally {
+      setSavingSettings(false);
     }
   }
 
@@ -369,6 +394,57 @@ export default function WorkoutDetailPage() {
             )}
           </div>
         </div>
+
+        {user.role === "PERSONAL" && (
+          <Card className="p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Rocket className="w-4 h-4 text-accent" />
+              <h2 className="font-semibold text-sm">Automatizacao do Treino</h2>
+            </div>
+            <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+              <div className="flex items-center justify-between gap-4 flex-1">
+                <div>
+                  <p className="text-sm font-medium">Avancar automaticamente para o proximo treino</p>
+                  <p className="text-xs text-muted">
+                    Ao concluir (ou quando o prazo vencer), o app troca para o proximo treino/modelo deste aluno.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setAutoAdvance(!autoAdvance)}
+                  className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${
+                    autoAdvance ? "bg-accent" : "bg-border"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                      autoAdvance ? "translate-x-5" : ""
+                    }`}
+                  />
+                </button>
+              </div>
+              <div className="w-full sm:w-56">
+                <label className="block text-xs font-medium text-muted mb-1">Prazo para concluir (dias)</label>
+                <input
+                  type="number"
+                  min={1}
+                  disabled={!autoAdvance}
+                  value={deadlineDays}
+                  onChange={(e) => setDeadlineDays(e.target.value)}
+                  placeholder={autoAdvance ? "Ex: 30" : "Ative o auto-avancar"}
+                  className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent/40 disabled:opacity-40"
+                />
+              </div>
+              <Button size="sm" icon={<Save className="w-4 h-4" />} onClick={handleSaveSettings} loading={savingSettings}>
+                Salvar
+              </Button>
+            </div>
+            {autoAdvance && Number(deadlineDays) > 0 && (
+              <p className="text-xs text-muted mt-3">
+                Se o aluno nao concluir em {deadlineDays} dia{Number(deadlineDays) > 1 ? "s" : ""}, o sistema troca para o proximo treino automaticamente.
+              </p>
+            )}
+          </Card>
+        )}
 
         {workout.exercises.length === 0 ? (
           <Card className="p-12 text-center">

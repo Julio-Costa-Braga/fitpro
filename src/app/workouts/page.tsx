@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Dumbbell, Plus, Filter, Search, Activity } from "lucide-react";
+import { Loader2, Dumbbell, Plus, Filter, Search, Activity, Layers } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { api } from "@/lib/api";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -201,12 +201,19 @@ export default function WorkoutsPage() {
             <h1 className="text-2xl font-bold mb-1">{t("wk.title")}</h1>
             <p className="text-muted text-sm">{t("wk.subtitle")}</p>
           </div>
-          <Button
-            icon={<Plus className="w-4 h-4" />}
-            onClick={() => setShowCreateModal(true)}
-          >
-            {t("wk.newWorkout")}
-          </Button>
+          <div className="flex gap-3">
+            <Link href="/workouts/templates">
+              <Button variant="secondary" icon={<Layers className="w-4 h-4" />}>
+                Modelos
+              </Button>
+            </Link>
+            <Button
+              icon={<Plus className="w-4 h-4" />}
+              onClick={() => setShowCreateModal(true)}
+            >
+              {t("wk.newWorkout")}
+            </Button>
+          </div>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
