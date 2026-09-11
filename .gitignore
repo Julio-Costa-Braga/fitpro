@@ -36,6 +36,18 @@ yarn-error.log*
 # vercel
 .vercel
 
+# ida / agent skills (ruido local)
+.agents/
+.claude/
+.cursor/
+.devin/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+node_modules/
+dist/
+.env
+
+.vercel
+.env*

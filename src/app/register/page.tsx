@@ -6,12 +6,14 @@ import Link from "next/link";
 import { Dumbbell, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 
-export default function LoginPage() {
-  const { login, user, loading: authLoading } = useAuth();
+export default function RegisterPage() {
+  const { register, user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [role, setRole] = useState<"PERSONAL" | "STUDENT">("STUDENT");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -25,9 +27,9 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      await login(email, password);
+      await register({ name, email, password, role });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Erro ao entrar";
+      const msg = err instanceof Error ? err.message : "Erro ao criar conta";
       setError(msg);
     } finally {
       setLoading(false);
@@ -48,18 +50,18 @@ export default function LoginPage() {
             <span className="text-3xl font-bold tracking-tight">FitPro</span>
           </div>
           <h1 className="text-4xl font-bold leading-tight mb-4">
-            Gerencie treinos e dietas
+            Comece agora mesmo
             <br />
-            <span className="text-accent">como um profissional</span>
+            <span className="text-accent">e transforme vidas</span>
           </h1>
           <p className="text-muted text-lg max-w-md">
-            A plataforma completa para personal trainers e alunos.
-            Treinos, dietas, progresso e muito mais.
+            Crie sua conta e tenha acesso a todas as ferramentas
+            para gerenciar treinos, dietas e acompanhamento.
           </p>
         </div>
       </div>
 
-      {/* Login form side */}
+      {/* Register form side */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 lg:px-16">
         {/* Mobile brand */}
         <div className="flex items-center gap-3 mb-10 lg:hidden">
@@ -70,9 +72,9 @@ export default function LoginPage() {
         </div>
 
         <div className="w-full max-w-sm">
-          <h2 className="text-2xl font-bold mb-1">Entrar</h2>
+          <h2 className="text-2xl font-bold mb-1">Criar Conta</h2>
           <p className="text-muted mb-8">
-            Acesse sua conta para continuar
+            Preencha seus dados para comecar
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -81,6 +83,21 @@ export default function LoginPage() {
                 {error}
               </div>
             )}
+
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium mb-1.5 text-muted">
+                Nome
+              </label>
+              <input
+                id="name"
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Seu nome completo"
+                className="w-full bg-card border border-border rounded-lg px-4 py-2.5 text-white placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-colors"
+              />
+            </div>
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium mb-1.5 text-muted">
@@ -108,7 +125,7 @@ export default function LoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Sua senha"
+                  placeholder="Minimo 6 caracteres"
                   className="w-full bg-card border border-border rounded-lg px-4 py-2.5 text-white placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-colors pr-10"
                 />
                 <button
@@ -121,6 +138,36 @@ export default function LoginPage() {
               </div>
             </div>
 
+            <div>
+              <label className="block text-sm font-medium mb-1.5 text-muted">
+                Tipo de conta
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setRole("PERSONAL")}
+                  className={`rounded-lg border px-4 py-3 text-sm font-medium transition-all ${
+                    role === "PERSONAL"
+                      ? "bg-accent/20 border-accent text-white"
+                      : "bg-card border-border text-muted hover:border-muted"
+                  }`}
+                >
+                  Personal Trainer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRole("STUDENT")}
+                  className={`rounded-lg border px-4 py-3 text-sm font-medium transition-all ${
+                    role === "STUDENT"
+                      ? "bg-accent/20 border-accent text-white"
+                      : "bg-card border-border text-muted hover:border-muted"
+                  }`}
+                >
+                  Aluno
+                </button>
+              </div>
+            </div>
+
             <button
               type="submit"
               disabled={loading}
@@ -129,18 +176,18 @@ export default function LoginPage() {
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Entrando...
+                  Criando...
                 </>
               ) : (
-                "Entrar"
+                "Criar Conta"
               )}
             </button>
           </form>
 
           <p className="text-center text-sm text-muted mt-6">
-            Nao tem uma conta?{" "}
-            <Link href="/register" className="text-accent hover:text-accent-hover font-medium transition-colors">
-              Criar conta
+            Ja tem uma conta?{" "}
+            <Link href="/" className="text-accent hover:text-accent-hover font-medium transition-colors">
+              Entrar
             </Link>
           </p>
         </div>

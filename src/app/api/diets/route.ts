@@ -1,0 +1,182 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getUserFromRequest } from "@/lib/auth";
+
+interface FoodInput {
+  name: string;
+  quantity?: string;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  calories?: number;
+}
+
+interface MealInput {
+  time?: string;
+  name: string;
+  order?: number;
+  foods?: FoodInput[];
+}
+
+function parseDate(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  const date = new Date(value);
+  return isNaN(date.getTime()) ? null : date;
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const user = getUserFromRequest(request);
+    if (!user) {
+      return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
+    }
+
+    const studentId = request.nextUrl.searchParams.get("studentId");
+    if (!studentId) {
+      return NextResponse.json(
+        { error: "studentId e obrigatorio" },
+        { status: 400 }
+      );
+    }
+
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
+    });
+    if (!student) {
+      return NextResponse.json(
+        { error: "Estudante nao encontrado" },
+        { status: 404 }
+      );
+    }
+    if (student.personalId !== user.userId) {
+      return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+    }
+
+    const dietPlans = await prisma.dietPlan.findMany({
+      where: { studentId, trainerId: user.userId },
+      include: {
+        meals: {
+          orderBy: { order: "asc" },
+          include: { foods: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json({ dietPlans });
+  } catch (error) {
+    console.error("List diet plans error:", error);
+    return NextResponse.json(
+      { error: "Erro interno do servidor" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const user = getUserFromRequest(request);
+    if (!user) {
+      return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const {
+      name,
+      description,
+      studentId,
+      startDate,
+      endDate,
+      dailyProtein,
+      dailyCarbs,
+      dailyFat,
+      dailyCalories,
+      waterIntake,
+      supplementation,
+      meals = [],
+    } = body;
+
+    if (!name || !studentId) {
+      return NextResponse.json(
+        { error: "Nome e studentId sao obrigatorios" },
+        { status: 400 }
+      );
+    }
+
+    const parsedStartDate = parseDate(startDate);
+    if (startDate && !parsedStartDate) {
+      return NextResponse.json(
+        { error: "startDate invalida. Use formato ISO" },
+        { status: 400 }
+      );
+    }
+    const parsedEndDate = parseDate(endDate);
+    if (endDate && !parsedEndDate) {
+      return NextResponse.json(
+        { error: "endDate invalida. Use formato ISO" },
+        { status: 400 }
+      );
+    }
+
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
+    });
+    if (!student) {
+      return NextResponse.json(
+        { error: "Estudante nao encontrado" },
+        { status: 404 }
+      );
+    }
+    if (student.personalId !== user.userId) {
+      return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+    }
+
+    const dietPlan = await prisma.dietPlan.create({
+      data: {
+        name,
+        description: description ?? null,
+        startDate: parsedStartDate,
+        endDate: parsedEndDate,
+        dailyProtein: dailyProtein ?? null,
+        dailyCarbs: dailyCarbs ?? null,
+        dailyFat: dailyFat ?? null,
+        dailyCalories: dailyCalories ?? null,
+        waterIntake: waterIntake ?? null,
+        supplementation: supplementation ?? null,
+        studentId,
+        trainerId: user.userId,
+        meals: {
+          create: meals.map((meal: MealInput) => ({
+            time: meal.time ?? "",
+            name: meal.name,
+            order: meal.order ?? 0,
+            foods: {
+              create: (meal.foods ?? []).map((food: FoodInput) => ({
+                name: food.name,
+                quantity: food.quantity ?? "",
+                protein: food.protein ?? null,
+                carbs: food.carbs ?? null,
+                fat: food.fat ?? null,
+                calories: food.calories ?? null,
+              })),
+            },
+          })),
+        },
+      },
+      include: {
+        meals: {
+          orderBy: { order: "asc" },
+          include: { foods: true },
+        },
+      },
+    });
+
+    return NextResponse.json({ dietPlan }, { status: 201 });
+  } catch (error) {
+    console.error("Create diet plan error:", error);
+    return NextResponse.json(
+      { error: "Erro interno do servidor" },
+      { status: 500 }
+    );
+  }
+}

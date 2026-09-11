@@ -1,0 +1,115 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getUserFromRequest } from "@/lib/auth";
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const user = getUserFromRequest(request);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id } = await params;
+
+  const session = await prisma.workoutSession.findUnique({
+    where: { id },
+    include: {
+      workout: true,
+      student: true,
+      completedExercises: {
+        include: { exercise: true },
+        orderBy: { setNumber: "asc" },
+      },
+    },
+  });
+
+  if (!session) {
+    return NextResponse.json({ error: "Session not found" }, { status: 404 });
+  }
+
+  if (user.role === "PERSONAL" && session.workout.trainerId !== user.userId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  return NextResponse.json(session);
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const user = getUserFromRequest(request);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id } = await params;
+
+  const existing = await prisma.workoutSession.findUnique({
+    where: { id },
+    include: { workout: true },
+  });
+
+  if (!existing) {
+    return NextResponse.json({ error: "Session not found" }, { status: 404 });
+  }
+
+  if (user.role === "PERSONAL" && existing.workout.trainerId !== user.userId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const body = await request.json();
+  const { completed, notes, completedExercises } = body;
+
+  if (completedExercises?.length) {
+    await prisma.completedExercise.updateMany({
+      where: { sessionId: id },
+      data: { completed: false },
+    });
+
+    for (const ce of completedExercises) {
+      if (ce.id) {
+        await prisma.completedExercise.update({
+          where: { id: ce.id },
+          data: {
+            ...(ce.reps !== undefined && { reps: ce.reps }),
+            ...(ce.load !== undefined && { load: ce.load }),
+            ...(ce.completed !== undefined && { completed: ce.completed }),
+          },
+        });
+      }
+    }
+  }
+
+  const allDone = completed !== undefined ? completed : undefined;
+
+  if (allDone === true) {
+    const remaining = await prisma.completedExercise.count({
+      where: { sessionId: id, completed: false },
+    });
+    if (remaining > 0) {
+      return NextResponse.json(
+        { error: `${remaining} exercises are not yet completed` },
+        { status: 400 }
+      );
+    }
+  }
+
+  const session = await prisma.workoutSession.update({
+    where: { id },
+    data: {
+      ...(completed !== undefined && { completed }),
+      ...(notes !== undefined && { notes }),
+    },
+    include: {
+      completedExercises: {
+        include: { exercise: true },
+        orderBy: { setNumber: "asc" },
+      },
+    },
+  });
+
+  return NextResponse.json(session);
+}

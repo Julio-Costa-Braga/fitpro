@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="accent" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#A044FF"/>
+      <stop offset="100%" stop-color="#7A25C8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Dumbbell icon -->
+  <g transform="translate(2, 14)">
+    <!-- left weight stack -->
+    <rect x="0" y="8" width="8" height="20" rx="3" fill="url(#accent)"/>
+    <rect x="9" y="4" width="8" height="28" rx="3" fill="url(#accent)"/>
+    <!-- bar -->
+    <rect x="18" y="14" width="22" height="8" rx="4" fill="url(#accent)"/>
+    <!-- right weight stack -->
+    <rect x="41" y="4" width="8" height="28" rx="3" fill="url(#accent)"/>
+    <rect x="50" y="8" width="8" height="20" rx="3" fill="url(#accent)"/>
+  </g>
+</svg>
