@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, generateToken, type UserRole } from "@/lib/auth";
+import { generateReferralCode } from "@/lib/referral";
+import { REFERRAL_DISCOUNT_MONTHS, trialUntil } from "@/lib/billing";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, email, password, role } = body;
+    const { name, email, password, role, referralCode } = body;
 
     if (!name || !email || !password) {
       return NextResponse.json(
@@ -29,6 +31,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    let referredByUserId: string | null = null;
+    if (referralCode && typeof referralCode === "string" && referralCode.trim()) {
+      const referrer = await prisma.user.findUnique({
+        where: { referralCode: referralCode.trim().toLowerCase() },
+        select: { id: true },
+      });
+      if (!referrer) {
+        return NextResponse.json(
+          { error: "Codigo de indicacao invalido" },
+          { status: 400 }
+        );
+      }
+      referredByUserId = referrer.id;
+    }
+
     const hashedPassword = await hashPassword(password);
 
     const user = await prisma.user.create({
@@ -37,6 +54,10 @@ export async function POST(request: NextRequest) {
         email,
         password: hashedPassword,
         role: role as UserRole,
+        referralCode: generateReferralCode(name),
+        referredByUserId,
+        referralDiscountMonths: referredByUserId ? REFERRAL_DISCOUNT_MONTHS : 0,
+        paidUntil: trialUntil(),
       },
     });
 
@@ -82,6 +103,9 @@ export async function POST(request: NextRequest) {
         phone: user.phone,
         mustChangePassword: user.mustChangePassword,
         createdAt: user.createdAt,
+        referralCode: user.referralCode,
+        referralDiscountMonths: user.referralDiscountMonths,
+        referredByUserId: user.referredByUserId,
       },
     });
   } catch (error) {

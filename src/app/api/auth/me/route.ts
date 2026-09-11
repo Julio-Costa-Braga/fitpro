@@ -21,6 +21,13 @@ export async function GET(request: NextRequest) {
         mustChangePassword: true,
         createdAt: true,
         updatedAt: true,
+        referralCode: true,
+        referredByUserId: true,
+        referralDiscountMonths: true,
+        referredByUser: { select: { id: true, name: true } },
+        isActive: true,
+        lifetime: true,
+        paidUntil: true,
       },
     });
 

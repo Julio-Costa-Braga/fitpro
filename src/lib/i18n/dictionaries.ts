@@ -68,6 +68,10 @@ export const dictionaries: Record<Lang, Dict> = {
     "auth.creating": "Criando...",
     "auth.haveAccount": "Já tem uma conta?",
     "auth.loginLink": "Entrar",
+    "auth.referralCode": "Indicado por (código)",
+    "auth.referralCodePlaceholder": "Código de quem te indicou",
+    "auth.referralCodeHint": "Quem for indicado ganha R$5 de desconto na mensalidade de R$22 por 12 meses.",
+    "auth.trialNote": "7 dias de teste grátis. Depois, R$22/mês para continuar.",
     "auth.heroTagline1": "Gerencie treinos e dietas",
     "auth.heroTagline2": "como um profissional",
     "auth.heroSubtitle":
@@ -194,6 +198,10 @@ export const dictionaries: Record<Lang, Dict> = {
     "auth.creating": "Creating...",
     "auth.haveAccount": "Already have an account?",
     "auth.loginLink": "Sign in",
+    "auth.referralCode": "Referred by (code)",
+    "auth.referralCodePlaceholder": "Referrer's code",
+    "auth.referralCodeHint": "Referred users get R$5 off the R$22 monthly fee for 12 months.",
+    "auth.trialNote": "7 free trial days. Then R$22/month to continue.",
     "auth.heroTagline1": "Manage workouts and diets",
     "auth.heroTagline2": "like a professional",
     "auth.heroSubtitle":
@@ -320,6 +328,10 @@ export const dictionaries: Record<Lang, Dict> = {
     "auth.creating": "Creando...",
     "auth.haveAccount": "¿Ya tienes una cuenta?",
     "auth.loginLink": "Iniciar sesión",
+    "auth.referralCode": "Indicado por (código)",
+    "auth.referralCodePlaceholder": "Código de quien te indicó",
+    "auth.referralCodeHint": "Quien sea indicado gana R$5 de descuento en la mensualidad de R$22 por 12 meses.",
+    "auth.trialNote": "7 días de prueba gratis. Después, R$22/mes para continuar.",
     "auth.heroTagline1": "Gestiona entrenamientos y dietas",
     "auth.heroTagline2": "como un profesional",
     "auth.heroSubtitle":

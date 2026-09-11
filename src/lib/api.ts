@@ -59,11 +59,33 @@ export interface User {
   phone?: string;
   mustChangePassword?: boolean;
   createdAt: string;
+  referralCode?: string;
+  referralDiscountMonths?: number;
+  referredByUserId?: string;
+  referredByUser?: { id: string; name: string } | null;
+  isActive?: boolean;
+  lifetime?: boolean;
+  paidUntil?: string | null;
 }
 
 export interface AuthResponse {
   token: string;
   user: User;
+}
+
+export interface AdminAccount {
+  id: string;
+  name: string;
+  email: string;
+  role: "PERSONAL" | "STUDENT";
+  isActive: boolean;
+  lifetime: boolean;
+  paidUntil: string | null;
+  referralCode: string | null;
+  referralDiscountMonths: number;
+  createdAt: string;
+  referredByUser: { id: string; name: string } | null;
+  _count: { students: number; myReferrals: number };
 }
 
 export interface StatsResponse {
@@ -120,6 +142,7 @@ export const api = {
       email: string;
       password: string;
       role: "PERSONAL" | "STUDENT";
+      referralCode?: string;
     }) =>
       request<AuthResponse>("/api/auth/register", {
         method: "POST",
@@ -146,6 +169,17 @@ export const api = {
       }),
 
     me: () => request<{ user: User }>("/api/auth/me"),
+  },
+
+  admin: {
+    accounts: () => request<{ users: AdminAccount[] }>("/api/admin/accounts"),
+    updateUser: (id: string, data: {
+      isActive?: boolean;
+      lifetime?: boolean;
+      addMonth?: boolean;
+      role?: "PERSONAL" | "STUDENT";
+    }) => request<{ user: AdminAccount }>(`/api/admin/users/${id}`, { method: "PUT", body: data }),
+    deleteUser: (id: string) => request<{ ok: boolean }>(`/api/admin/users/${id}`, { method: "DELETE" }),
   },
 
   stats: {

@@ -19,7 +19,13 @@ import {
   Calendar,
   TrendingUp,
   ChevronRight,
+  QrCode,
+  Copy,
+  Check,
+  Gift,
+  Star,
 } from "lucide-react";
+import { MONTHLY_FEE, REFERRAL_DISCOUNT, REFERRAL_DISCOUNT_MONTHS, PIX_KEY } from "@/lib/billing";
 
 function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) {
   return (
@@ -31,6 +37,113 @@ function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string
         <div>
           <p className="text-sm text-muted">{label}</p>
           <p className="text-xl font-bold">{value}</p>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function StatusPill({ value, tone }: { value: string; tone: "green" | "red" | "gold" | "blue" }) {
+  const tones = {
+    green: "bg-green-500/15 text-green-400",
+    red: "bg-red-500/15 text-red-400",
+    gold: "bg-amber-500/15 text-amber-400",
+    blue: "bg-blue-500/15 text-blue-400",
+  };
+  return (
+    <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full shrink-0 ${tones[tone]}`}>
+      {value}
+    </span>
+  );
+}
+
+function BillingBanner() {
+  const { user } = useAuth();
+  const [copied, setCopied] = useState<"pix" | "code" | null>(null);
+
+  if (!user) return null;
+
+  let pill: { value: string; tone: "green" | "red" | "gold" | "blue" } | null = null;
+  if (user.lifetime) {
+    pill = { value: "Vitalício", tone: "gold" };
+  } else if (user.paidUntil) {
+    const paid = new Date(user.paidUntil).getTime() >= Date.now();
+    pill = paid
+      ? { value: `Ativo até ${new Date(user.paidUntil).toLocaleDateString("pt-BR")}`, tone: "green" }
+      : { value: "Pagamento em atraso", tone: "red" };
+  } else {
+    pill = { value: "Sem pagamento", tone: "red" };
+  }
+
+  async function copy(text: string, key: "pix" | "code") {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(key);
+      setTimeout(() => setCopied(null), 1500);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  return (
+    <Card className="p-5 border-accent/20">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center text-accent shrink-0">
+            <QrCode className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="font-semibold flex items-center gap-2">
+              Mensalidade: R$ {MONTHLY_FEE.toFixed(2).replace(".", ",")}
+              {pill && <StatusPill {...pill} />}
+            </p>
+            <p className="text-xs text-muted mt-1">
+              Pague via PIX para continuar usando o FitPro. Necessário renovar todo mês.
+            </p>
+            <div className="mt-2 flex items-center gap-2">
+              <code className="text-xs bg-bg border border-border rounded-md px-2 py-1 font-mono break-all">
+                {PIX_KEY}
+              </code>
+              <button
+                onClick={() => copy(PIX_KEY, "pix")}
+                className="inline-flex items-center gap-1 text-xs font-medium text-accent hover:text-accent-hover transition-colors shrink-0"
+              >
+                {copied === "pix" ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                {copied === "pix" ? "Copiado!" : "Copiar"}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-3 md:border-l md:border-border md:pl-5">
+          <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center text-accent shrink-0">
+            <Gift className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="font-semibold text-sm flex items-center gap-1.5">
+              <Star className="w-4 h-4 text-amber-400" />
+              Programa de indicação
+            </p>
+            <p className="text-xs text-muted mt-0.5">
+              {user.referredByUser
+                ? `Indicado por ${user.referredByUser.name} — desconto de R$ ${REFERRAL_DISCOUNT.toFixed(2).replace(".", ",")} por ${REFERRAL_DISCOUNT_MONTHS} meses`
+                : `Indique um aluno e ele ganha R$ ${REFERRAL_DISCOUNT.toFixed(2).replace(".", ",")} de desconto por ${REFERRAL_DISCOUNT_MONTHS} meses`}
+            </p>
+            {user.referralCode && (
+              <div className="mt-1.5 flex items-center gap-2">
+                <code className="text-xs bg-bg border border-border rounded-md px-2 py-1 font-mono">
+                  {user.referralCode}
+                </code>
+                <button
+                  onClick={() => copy(user.referralCode!, "code")}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-accent hover:text-accent-hover transition-colors shrink-0"
+                >
+                  {copied === "code" ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copied === "code" ? "Copiado!" : "Copiar"}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </Card>
@@ -306,6 +419,10 @@ export default function DashboardPage() {
           {error}
         </div>
       )}
+
+      <div className="mb-6">
+        <BillingBanner />
+      </div>
 
       {user.role === "PERSONAL" && trainerStats && (
         <TrainerDashboard stats={trainerStats} />

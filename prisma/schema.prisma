@@ -46,6 +46,18 @@ model User {
   // Student record linked to this login account
   studentRecord Student?  @relation("StudentAccount")
 
+  // Programa de indicacao (mensalidade)
+  referralCode          String? @unique
+  referredByUserId      String?
+  referredByUser        User?   @relation("ReferredBy", fields: [referredByUserId], references: [id], onDelete: SetNull)
+  myReferrals           User[]  @relation("ReferredBy")
+  referralDiscountMonths Int     @default(0)
+
+  // Planos e faturamento
+  isActive  Boolean   @default(true)
+  lifetime  Boolean   @default(false)
+  paidUntil DateTime?
+
   notifications Notification[]
 }
 

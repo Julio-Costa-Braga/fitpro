@@ -1,17 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Loader2, Shield, Users, UserPlus, ChevronDown, Mail, Phone, X,
+  Loader2, Shield, Users, UserPlus, Mail, X, Power, Star, CalendarPlus,
+  Trash2, Infinity as InfinityIcon, Ban, CheckCircle2,
 } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { api } from "@/lib/api";
+import { api, type AdminAccount } from "@/lib/api";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
+import { MONTHLY_FEE, REFERRAL_DISCOUNT, REFERRAL_DISCOUNT_MONTHS } from "@/lib/billing";
 
 interface AdminPersonal {
   id: string;
@@ -43,6 +45,7 @@ export default function AdminPage() {
   } | null>(null);
   const [personals, setPersonals] = useState<AdminPersonal[]>([]);
   const [students, setStudents] = useState<AdminStudent[]>([]);
+  const [accounts, setAccounts] = useState<AdminAccount[]>([]);
 
   const [showModal, setShowModal] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -66,19 +69,72 @@ export default function AdminPage() {
 
   async function loadOverview() {
     try {
-      const data = await api.get<{
-        totals: typeof totals;
-        personals: AdminPersonal[];
-        students: AdminStudent[];
-      }>("/api/admin/overview");
-      setTotals(data.totals);
-      setPersonals(data.personals);
-      setStudents(data.students);
+      const [overview, accountsData] = await Promise.all([
+        api.get<{
+          totals: typeof totals;
+          personals: AdminPersonal[];
+          students: AdminStudent[];
+        }>("/api/admin/overview"),
+        api.admin.accounts(),
+      ]);
+      setTotals(overview.totals);
+      setPersonals(overview.personals);
+      setStudents(overview.students);
+      setAccounts(accountsData.users);
     } catch {
       setError("Erro ao carregar visao geral");
     } finally {
       setLoading(false);
     }
+  }
+
+  const overdueCount = useMemo(
+    () =>
+      accounts.filter(
+        (a) => !a.isActive || (!a.lifetime && (!a.paidUntil || new Date(a.paidUntil).getTime() < Date.now()))
+      ).length,
+    [accounts]
+  );
+
+  async function updateAccount(id: string, data: Parameters<typeof api.admin.updateUser>[1]) {
+    setError("");
+    try {
+      await api.admin.updateUser(id, data);
+      await loadOverview();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erro ao atualizar conta");
+    }
+  }
+
+  async function toggleActive(acc: AdminAccount) {
+    await updateAccount(acc.id, { isActive: !acc.isActive });
+  }
+  async function toggleLifetime(acc: AdminAccount) {
+    await updateAccount(acc.id, { lifetime: !acc.lifetime });
+  }
+  async function addMonth(acc: AdminAccount) {
+    await updateAccount(acc.id, { addMonth: true, isActive: true });
+  }
+
+  async function removeAccount(acc: AdminAccount) {
+    if (!window.confirm(`Excluir definitivamente a conta de ${acc.name}?`)) return;
+    setError("");
+    try {
+      await api.admin.deleteUser(acc.id);
+      await loadOverview();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erro ao excluir conta");
+    }
+  }
+
+  function paymentLabel(acc: AdminAccount): string {
+    if (acc.lifetime) return "Vitalicio";
+    if (acc.paidUntil) {
+      const t = new Date(acc.paidUntil).getTime();
+      if (t >= Date.now()) return `Pago ate ${new Date(acc.paidUntil).toLocaleDateString("pt-BR")}`;
+      return "Pagamento pendente";
+    }
+    return "Pagamento pendente";
   }
 
   async function handleCreate() {
@@ -123,7 +179,7 @@ export default function AdminPage() {
               <Shield className="w-6 h-6 text-accent" />
               Painel Admin
             </h1>
-            <p className="text-muted text-sm">Visao geral do sistema</p>
+            <p className="text-muted text-sm">Visao geral e gestao de contas e mensalidades</p>
           </div>
           <Button icon={<UserPlus className="w-4 h-4" />} onClick={() => setShowModal(true)}>
             Criar Conta
@@ -137,7 +193,7 @@ export default function AdminPage() {
         )}
 
         {totals && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="p-5">
               <p className="text-muted text-xs uppercase tracking-wider mb-1">Personal Trainers</p>
               <p className="text-3xl font-bold text-accent">{totals.personals}</p>
@@ -147,11 +203,130 @@ export default function AdminPage() {
               <p className="text-3xl font-bold text-green-400">{totals.students}</p>
             </Card>
             <Card className="p-5">
-              <p className="text-muted text-xs uppercase tracking-wider mb-1">Sem personal</p>
-              <p className="text-3xl font-bold text-amber-400">{totals.studentsWithoutTrainer}</p>
+              <p className="text-muted text-xs uppercase tracking-wider mb-1">Contas cadastradas</p>
+              <p className="text-3xl font-bold">{accounts.length}</p>
+            </Card>
+            <Card className="p-5">
+              <p className="text-muted text-xs uppercase tracking-wider mb-1">Pagamentos em atraso</p>
+              <p className={`text-3xl font-bold ${overdueCount > 0 ? "text-red-400" : "text-green-400"}`}>
+                {overdueCount}
+              </p>
             </Card>
           </div>
         )}
+
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold">Contas e Pagamentos</h2>
+            <p className="text-xs text-muted">
+              Mensalidade: R$ {MONTHLY_FEE.toFixed(2).replace(".", ",")} · Indicacao: R$ {REFERRAL_DISCOUNT.toFixed(2).replace(".", ",")} de desconto por {REFERRAL_DISCOUNT_MONTHS} meses
+            </p>
+          </div>
+          {accounts.length === 0 ? (
+            <Card className="p-10 text-center">
+              <Users className="w-10 h-10 text-muted mx-auto mb-3" />
+              <p className="text-muted">Nenhuma conta cadastrada</p>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {accounts.map((acc) => {
+                const paid = acc.lifetime || (!!acc.paidUntil && new Date(acc.paidUntil).getTime() >= Date.now());
+                return (
+                  <Card key={acc.id} className="p-4 flex flex-col gap-3">
+                    <div className="flex items-start gap-3">
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center font-semibold text-sm shrink-0 ${acc.role === "PERSONAL" ? "bg-accent/15 text-accent" : "bg-green-500/15 text-green-400"}`}>
+                        {acc.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold truncate text-sm">{acc.name}</p>
+                        <p className="text-xs text-muted flex items-center gap-1 truncate">
+                          <Mail className="w-3 h-3 shrink-0" />{acc.email}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5">
+                      <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
+                        acc.isActive ? "bg-green-500/15 text-green-400" : "bg-red-500/15 text-red-400"
+                      }`}>
+                        {acc.isActive ? "Ativo" : "Inativo"}
+                      </span>
+                      <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
+                        acc.lifetime ? "bg-amber-500/15 text-amber-400" : "bg-accent/15 text-accent"
+                      }`}>
+                        {acc.lifetime ? "Vitalicio" : acc.role === "PERSONAL" ? "Personal" : "Aluno"}
+                      </span>
+                      {!acc.lifetime && (
+                        <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
+                          paid ? "bg-blue-500/15 text-blue-400" : "bg-red-500/15 text-red-400"
+                        }`}>
+                          {paymentLabel(acc)}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="text-xs text-muted space-y-1 border-t border-border pt-2">
+                      <p>Código: <span className="text-white font-mono">{acc.referralCode}</span></p>
+                      {acc.referredByUser ? (
+                        <p>
+                          Indicado por {acc.referredByUser.name} · desconto
+                          de R$ {REFERRAL_DISCOUNT.toFixed(2).replace(".", ",")} por {REFERRAL_DISCOUNT_MONTHS} meses
+                        </p>
+                      ) : (
+                        <p>Sem indicacao</p>
+                      )}
+                      <p>
+                        {acc.role === "STUDENT"
+                          ? `${acc._count.students} aluno vinculado`
+                          : `${acc._count.students} aluno(s)`}
+                        {acc._count.myReferrals > 0 && ` · ${acc._count.myReferrals} indicado(s)`}
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2 border-t border-border pt-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        icon={acc.isActive ? <Ban className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                        className="flex-1"
+                        onClick={() => toggleActive(acc)}
+                      >
+                        {acc.isActive ? "Desativar" : "Ativar"}
+                      </Button>
+                      {!acc.lifetime && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          icon={<CalendarPlus className="w-3.5 h-3.5" />}
+                          className="flex-1"
+                          onClick={() => addMonth(acc)}
+                        >
+                          +1 mes
+                        </Button>
+                      )}
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        icon={acc.lifetime ? <Star className="w-3.5 h-3.5" /> : <InfinityIcon className="w-3.5 h-3.5" />}
+                        onClick={() => toggleLifetime(acc)}
+                      >
+                        {acc.lifetime ? "Sair" : "Vitalicio"}
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        icon={<Trash2 className="w-3.5 h-3.5" />}
+                        onClick={() => removeAccount(acc)}
+                      >
+                        Excluir
+                      </Button>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         {personals.length > 0 && (
           <div>

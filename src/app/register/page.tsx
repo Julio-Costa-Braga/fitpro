@@ -16,6 +16,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<"PERSONAL" | "STUDENT">("STUDENT");
+  const [referralCode, setReferralCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -29,7 +30,7 @@ export default function RegisterPage() {
     setError("");
     setLoading(true);
     try {
-      await register({ name, email, password, role });
+      await register({ name, email, password, role, referralCode: referralCode.trim() || undefined });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : t("auth.registerTitle");
       setError(msg);
@@ -78,6 +79,11 @@ export default function RegisterPage() {
           <p className="text-muted mb-8">
             {t("auth.registerSubtitle")}
           </p>
+
+          <div className="bg-accent/10 border border-accent/20 text-accent text-xs font-medium rounded-lg px-4 py-3 mb-6 flex items-start gap-2">
+            <span className="mt-0.5 shrink-0">&#9889;</span>
+            <span>{t("auth.trialNote")}</span>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
@@ -138,6 +144,21 @@ export default function RegisterPage() {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+            </div>
+
+            <div className="space-y-1">
+              <label htmlFor="referralCode" className="block text-sm font-medium text-muted">
+                {t("auth.referralCode")} <span className="text-accent">(opcional)</span>
+              </label>
+              <input
+                id="referralCode"
+                type="text"
+                value={referralCode}
+                onChange={(e) => setReferralCode(e.target.value)}
+                placeholder={t("auth.referralCodePlaceholder")}
+                className="w-full bg-card border border-border rounded-lg px-4 py-2.5 text-white placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-colors"
+              />
+              <p className="text-xs text-muted">{t("auth.referralCodeHint")}</p>
             </div>
 
             <div>

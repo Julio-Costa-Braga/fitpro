@@ -14,7 +14,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: { referredByUser: { select: { id: true, name: true } } },
+    });
     if (!user) {
       return NextResponse.json(
         { error: "Credenciais invalidas" },
@@ -27,6 +30,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Credenciais invalidas" },
         { status: 401 }
+      );
+    }
+
+    if (!user.isActive) {
+      return NextResponse.json(
+        { error: "Conta desativada por falta de pagamento. Fale com o seu personal." },
+        { status: 403 }
+      );
+    }
+
+    const paid = user.lifetime || (!!user.paidUntil && user.paidUntil.getTime() > Date.now());
+    if (!paid) {
+      return NextResponse.json(
+        { error: "Periodo de teste/pagamento vencido. Renove sua mensalidade para continuar." },
+        { status: 403 }
       );
     }
 
@@ -48,6 +66,14 @@ export async function POST(request: NextRequest) {
         phone: user.phone,
         mustChangePassword: user.mustChangePassword,
         createdAt: user.createdAt,
+        referralCode: user.referralCode,
+        referralDiscountMonths: user.referralDiscountMonths,
+        referredByUser: user.referredByUser
+          ? { id: user.referredByUser.id, name: user.referredByUser.name }
+          : null,
+        isActive: user.isActive,
+        lifetime: user.lifetime,
+        paidUntil: user.paidUntil,
       },
     });
   } catch (error) {

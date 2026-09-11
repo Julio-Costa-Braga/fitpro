@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, getUserFromRequest } from "@/lib/auth";
+import { generateReferralCode } from "@/lib/referral";
+import { trialUntil } from "@/lib/billing";
 
 /**
  * Cria contas de PERSONAL ou STUDENT.
@@ -76,6 +78,8 @@ export async function POST(request: NextRequest) {
         phone: phone || null,
         role: (targetRole || "STUDENT") as "PERSONAL" | "STUDENT",
         mustChangePassword: true,
+        referralCode: generateReferralCode(name),
+        paidUntil: trialUntil(),
       },
     });
 

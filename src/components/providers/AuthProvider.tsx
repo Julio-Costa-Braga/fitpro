@@ -21,6 +21,7 @@ interface AuthContextType {
     email: string;
     password: string;
     role: "PERSONAL" | "STUDENT";
+    referralCode?: string;
   }) => Promise<void>;
   logout: () => void;
   updateUser: (updater: (prev: User | null) => User | null) => void;
