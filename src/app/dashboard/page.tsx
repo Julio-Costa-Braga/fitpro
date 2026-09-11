@@ -122,6 +122,20 @@ function StudentDashboard({ stats, studentId }: { stats: StudentStatsResponse; s
   const router = useRouter();
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState("");
+  const [openSessionId, setOpenSessionId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!stats.todayWorkout?.id || !studentId) return;
+    api
+      .get<{ id: string; completed: boolean }[]>(
+        `/api/workout-sessions?workoutId=${stats.todayWorkout.id}`
+      )
+      .then((sessions) => {
+        const open = sessions.find((s) => !s.completed);
+        setOpenSessionId(open?.id ?? null);
+      })
+      .catch(() => {});
+  }, [stats.todayWorkout?.id, studentId]);
 
   async function startWorkout() {
     const workoutId = stats.todayWorkout?.id;
@@ -129,6 +143,10 @@ function StudentDashboard({ stats, studentId }: { stats: StudentStatsResponse; s
     setStarting(true);
     setStartError("");
     try {
+      if (openSessionId) {
+        router.push(`/workouts/execute/${openSessionId}`);
+        return;
+      }
       const session = await api.post<{ id: string }>("/api/workout-sessions", {
         workoutId,
         studentId,
@@ -176,7 +194,7 @@ function StudentDashboard({ stats, studentId }: { stats: StudentStatsResponse; s
             disabled={!studentId}
             className="mt-4 w-full"
           >
-            {t("dash.startWorkout")}
+            {openSessionId ? t("dash.continueWorkout") : t("dash.startWorkout")}
           </Button>
         </Card>
       ) : (

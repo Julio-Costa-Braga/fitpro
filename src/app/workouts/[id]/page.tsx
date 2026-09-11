@@ -226,6 +226,19 @@ export default function WorkoutDetailPage() {
   async function handleStartSession() {
     if (!workout || (user?.role !== "PERSONAL" && user?.role !== "STUDENT")) return;
     try {
+      let openId: string | undefined;
+      try {
+        const sessions = await api.get<{ id: string; completed: boolean }[]>(
+          `/api/workout-sessions?workoutId=${workout.id}`
+        );
+        openId = sessions.find((s) => !s.completed)?.id;
+      } catch {
+        openId = undefined;
+      }
+      if (openId) {
+        router.push(`/workouts/execute/${openId}`);
+        return;
+      }
       const session = await api.post<{ id: string }>("/api/workout-sessions", {
         workoutId: workout.id,
         studentId: workout.studentId,

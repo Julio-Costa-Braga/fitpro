@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Loader2, Check, ArrowRight, ArrowLeft, Timer, Dumbbell, Trophy, Maximize2, X } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -33,6 +33,7 @@ interface Session {
     id: string;
     name: string;
     dayLetter: string;
+    exercises?: { exerciseId: string; restTime: number }[];
   };
   student: { id: string; name: string };
   completedExercises: CompletedExercise[];
@@ -50,6 +51,35 @@ function formatTimer(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+}
+
+function RestCircle({ seconds, total }: { seconds: number; total: number }) {
+  const R = 52;
+  const C = 2 * Math.PI * R;
+  const ratio = total > 0 ? Math.max(0, Math.min(1, seconds / total)) : 1;
+  return (
+    <div className="relative w-36 h-36">
+      <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
+        <circle cx="60" cy="60" r={R} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="8" />
+        <circle
+          cx="60"
+          cy="60"
+          r={R}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="8"
+          strokeLinecap="round"
+          strokeDasharray={C}
+          strokeDashoffset={C * (1 - ratio)}
+          className="text-accent transition-[stroke-dashoffset] duration-1000 ease-linear"
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-[11px] uppercase tracking-wider text-muted">{formatTimer(total)}</span>
+        <span className="font-mono text-4xl font-bold">{formatTimer(seconds)}</span>
+      </div>
+    </div>
+  );
 }
 
 export default function WorkoutExecutePage() {
@@ -128,6 +158,23 @@ export default function WorkoutExecutePage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [fullscreenGif]);
 
+  useEffect(() => {
+    if (!session) return;
+    const handler = setTimeout(() => {
+      api
+        .put(`/api/workout-sessions/${sessionId}`, {
+          completedExercises: session.completedExercises.map((ce) => ({
+            id: ce.id,
+            reps: ce.reps,
+            load: ce.load ?? null,
+            completed: ce.completed,
+          })),
+        })
+        .catch(() => {});
+    }, 700);
+    return () => clearTimeout(handler);
+  }, [session, sessionId]);
+
   const exerciseGroups: ExerciseGroup[] = [];
   if (session) {
     const map = new Map<string, ExerciseGroup>();
@@ -154,34 +201,34 @@ export default function WorkoutExecutePage() {
   const isLastExercise = currentExerciseIdx === totalExercises - 1;
   const allCompleted = totalExercises > 0 && completedExercises.length === totalExercises;
 
-  async function toggleSet(completedSet: CompletedExercise) {
-    try {
-      await api.put(`/api/workout-sessions/${sessionId}`, {
-        completedExercises: [
-          {
-            id: completedSet.id,
-            reps: completedSet.reps,
-            load: completedSet.load,
-            completed: !completedSet.completed,
-          },
-        ],
-      });
+  const restByExercise = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const we of session?.workout.exercises ?? []) {
+      map[we.exerciseId] = we.restTime ?? 60;
+    }
+    return map;
+  }, [session?.workout.exercises]);
 
-      setSession((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          completedExercises: prev.completedExercises.map((ce) =>
-            ce.id === completedSet.id ? { ...ce, completed: !ce.completed } : ce
-          ),
-        };
-      });
+  useEffect(() => {
+    if (currentGroup) {
+      setRestConfig(restByExercise[currentGroup.exerciseId] ?? 60);
+    }
+  }, [currentGroup?.exerciseId, restByExercise]);
 
-      if (!completedSet.completed) {
-        setRestTimer(restConfig);
-      }
-    } catch (err: unknown) {
-      if (err instanceof Error) setError(err.message);
+  function toggleSet(completedSet: CompletedExercise) {
+    if (!session) return;
+    const wasCompleted = completedSet.completed;
+    setSession((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        completedExercises: prev.completedExercises.map((ce) =>
+          ce.id === completedSet.id ? { ...ce, completed: !ce.completed } : ce
+        ),
+      };
+    });
+    if (!wasCompleted) {
+      setRestTimer(restConfig);
     }
   }
 
@@ -279,11 +326,11 @@ export default function WorkoutExecutePage() {
         {restTimer !== null && restTimer > 0 && (
           <Card className="border-accent/30 bg-accent/5">
             <CardContent className="flex flex-col items-center py-6">
-              <p className="text-sm text-muted mb-2">{t("ex.rest")}</p>
-              <p className="text-4xl font-mono font-bold text-accent">{formatTimer(restTimer)}</p>
+              <p className="text-sm text-muted mb-3">{t("ex.rest")}</p>
+              <RestCircle seconds={restTimer} total={restConfig} />
               <button
                 onClick={() => setRestTimer(null)}
-                className="mt-3 text-xs text-muted hover:text-white transition-colors"
+                className="mt-4 text-xs text-muted hover:text-white transition-colors"
               >
                 {t("ex.skipRest")}
               </button>
@@ -367,9 +414,22 @@ export default function WorkoutExecutePage() {
                     </div>
                   </div>
 
-                  <span className="text-xs text-muted shrink-0">
-                    {set.completed ? t("ex.ok") : t("ex.pending")}
-                  </span>
+                  {set.completed ? (
+                    <span className="shrink-0 flex items-center gap-1 text-xs font-semibold text-green-400">
+                      <Check className="w-4 h-4" />
+                      {t("ex.completed")}
+                    </span>
+                  ) : (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      icon={<Check className="w-3.5 h-3.5" />}
+                      onClick={() => toggleSet(set)}
+                      className="shrink-0 whitespace-nowrap"
+                    >
+                      {t("ex.complete")}
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>

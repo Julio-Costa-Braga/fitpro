@@ -16,7 +16,7 @@ export async function GET(
   const session = await prisma.workoutSession.findUnique({
     where: { id },
     include: {
-      workout: true,
+      workout: { include: { exercises: true } },
       student: true,
       completedExercises: {
         include: { exercise: true },
