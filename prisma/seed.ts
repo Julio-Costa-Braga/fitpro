@@ -1,27 +1,10 @@
 import { PrismaClient, UserRole } from "@prisma/client";
 import { hashSync } from "bcryptjs";
+import { CATALOG } from "./catalog";
 
 const prisma = new PrismaClient();
 
 const HASHED_PASSWORD = hashSync("123456", 10);
-
-const exercises = [
-  { name: "Supino Reto com Barra", muscleGroup: "Peito", gifUrl: "https://static.exercisedb.dev/media/EIeI8Vf.gif", description: "Exercício fundamental para peito" },
-  { name: "Supino Inclinado com Halteres", muscleGroup: "Peito", gifUrl: "https://static.exercisedb.dev/media/PG1kcIb.gif", description: "Foco na porção superior do peito" },
-  { name: "Crucifixo com Halteres", muscleGroup: "Peito", gifUrl: "https://static.exercisedb.dev/media/1PLE8e9.gif", description: "Isolamento do peitoral" },
-  { name: "Puxada Frontal", muscleGroup: "Costas", gifUrl: "https://static.exercisedb.dev/media/eYnzaCm.gif", description: "Trabalho de dorsal" },
-  { name: "Remada Curvada com Barra", muscleGroup: "Costas", gifUrl: "https://static.exercisedb.dev/media/eZyBC3j.gif", description: "Espessura dorsal" },
-  { name: "Pulldown na Polia", muscleGroup: "Costas", gifUrl: "https://static.exercisedb.dev/media/4c9BhzB.gif", description: "Variação da puxada frontal" },
-  { name: "Agachamento Livre", muscleGroup: "Pernas", gifUrl: "https://static.exercisedb.dev/media/DhMl549.gif", description: "Rei dos exercícios de perna" },
-  { name: "Leg Press 45", muscleGroup: "Pernas", gifUrl: "https://static.exercisedb.dev/media/10Z2DXU.gif", description: "Trabalho de quadríceps e glúteos" },
-  { name: "Stiff", muscleGroup: "Pernas", gifUrl: "https://static.exercisedb.dev/media/hrVQWvE.gif", description: "Posterior de coxa e lombar" },
-  { name: "Rosca Direta com Barra", muscleGroup: "Braços", gifUrl: "https://static.exercisedb.dev/media/4dUn2iv.gif", description: "Bíceps braquial" },
-  { name: "Tríceps Testa", muscleGroup: "Braços", gifUrl: "https://static.exercisedb.dev/media/5uFK1xr.gif", description: "Cabeça longa do tríceps" },
-  { name: "Desenvolvimento com Halteres", muscleGroup: "Ombros", gifUrl: "https://static.exercisedb.dev/media/5vfAI0I.gif", description: "Deltoide anterior e lateral" },
-  { name: "Elevação Lateral", muscleGroup: "Ombros", gifUrl: "https://static.exercisedb.dev/media/DsgkuIt.gif", description: "Isolamento do deltoide lateral" },
-  { name: "Abdominal Crunch", muscleGroup: "Abdômen", gifUrl: "https://static.exercisedb.dev/media/BMMolZ3.gif", description: "Trabalho de reto abdominal" },
-  { name: "Prancha Isométrica", muscleGroup: "Abdômen", gifUrl: "https://static.exercisedb.dev/media/CosupLu.gif", description: "Core e estabilidade" },
-];
 
 async function main() {
   console.log("🧹 Limpando banco de dados...");
@@ -70,7 +53,7 @@ async function main() {
 
   console.log("💪 Criando biblioteca de exercícios...");
   const createdExercises = await Promise.all(
-    exercises.map((e) => prisma.exercise.create({ data: e }))
+    CATALOG.map((e) => prisma.exercise.create({ data: e }))
   );
 
   console.log("🏋️ Criando treino样品...");
@@ -85,8 +68,8 @@ async function main() {
     },
   });
 
-  const peitoExercises = createdExercises.filter((e) => e.muscleGroup === "Peito");
-  const tricepsExercises = createdExercises.filter((e) => e.muscleGroup === "Braços").slice(0, 1);
+  const peitoExercises = createdExercises.filter((e) => e.muscleGroup === "Peito").slice(0, 6);
+  const tricepsExercises = createdExercises.filter((e) => e.muscleGroup === "Bracos").slice(0, 1);
 
   const workoutExercisesData = [...peitoExercises, ...tricepsExercises].map((exercise, i) => ({
     order: i + 1,
@@ -200,7 +183,7 @@ async function main() {
   console.log("✅ Seed concluído com sucesso!");
   console.log(`   - Personal: ${personal.email} (senha: 123456)`);
   console.log(`   - Aluno: ${studentUser.email} (senha: 123456)`);
-  console.log(`   - ${exercises.length} exercícios criados`);
+  console.log(`   - ${CATALOG.length} exercícios criados`);
   console.log(`   - 1 treino com ${workoutExercisesData.length} exercícios`);
   console.log(`   - 1 dieta com ${mealsData.length} refeições`);
   console.log(`   - 1 registro de progresso`);

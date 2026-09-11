@@ -51,6 +51,7 @@ const muscleGroupColors: Record<string, string> = {
   Pernas: "text-purple-400",
   Abdomen: "text-orange-400",
   Cardio: "text-pink-400",
+  Mobilidade: "text-teal-400",
   Outros: "text-muted",
 };
 
