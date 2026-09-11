@@ -37,6 +37,7 @@ model User {
   managedDiets    DietPlan[]
   workoutTemplates WorkoutTemplate[]
   dietTemplates    DietTemplate[]
+  weekTemplates    WeekTemplate[]
 
   // Student -> trainer (self-referential)
   trainerId     String?
@@ -147,6 +148,7 @@ model WorkoutTemplate {
   trainer   User?   @relation(fields: [trainerId], references: [id], onDelete: SetNull)
 
   exercises WorkoutTemplateExercise[]
+  weekDays  WeekTemplateDay[]
 }
 
 model WorkoutTemplateExercise {
@@ -163,6 +165,33 @@ model WorkoutTemplateExercise {
 
   exerciseId String
   exercise   Exercise @relation(fields: [exerciseId], references: [id])
+}
+
+model WeekTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  level       StudentLevel @default(INICIANTE)
+  isPreset    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  trainerId String?
+  trainer   User?   @relation(fields: [trainerId], references: [id], onDelete: SetNull)
+
+  days WeekTemplateDay[]
+}
+
+model WeekTemplateDay {
+  id             String @id @default(cuid())
+  weekday        String
+  workoutTemplateId String?
+  workoutTemplate   WorkoutTemplate? @relation(fields: [workoutTemplateId], references: [id], onDelete: SetNull)
+
+  weekTemplateId String
+  weekTemplate   WeekTemplate @relation(fields: [weekTemplateId], references: [id], onDelete: Cascade)
+
+  @@unique([weekTemplateId, weekday])
 }
 
 model DietTemplate {

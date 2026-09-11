@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Menu, LogOut, User as UserIcon, Globe, Check, Bell, CheckCheck, Dumbbell, Apple } from "lucide-react";
+import { Menu, LogOut, User as UserIcon, Globe, Check, Bell, CheckCheck, Dumbbell, Apple, Repeat } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
@@ -31,6 +31,7 @@ interface NotifData {
   studentId?: string;
   dietId?: string;
   mealId?: string;
+  fromWorkoutName?: string;
 }
 
 interface AppNotification {
@@ -118,6 +119,8 @@ export function Header({ title, onMenuToggle, user, onLogout }: HeaderProps) {
       router.push(`/workouts/execute/${n.data.sessionId}`);
     } else if (n.type === "MEAL_EATEN" && n.data?.dietId) {
       router.push(`/diets/${n.data.dietId}`);
+    } else if (n.type === "WORKOUT_CHANGED" && n.data?.studentId) {
+      router.push(`/students/${n.data.studentId}`);
     }
   }
 
@@ -184,15 +187,22 @@ export function Header({ title, onMenuToggle, user, onLogout }: HeaderProps) {
                   ) : (
                     notifications.map((n) => {
                       const isWorkout = n.type === "WORKOUT_COMPLETED";
-                      const titleText = isWorkout
-                        ? t("notif.workoutCompleted", {
+                      const isChanged = n.type === "WORKOUT_CHANGED";
+                      const titleText = isChanged
+                        ? t("notif.workoutChanged", {
                             student: n.data?.studentName ?? "",
                             workout: n.data?.workoutName ?? "",
+                            fromWorkout: n.data?.fromWorkoutName ?? "",
                           })
-                        : t("notif.mealEaten", {
-                            student: n.data?.studentName ?? "",
-                            meal: n.data?.mealName ?? "",
-                          });
+                        : isWorkout
+                          ? t("notif.workoutCompleted", {
+                              student: n.data?.studentName ?? "",
+                              workout: n.data?.workoutName ?? "",
+                            })
+                          : t("notif.mealEaten", {
+                              student: n.data?.studentName ?? "",
+                              meal: n.data?.mealName ?? "",
+                            });
                       return (
                         <button
                           key={n.id}
@@ -205,10 +215,20 @@ export function Header({ title, onMenuToggle, user, onLogout }: HeaderProps) {
                           <span
                             className={cn(
                               "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
-                              isWorkout ? "bg-accent/10 text-accent" : "bg-green-500/10 text-green-400"
+                              isWorkout
+                                ? "bg-accent/10 text-accent"
+                                : isChanged
+                                  ? "bg-yellow-500/10 text-yellow-400"
+                                  : "bg-green-500/10 text-green-400"
                             )}
                           >
-                            {isWorkout ? <Dumbbell className="w-4 h-4" /> : <Apple className="w-4 h-4" />}
+                            {isChanged ? (
+                              <Repeat className="w-4 h-4" />
+                            ) : isWorkout ? (
+                              <Dumbbell className="w-4 h-4" />
+                            ) : (
+                              <Apple className="w-4 h-4" />
+                            )}
                           </span>
                           <span className="flex-1 min-w-0">
                             <span className="block text-sm text-white leading-snug">{titleText}</span>

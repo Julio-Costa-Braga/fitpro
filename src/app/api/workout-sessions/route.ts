@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromRequest } from "@/lib/auth";
+import { getDayLetter, getDayName } from "@/lib/utils";
 
 export async function GET(request: NextRequest) {
   const user = getUserFromRequest(request);
@@ -132,6 +133,39 @@ export async function POST(request: NextRequest) {
       },
     },
   });
+
+  if (user.role === "STUDENT" && workout.trainerId) {
+    const ordered = await prisma.workout.findMany({
+      where: { studentId, isActive: true },
+      orderBy: [{ dayLetter: "asc" }, { createdAt: "asc" }],
+      select: { id: true, name: true, dayLetter: true, dayOfWeek: true },
+    });
+    const todayLetter = getDayLetter();
+    const todayName = getDayName().toLowerCase();
+    const baseIdx = ordered.findIndex(
+      (w) =>
+        w.dayLetter === todayLetter ||
+        (w.dayOfWeek && w.dayOfWeek.toLowerCase() === todayName)
+    );
+    if (baseIdx >= 0 && ordered[baseIdx].id !== workoutId) {
+      const student = await prisma.student.findUnique({ where: { id: studentId } });
+      if (student) {
+        await prisma.notification.create({
+          data: {
+            type: "WORKOUT_CHANGED",
+            userId: workout.trainerId,
+            data: {
+              studentId,
+              studentName: student.name,
+              workoutId,
+              workoutName: workout.name,
+              fromWorkoutName: ordered[baseIdx].name,
+            },
+          },
+        });
+      }
+    }
+  }
 
   return NextResponse.json(session, { status: 201 });
 }

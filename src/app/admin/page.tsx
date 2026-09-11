@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Loader2, Shield, Users, UserPlus, Mail, X, Power, Star, CalendarPlus,
-  Trash2, Infinity as InfinityIcon, Ban, CheckCircle2,
+  Trash2, Infinity as InfinityIcon, Ban, CheckCircle2, LayoutDashboard, CreditCard, Dumbbell,
 } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { api, type AdminAccount } from "@/lib/api";
@@ -57,6 +57,7 @@ export default function AdminPage() {
     role: "STUDENT" as "PERSONAL" | "STUDENT",
     trainerId: "",
   });
+  const [tab, setTab] = useState<"overview" | "contas" | "personais" | "alunos">("contas");
 
   useEffect(() => {
     if (authLoading) return;
@@ -192,7 +193,30 @@ export default function AdminPage() {
           </div>
         )}
 
-        {totals && (
+        <div className="flex gap-1 bg-card border border-border rounded-xl p-1 w-fit max-w-full overflow-x-auto">
+          {([
+            { id: "overview", label: "Visao Geral", icon: LayoutDashboard },
+            { id: "contas", label: "Contas e Pagamentos", icon: CreditCard },
+            { id: "personais", label: "Personal Trainers", icon: Dumbbell },
+            { id: "alunos", label: "Alunos", icon: Users },
+          ] as const).map((tb) => {
+            const active = tab === tb.id;
+            return (
+              <button
+                key={tb.id}
+                onClick={() => setTab(tb.id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+                  active ? "bg-accent text-black" : "text-muted hover:text-white"
+                }`}
+              >
+                <tb.icon className="w-4 h-4" />
+                {tb.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {tab === "overview" && totals && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="p-5">
               <p className="text-muted text-xs uppercase tracking-wider mb-1">Personal Trainers</p>
@@ -215,6 +239,7 @@ export default function AdminPage() {
           </div>
         )}
 
+        {tab === "contas" && (
         <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold">Contas e Pagamentos</h2>
@@ -327,8 +352,9 @@ export default function AdminPage() {
             </div>
           )}
         </div>
+        )}
 
-        {personals.length > 0 && (
+        {tab === "personais" && personals.length > 0 && (
           <div>
             <h2 className="text-lg font-semibold mb-3">Personal Trainers</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -354,6 +380,7 @@ export default function AdminPage() {
           </div>
         )}
 
+        {tab === "alunos" && (
         <div>
           <h2 className="text-lg font-semibold mb-3">Alunos</h2>
           {students.length === 0 ? (
@@ -386,6 +413,7 @@ export default function AdminPage() {
             </div>
           )}
         </div>
+        )}
 
         <Modal
           open={showModal}

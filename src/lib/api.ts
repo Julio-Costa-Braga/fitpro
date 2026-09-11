@@ -88,6 +88,22 @@ export interface AdminAccount {
   _count: { students: number; myReferrals: number };
 }
 
+export interface WeekTemplateDay {
+  id: string;
+  weekday: string;
+  workoutTemplateId: string | null;
+  workoutTemplate?: { id: string; name: string; exercises: { id: string }[] } | null;
+}
+
+export interface WeekTemplate {
+  id: string;
+  name: string;
+  description?: string | null;
+  level: "INICIANTE" | "MODERADO" | "AVANCADO";
+  isPreset?: boolean;
+  days: WeekTemplateDay[];
+}
+
 export interface StatsResponse {
   totalStudents: number;
   activeWorkouts: number;
@@ -122,6 +138,16 @@ export interface StudentStatsResponse {
       reps: string;
     }[];
   } | null;
+  workouts?: StudentWorkoutSummary[];
+}
+
+export interface StudentWorkoutSummary {
+  id: string;
+  name: string;
+  dayLetter: string;
+  dayOfWeek: string | null;
+  createdAt: string;
+  _count: { exercises: number };
 }
 
 export const api = {
@@ -186,5 +212,28 @@ export const api = {
     get: () => request<StatsResponse>("/api/stats"),
     getStudent: (studentId: string) =>
       request<StudentStatsResponse>(`/api/stats/student?studentId=${studentId}`),
+  },
+
+  weekTemplates: {
+    list: () => request<{ weeks: WeekTemplate[] }>("/api/week-templates"),
+    create: (data: {
+      name: string;
+      description?: string;
+      level?: "INICIANTE" | "MODERADO" | "AVANCADO";
+      days: { weekday: string; workoutTemplateId: string }[];
+    }) => request<{ week: WeekTemplate }>("/api/week-templates", { method: "POST", body: data }),
+    get: (id: string) => request<{ week: WeekTemplate }>(`/api/week-templates/${id}`),
+    update: (id: string, data: {
+      name: string;
+      description?: string;
+      level?: "INICIANTE" | "MODERADO" | "AVANCADO";
+      days: { weekday: string; workoutTemplateId: string }[];
+    }) => request<{ week: WeekTemplate }>(`/api/week-templates/${id}`, { method: "PUT", body: data }),
+    remove: (id: string) => request<{ ok: boolean }>(`/api/week-templates/${id}`, { method: "DELETE" }),
+    apply: (id: string, studentId: string) =>
+      request<{ weekName: string; created: number; workouts: { id: string; name: string; dayOfWeek: string }[] }>(
+        `/api/week-templates/${id}/apply`,
+        { method: "POST", body: { studentId } }
+      ),
   },
 };

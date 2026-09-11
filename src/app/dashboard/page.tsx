@@ -24,6 +24,7 @@ import {
   Check,
   Gift,
   Star,
+  ListChecks,
 } from "lucide-react";
 import { MONTHLY_FEE, REFERRAL_DISCOUNT, REFERRAL_DISCOUNT_MONTHS, PIX_KEY } from "@/lib/billing";
 
@@ -111,6 +112,12 @@ function BillingBanner() {
                 {copied === "pix" ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                 {copied === "pix" ? "Copiado!" : "Copiar"}
               </button>
+              <Link
+                href="/pix"
+                className="inline-flex items-center gap-1 text-xs font-medium text-muted hover:text-white transition-colors shrink-0"
+              >
+                Ver cartão &#8599;
+              </Link>
             </div>
           </div>
         </div>
@@ -236,6 +243,7 @@ function StudentDashboard({ stats, studentId }: { stats: StudentStatsResponse; s
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState("");
   const [openSessionId, setOpenSessionId] = useState<string | null>(null);
+  const [otherStartingId, setOtherStartingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!stats.todayWorkout?.id || !studentId) return;
@@ -268,6 +276,30 @@ function StudentDashboard({ stats, studentId }: { stats: StudentStatsResponse; s
     } catch (err: unknown) {
       setStartError(err instanceof Error ? err.message : "Erro ao iniciar treino");
       setStarting(false);
+    }
+  }
+
+  async function startOtherWorkout(workoutId: string) {
+    if (!workoutId || !studentId) return;
+    setOtherStartingId(workoutId);
+    setStartError("");
+    try {
+      const sessions = await api.get<{ id: string; completed: boolean }[]>(
+        `/api/workout-sessions?workoutId=${workoutId}`
+      );
+      const open = sessions.find((s) => !s.completed);
+      if (open) {
+        router.push(`/workouts/execute/${open.id}`);
+        return;
+      }
+      const session = await api.post<{ id: string }>("/api/workout-sessions", {
+        workoutId,
+        studentId,
+      });
+      router.push(`/workouts/execute/${session.id}`);
+    } catch (err: unknown) {
+      setStartError(err instanceof Error ? err.message : "Erro ao iniciar treino");
+      setOtherStartingId(null);
     }
   }
 
@@ -314,6 +346,43 @@ function StudentDashboard({ stats, studentId }: { stats: StudentStatsResponse; s
         <Card className="p-8 text-center">
           <Dumbbell className="w-10 h-10 text-muted mx-auto mb-3" />
           <p className="text-muted">{t("dash.noWorkoutToday")}</p>
+        </Card>
+      )}
+
+      {stats.workouts && stats.workouts.length > 1 && (
+        <Card className="p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <ListChecks className="w-5 h-5 text-accent" />
+            <h2 className="font-semibold text-lg">{t("dash.otherWorkouts")}</h2>
+          </div>
+          <p className="text-xs text-muted mb-4">{t("dash.otherWorkoutsHint")}</p>
+          <div className="space-y-2">
+            {stats.workouts
+              .filter((w) => w.id !== stats.todayWorkout?.id)
+              .map((w) => (
+                <div
+                  key={w.id}
+                  className="flex items-center justify-between bg-bg rounded-lg px-3 py-2.5 gap-3"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{w.name}</p>
+                    <p className="text-xs text-muted">
+                      {[w.dayOfWeek, w.dayLetter].filter(Boolean).join(" \u00b7 ")}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs text-muted">{w._count.exercises} ex.</span>
+                    <Button
+                      size="sm"
+                      onClick={() => startOtherWorkout(w.id)}
+                      loading={otherStartingId === w.id}
+                    >
+                      {t("dash.trainOtherWorkout")}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+          </div>
         </Card>
       )}
 

@@ -11,8 +11,8 @@ function isSameDay(d1: Date, d2: Date): boolean {
   );
 }
 
-async function resolveTodayWorkout(studentId: string) {
-  const ordered = await prisma.workout.findMany({
+async function getOrderedWorkouts(studentId: string) {
+  return prisma.workout.findMany({
     where: { studentId, isActive: true },
     orderBy: [{ dayLetter: "asc" }, { createdAt: "asc" }],
     include: {
@@ -22,6 +22,10 @@ async function resolveTodayWorkout(studentId: string) {
       },
     },
   });
+}
+
+async function resolveTodayWorkout(studentId: string) {
+  const ordered = await getOrderedWorkouts(studentId);
   if (ordered.length === 0) return null;
 
   const todayLetter = getDayLetter();
@@ -95,7 +99,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
-    const [totalWorkouts, completedSessions, totalSessions, latestProgress, todayWorkout] =
+    const [totalWorkouts, completedSessions, totalSessions, latestProgress, todayWorkout, workouts] =
       await Promise.all([
         prisma.workout.count({ where: { studentId } }),
         prisma.workoutSession.count({
@@ -107,6 +111,18 @@ export async function GET(request: NextRequest) {
           orderBy: { date: "desc" },
         }),
         resolveTodayWorkout(studentId),
+        prisma.workout.findMany({
+          where: { studentId, isActive: true },
+          orderBy: [{ dayLetter: "asc" }, { createdAt: "asc" }],
+          select: {
+            id: true,
+            name: true,
+            dayLetter: true,
+            dayOfWeek: true,
+            createdAt: true,
+            _count: { select: { exercises: true } },
+          },
+        }),
       ]);
 
     const completionRate =
@@ -119,6 +135,7 @@ export async function GET(request: NextRequest) {
       completionRate,
       latestProgress,
       todayWorkout,
+      workouts,
     });
   } catch (error) {
     console.error("Student stats error:", error);
