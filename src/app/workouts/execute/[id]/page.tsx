@@ -2,12 +2,13 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { Loader2, Check, ArrowRight, ArrowLeft, Timer, Dumbbell, Trophy } from "lucide-react";
+import { Loader2, Check, ArrowRight, ArrowLeft, Timer, Dumbbell, Trophy, Maximize2, X } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { api } from "@/lib/api";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 interface CompletedExercise {
   id: string;
@@ -55,6 +56,7 @@ export default function WorkoutExecutePage() {
   const { user, token, loading: authLoading } = useAuth();
   const router = useRouter();
   const params = useParams();
+  const { t } = useLanguage();
   const sessionId = params.id as string;
 
   const [session, setSession] = useState<Session | null>(null);
@@ -65,6 +67,7 @@ export default function WorkoutExecutePage() {
   const [totalDuration, setTotalDuration] = useState(0);
   const [restTimer, setRestTimer] = useState<number | null>(null);
   const [restConfig, setRestConfig] = useState(60);
+  const [fullscreenGif, setFullscreenGif] = useState<string | null>(null);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const restRef = useRef<NodeJS.Timeout | null>(null);
@@ -115,6 +118,15 @@ export default function WorkoutExecutePage() {
       if (restRef.current) clearInterval(restRef.current);
     };
   }, [restTimer]);
+
+  useEffect(() => {
+    if (!fullscreenGif) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFullscreenGif(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [fullscreenGif]);
 
   const exerciseGroups: ExerciseGroup[] = [];
   if (session) {
@@ -230,7 +242,7 @@ export default function WorkoutExecutePage() {
   const currentSetsTotal = currentGroup.sets.length;
 
   return (
-    <AppLayout title={`Executar: ${session.workout.name}`}>
+    <AppLayout title={t("ex.title", { name: session.workout.name })}>
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-lg px-4 py-3 mb-4">
           {error}
@@ -243,7 +255,7 @@ export default function WorkoutExecutePage() {
             <p className="text-sm text-muted">{session.student.name}</p>
             <p className="text-lg font-bold">
               {session.workout.name}
-              <span className="ml-2 text-accent text-sm">Dia {session.workout.dayLetter}</span>
+              <span className="ml-2 text-accent text-sm">{t("common.day")} {session.workout.dayLetter}</span>
             </p>
           </div>
           <div className="flex items-center gap-2 text-muted text-sm">
@@ -267,13 +279,13 @@ export default function WorkoutExecutePage() {
         {restTimer !== null && restTimer > 0 && (
           <Card className="border-accent/30 bg-accent/5">
             <CardContent className="flex flex-col items-center py-6">
-              <p className="text-sm text-muted mb-2">Descanso</p>
+              <p className="text-sm text-muted mb-2">{t("ex.rest")}</p>
               <p className="text-4xl font-mono font-bold text-accent">{formatTimer(restTimer)}</p>
               <button
                 onClick={() => setRestTimer(null)}
                 className="mt-3 text-xs text-muted hover:text-white transition-colors"
               >
-                Pular descanso
+                {t("ex.skipRest")}
               </button>
             </CardContent>
           </Card>
@@ -283,13 +295,20 @@ export default function WorkoutExecutePage() {
           <CardContent className="p-4">
             <div className="flex items-center gap-4 mb-4">
               {currentGroup.gifUrl ? (
-                <div className="w-24 h-24 rounded-xl bg-bg overflow-hidden shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setFullscreenGif(currentGroup.gifUrl!)}
+                  className="w-24 h-24 rounded-xl bg-bg overflow-hidden shrink-0 group relative"
+                >
                   <img
                     src={currentGroup.gifUrl}
                     alt={currentGroup.exerciseName}
                     className="w-full h-full object-cover"
                   />
-                </div>
+                  <span className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Maximize2 className="w-6 h-6 text-white" />
+                  </span>
+                </button>
               ) : (
                 <div className="w-24 h-24 rounded-xl bg-bg flex items-center justify-center shrink-0">
                   <Dumbbell className="w-8 h-8 text-muted/30" />
@@ -299,7 +318,7 @@ export default function WorkoutExecutePage() {
                 <h2 className="text-xl font-bold">{currentGroup.exerciseName}</h2>
                 <p className="text-sm text-muted">{currentGroup.muscleGroup}</p>
                 <p className="text-xs text-muted mt-1">
-                  Serie {currentExerciseIdx + 1} de {totalExercises}
+                  {t("ex.setOf", { current: currentExerciseIdx + 1, total: totalExercises })}
                 </p>
               </div>
             </div>
@@ -328,7 +347,7 @@ export default function WorkoutExecutePage() {
 
                   <div className="flex-1 flex items-center gap-3">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-muted">Reps:</span>
+                      <span className="text-xs text-muted">{t("ex.reps")}</span>
                       <input
                         type="number"
                         min={0}
@@ -338,7 +357,7 @@ export default function WorkoutExecutePage() {
                       />
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-muted">Carga:</span>
+                      <span className="text-xs text-muted">{t("ex.load")}</span>
                       <input
                         value={set.load ?? ""}
                         onChange={(e) => updateSetLoad(set, e.target.value)}
@@ -349,7 +368,7 @@ export default function WorkoutExecutePage() {
                   </div>
 
                   <span className="text-xs text-muted shrink-0">
-                    {set.completed ? "OK" : "Pendente"}
+                    {set.completed ? t("ex.ok") : t("ex.pending")}
                   </span>
                 </div>
               ))}
@@ -364,7 +383,7 @@ export default function WorkoutExecutePage() {
             onClick={() => setCurrentExerciseIdx((prev) => Math.max(0, prev - 1))}
             disabled={currentExerciseIdx === 0}
           >
-            Anterior
+            {t("ex.back")}
           </Button>
 
           {isLastExercise && allCompleted ? (
@@ -373,7 +392,7 @@ export default function WorkoutExecutePage() {
               onClick={handleFinish}
               className="bg-green-600 hover:bg-green-700 shadow-lg shadow-green-600/20"
             >
-              Finalizar Treino
+              {t("ex.finishWorkout")}
             </Button>
           ) : (
             <Button
@@ -383,7 +402,7 @@ export default function WorkoutExecutePage() {
               }
               disabled={isLastExercise}
             >
-              Proximo
+              {t("ex.next")}
             </Button>
           )}
         </div>
@@ -394,11 +413,36 @@ export default function WorkoutExecutePage() {
               variant="danger"
               onClick={handleFinish}
             >
-              Finalizar Treino (exercicios pendentes)
+              {t("ex.finishPending")}
             </Button>
           </div>
         )}
       </div>
+
+      {fullscreenGif && (
+        <div
+          className="fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-center"
+          onClick={() => setFullscreenGif(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setFullscreenGif(null)}
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+            aria-label={t("common.close")}
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <p className="text-white font-semibold text-center px-6 mb-4 max-w-md">
+            {currentGroup.exerciseName}
+          </p>
+          <img
+            src={fullscreenGif}
+            alt={currentGroup.exerciseName}
+            className="max-w-full max-h-[80vh] object-contain select-none"
+          />
+          <p className="text-xs text-white/50 mt-4">{t("ex.closeViewer")}</p>
+        </div>
+      )}
     </AppLayout>
   );
 }

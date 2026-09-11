@@ -8,6 +8,7 @@ import { api, type StatsResponse, type StudentStatsResponse } from "@/lib/api";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import Link from "next/link";
 import {
   Users,
@@ -36,17 +37,18 @@ function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string
 }
 
 function TrainerDashboard({ stats }: { stats: StatsResponse }) {
+  const { t, lang } = useLanguage();
   return (
     <div className="space-y-6 animate-fadeIn">
       <div>
-        <h1 className="text-2xl font-bold mb-1">Dashboard</h1>
-        <p className="text-muted">Visao geral da sua atividade</p>
+        <h1 className="text-2xl font-bold mb-1">{t("dash.title")}</h1>
+        <p className="text-muted">{t("dash.trainerSubtitle")}</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard icon={<Users className="w-5 h-5" />} label="Alunos" value={stats.totalStudents} />
-        <StatCard icon={<Dumbbell className="w-5 h-5" />} label="Treinos Ativos" value={stats.activeWorkouts} />
-        <StatCard icon={<Apple className="w-5 h-5" />} label="Dietas Ativas" value={stats.activeDiets} />
+        <StatCard icon={<Users className="w-5 h-5" />} label={t("dash.students")} value={stats.totalStudents} />
+        <StatCard icon={<Dumbbell className="w-5 h-5" />} label={t("dash.activeWorkouts")} value={stats.activeWorkouts} />
+        <StatCard icon={<Apple className="w-5 h-5" />} label={t("dash.activeDiets")} value={stats.activeDiets} />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -57,7 +59,7 @@ function TrainerDashboard({ stats }: { stats: StatsResponse }) {
           <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center text-accent group-hover:bg-accent/20 transition-colors">
             <Plus className="w-4 h-4" />
           </div>
-          <span className="font-medium text-sm">Adicionar Aluno</span>
+          <span className="font-medium text-sm">{t("dash.addStudent")}</span>
           <ChevronRight className="w-4 h-4 text-muted ml-auto" />
         </Link>
         <Link
@@ -67,7 +69,7 @@ function TrainerDashboard({ stats }: { stats: StatsResponse }) {
           <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center text-accent group-hover:bg-accent/20 transition-colors">
             <Dumbbell className="w-4 h-4" />
           </div>
-          <span className="font-medium text-sm">Criar Treino</span>
+          <span className="font-medium text-sm">{t("dash.addWorkout")}</span>
           <ChevronRight className="w-4 h-4 text-muted ml-auto" />
         </Link>
         <Link
@@ -77,7 +79,7 @@ function TrainerDashboard({ stats }: { stats: StatsResponse }) {
           <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center text-accent group-hover:bg-accent/20 transition-colors">
             <Apple className="w-4 h-4" />
           </div>
-          <span className="font-medium text-sm">Criar Dieta</span>
+          <span className="font-medium text-sm">{t("dash.addDiet")}</span>
           <ChevronRight className="w-4 h-4 text-muted ml-auto" />
         </Link>
       </div>
@@ -85,11 +87,11 @@ function TrainerDashboard({ stats }: { stats: StatsResponse }) {
       <Card>
         <div className="px-5 py-4 border-b border-border flex items-center gap-2">
           <Calendar className="w-4 h-4 text-accent" />
-          <h2 className="font-semibold">Atividade Recente</h2>
+          <h2 className="font-semibold">{t("dash.recentActivity")}</h2>
         </div>
         {stats.recentSessions.length === 0 ? (
           <div className="px-5 py-8 text-center text-muted text-sm">
-            Nenhuma atividade recente
+            {t("dash.noRecentActivity")}
           </div>
         ) : (
           <div className="divide-y divide-border">
@@ -99,11 +101,11 @@ function TrainerDashboard({ stats }: { stats: StatsResponse }) {
                   <p className="text-sm font-medium truncate">{session.workout.name}</p>
                   <p className="text-xs text-muted">
                     {session.student.name} &middot;{" "}
-                    {new Date(session.date).toLocaleDateString("pt-BR")}
+                    {new Date(session.date).toLocaleDateString(lang === "pt" ? "pt-BR" : lang === "es" ? "es-ES" : "en-US")}
                   </p>
                 </div>
                 <Badge variant={session.completed ? "success" : "warning"}>
-                  {session.completed ? "Concluido" : "Pendente"}
+                  {session.completed ? t("dash.concluded") : t("dash.pending")}
                 </Badge>
               </div>
             ))}
@@ -115,18 +117,19 @@ function TrainerDashboard({ stats }: { stats: StatsResponse }) {
 }
 
 function StudentDashboard({ stats }: { stats: StudentStatsResponse }) {
+  const { t } = useLanguage();
   return (
     <div className="space-y-6 animate-fadeIn">
       <div>
-        <h1 className="text-2xl font-bold mb-1">Meu Dashboard</h1>
-        <p className="text-muted">Acompanhe seus treinos e progresso</p>
+        <h1 className="text-2xl font-bold mb-1">{t("dash.studentTitle")}</h1>
+        <p className="text-muted">{t("dash.studentSubtitle")}</p>
       </div>
 
       {stats.todayWorkout ? (
         <Card className="p-5">
           <div className="flex items-center gap-2 mb-4">
             <Dumbbell className="w-5 h-5 text-accent" />
-            <h2 className="font-semibold text-lg">Treino do Dia</h2>
+            <h2 className="font-semibold text-lg">{t("dash.todayWorkout")}</h2>
           </div>
           <h3 className="font-medium text-white mb-3">{stats.todayWorkout.name}</h3>
           <div className="space-y-2">
@@ -146,23 +149,23 @@ function StudentDashboard({ stats }: { stats: StudentStatsResponse }) {
             href={`/workout-sessions/new?workoutId=${stats.todayWorkout.id}`}
             className="mt-4 w-full bg-accent hover:bg-accent-hover text-white font-semibold rounded-lg px-4 py-2.5 transition-colors flex items-center justify-center gap-2"
           >
-            Iniciar Treino
+            {t("dash.startWorkout")}
           </Link>
         </Card>
       ) : (
         <Card className="p-8 text-center">
           <Dumbbell className="w-10 h-10 text-muted mx-auto mb-3" />
-          <p className="text-muted">Nenhum treino programado para hoje</p>
+          <p className="text-muted">{t("dash.noWorkoutToday")}</p>
         </Card>
       )}
 
       <div className="grid grid-cols-2 gap-4">
         <Card className="p-4">
-          <p className="text-sm text-muted mb-1">Taxa de Conclusao</p>
+          <p className="text-sm text-muted mb-1">{t("dash.completionRate")}</p>
           <p className="text-2xl font-bold">{stats.completionRate}%</p>
         </Card>
         <Card className="p-4">
-          <p className="text-sm text-muted mb-1">Treinos</p>
+          <p className="text-sm text-muted mb-1">{t("dash.workouts")}</p>
           <p className="text-2xl font-bold">
             {stats.completedSessions}/{stats.totalSessions}
           </p>
@@ -177,7 +180,7 @@ function StudentDashboard({ stats }: { stats: StudentStatsResponse }) {
           <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center text-accent group-hover:bg-accent/20 transition-colors">
             <Apple className="w-4 h-4" />
           </div>
-          <span className="font-medium text-sm">Ver Minha Dieta</span>
+          <span className="font-medium text-sm">{t("dash.viewDiet")}</span>
           <ChevronRight className="w-4 h-4 text-muted ml-auto" />
         </Link>
         <Link
@@ -187,7 +190,7 @@ function StudentDashboard({ stats }: { stats: StudentStatsResponse }) {
           <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center text-accent group-hover:bg-accent/20 transition-colors">
             <TrendingUp className="w-4 h-4" />
           </div>
-          <span className="font-medium text-sm">Meu Progresso</span>
+          <span className="font-medium text-sm">{t("dash.myProgress")}</span>
           <ChevronRight className="w-4 h-4 text-muted ml-auto" />
         </Link>
       </div>
@@ -198,6 +201,7 @@ function StudentDashboard({ stats }: { stats: StudentStatsResponse }) {
 export default function DashboardPage() {
   const { user, token, loading: authLoading } = useAuth();
   const router = useRouter();
+  const { t, lang } = useLanguage();
   const [trainerStats, setTrainerStats] = useState<StatsResponse | null>(null);
   const [studentStats, setStudentStats] = useState<StudentStatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -249,7 +253,7 @@ export default function DashboardPage() {
   if (!user) return null;
 
   return (
-    <AppLayout title="Dashboard">
+    <AppLayout title={t("dash.title")}>
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-lg px-4 py-3 mb-6">
           {error}

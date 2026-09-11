@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Dumbbell, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 export default function LoginPage() {
   const { login, user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const { t } = useLanguage();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -27,7 +29,7 @@ export default function LoginPage() {
     try {
       await login(email, password);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Erro ao entrar";
+      const msg = err instanceof Error ? err.message : t("auth.login");
       setError(msg);
     } finally {
       setLoading(false);
@@ -48,13 +50,12 @@ export default function LoginPage() {
             <span className="text-3xl font-bold tracking-tight">FitPro</span>
           </div>
           <h1 className="text-4xl font-bold leading-tight mb-4">
-            Gerencie treinos e dietas
+            {t("auth.heroTagline1")}
             <br />
-            <span className="text-accent">como um profissional</span>
+            <span className="text-accent">{t("auth.heroTagline2")}</span>
           </h1>
           <p className="text-muted text-lg max-w-md">
-            A plataforma completa para personal trainers e alunos.
-            Treinos, dietas, progresso e muito mais.
+            {t("auth.heroSubtitle")}
           </p>
         </div>
       </div>
@@ -70,9 +71,9 @@ export default function LoginPage() {
         </div>
 
         <div className="w-full max-w-sm">
-          <h2 className="text-2xl font-bold mb-1">Entrar</h2>
+          <h2 className="text-2xl font-bold mb-1">{t("auth.login")}</h2>
           <p className="text-muted mb-8">
-            Acesse sua conta para continuar
+            {t("auth.loginSubtitle")}
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -84,7 +85,7 @@ export default function LoginPage() {
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium mb-1.5 text-muted">
-                Email
+                {t("auth.email")}
               </label>
               <input
                 id="email"
@@ -99,7 +100,7 @@ export default function LoginPage() {
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium mb-1.5 text-muted">
-                Senha
+                {t("auth.password")}
               </label>
               <div className="relative">
                 <input
@@ -129,18 +130,18 @@ export default function LoginPage() {
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Entrando...
+                  {t("auth.loggingIn")}
                 </>
               ) : (
-                "Entrar"
+                t("auth.login")
               )}
             </button>
           </form>
 
           <p className="text-center text-sm text-muted mt-6">
-            Nao tem uma conta?{" "}
+            {t("auth.noAccount")}{" "}
             <Link href="/register" className="text-accent hover:text-accent-hover font-medium transition-colors">
-              Criar conta
+              {t("auth.createAccount")}
             </Link>
           </p>
         </div>

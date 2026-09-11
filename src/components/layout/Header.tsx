@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Menu, LogOut, User as UserIcon } from "lucide-react";
+import { Menu, LogOut, User as UserIcon, Globe, Check } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { LANGS } from "@/lib/i18n/dictionaries";
 
 interface HeaderProps {
   title: string;
@@ -18,12 +20,18 @@ interface HeaderProps {
 
 export function Header({ title, onMenuToggle, user, onLogout }: HeaderProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const langRef = useRef<HTMLDivElement>(null);
+  const { lang, setLang, t } = useLanguage();
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setDropdownOpen(false);
+      }
+      if (langRef.current && !langRef.current.contains(e.target as Node)) {
+        setLangOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -42,8 +50,38 @@ export function Header({ title, onMenuToggle, user, onLogout }: HeaderProps) {
         <h1 className="text-lg font-semibold">{title}</h1>
       </div>
 
-      {user && (
-        <div className="relative" ref={dropdownRef}>
+      <div className="flex items-center gap-1.5">
+        <div className="relative" ref={langRef}>
+          <button
+            onClick={() => setLangOpen(!langOpen)}
+            className="p-2 rounded-lg text-muted hover:text-white hover:bg-card transition-colors flex items-center gap-1.5"
+            aria-label="Idioma / Language / Idioma"
+          >
+            <Globe className="w-4 h-4" />
+            <span className="text-xs font-semibold uppercase hidden sm:block">{lang}</span>
+          </button>
+
+          {langOpen && (
+            <div className="absolute right-0 top-full mt-2 w-44 bg-card border border-border rounded-xl shadow-2xl animate-slideIn overflow-hidden py-1">
+              {LANGS.map((l) => (
+                <button
+                  key={l.code}
+                  onClick={() => {
+                    setLang(l.code);
+                    setLangOpen(false);
+                  }}
+                  className="w-full flex items-center justify-between px-4 py-2 text-sm text-muted hover:text-white hover:bg-[#222] transition-colors"
+                >
+                  <span>{l.label}</span>
+                  {lang === l.code && <Check className="w-4 h-4 text-accent" />}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {user && (
+          <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
             className="flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-card transition-colors"
@@ -67,13 +105,14 @@ export function Header({ title, onMenuToggle, user, onLogout }: HeaderProps) {
                   className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-muted hover:text-white hover:bg-[#222] transition-colors"
                 >
                   <LogOut className="w-4 h-4" />
-                  Sair
+                  {t("header.logout")}
                 </button>
               </div>
             </div>
           )}
         </div>
       )}
+      </div>
     </header>
   );
 }

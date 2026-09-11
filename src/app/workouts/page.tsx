@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Tabs } from "@/components/ui/Tabs";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { dayOfWeekKeys } from "@/lib/i18n/dictionaries";
 import Link from "next/link";
 
 interface Student {
@@ -58,20 +60,10 @@ const dayLetterColor: Record<string, string> = {
   F: "bg-pink-500/15 text-pink-400",
 };
 
-const dayOfWeekOptions = [
-  { value: "", label: "Nenhum" },
-  { value: "Segunda", label: "Segunda-feira" },
-  { value: "Terca", label: "Terca-feira" },
-  { value: "Quarta", label: "Quarta-feira" },
-  { value: "Quinta", label: "Quinta-feira" },
-  { value: "Sexta", label: "Sexta-feira" },
-  { value: "Sabado", label: "Sabado" },
-  { value: "Domingo", label: "Domingo" },
-];
-
 export default function WorkoutsPage() {
   const { user, token, loading: authLoading } = useAuth();
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
@@ -190,7 +182,7 @@ export default function WorkoutsPage() {
   if (!user) return null;
 
   return (
-    <AppLayout title="Treinos">
+    <AppLayout title={t("wk.title")}>
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-lg px-4 py-3 mb-6">
           {error}
@@ -200,20 +192,20 @@ export default function WorkoutsPage() {
       <div className="space-y-6 animate-fadeIn">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold mb-1">Treinos</h1>
-            <p className="text-muted text-sm">Gerencie os treinos dos seus alunos</p>
+            <h1 className="text-2xl font-bold mb-1">{t("wk.title")}</h1>
+            <p className="text-muted text-sm">{t("wk.subtitle")}</p>
           </div>
           <Button
             icon={<Plus className="w-4 h-4" />}
             onClick={() => setShowCreateModal(true)}
           >
-            Novo Treino
+            {t("wk.newWorkout")}
           </Button>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
           <Input
-            placeholder="Buscar treino ou aluno..."
+            placeholder={t("wk.searchPlaceholder")}
             icon={<Search className="w-4 h-4" />}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -225,7 +217,7 @@ export default function WorkoutsPage() {
               onChange={(e) => setFilterStudent(e.target.value)}
               className="bg-card border border-border rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent/40"
             >
-              <option value="all">Todos os alunos</option>
+              <option value="all">{t("common.allStudents")}</option>
               {students.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
@@ -254,9 +246,9 @@ export default function WorkoutsPage() {
         {filteredWorkouts.length === 0 ? (
           <Card className="p-12 text-center">
             <Dumbbell className="w-10 h-10 text-muted mx-auto mb-3" />
-            <p className="text-muted mb-1">Nenhum treino encontrado</p>
+            <p className="text-muted mb-1">{t("wk.noWorkouts")}</p>
             <p className="text-xs text-muted/60">
-              Clique em &quot;Novo Treino&quot; para criar o primeiro
+              {t("wk.noWorkoutsHint")}
             </p>
           </Card>
         ) : filterDay !== "all" ? (
@@ -277,7 +269,7 @@ export default function WorkoutsPage() {
                       {letter}
                     </span>
                     <h2 className="text-sm font-semibold text-muted uppercase tracking-wider">
-                      Dia {letter}
+                      {t("common.day")} {letter}
                     </h2>
                     <Badge variant="default">{groupedByDay[letter].length}</Badge>
                   </div>
@@ -295,32 +287,32 @@ export default function WorkoutsPage() {
       <Modal
         open={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        title="Novo Treino"
+        title={t("wk.newWorkout")}
       >
         <form onSubmit={handleCreate} className="space-y-4">
           <Input
-            label="Nome do Treino"
-            placeholder="Ex: Treino A - Peito e Triceps"
+            label={t("wk.workoutName")}
+            placeholder={t("wk.namePlaceholder")}
             value={createForm.name}
             onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
             required
           />
           <Input
-            label="Descricao"
-            placeholder="Descricao opcional..."
+            label={t("wk.description")}
+            placeholder={t("wk.descPlaceholder")}
             value={createForm.description}
             onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
           />
           {user.role === "PERSONAL" && (
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-muted">Aluno</label>
+              <label className="block text-sm font-medium text-muted">{t("wk.student")}</label>
               <select
                 value={createForm.studentId}
                 onChange={(e) => setCreateForm({ ...createForm, studentId: e.target.value })}
                 required
                 className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent/60 transition-all"
               >
-                <option value="">Selecione um aluno</option>
+                <option value="">{t("common.selectStudent")}</option>
                 {students.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
@@ -330,7 +322,7 @@ export default function WorkoutsPage() {
             </div>
           )}
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-muted">Letra do Dia</label>
+            <label className="block text-sm font-medium text-muted">{t("wk.dayLetter")}</label>
             <div className="flex gap-2">
               {DAY_LETTERS.map((letter) => (
                 <button
@@ -349,15 +341,15 @@ export default function WorkoutsPage() {
             </div>
           </div>
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-muted">Dia da Semana</label>
+            <label className="block text-sm font-medium text-muted">{t("wk.dayOfWeek")}</label>
             <select
               value={createForm.dayOfWeek}
               onChange={(e) => setCreateForm({ ...createForm, dayOfWeek: e.target.value })}
               className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent/60 transition-all"
             >
-              {dayOfWeekOptions.map((opt) => (
+              {dayOfWeekKeys.map((opt) => (
                 <option key={opt.value} value={opt.value}>
-                  {opt.label}
+                  {t(opt.key)}
                 </option>
               ))}
             </select>
@@ -369,10 +361,10 @@ export default function WorkoutsPage() {
               onClick={() => setShowCreateModal(false)}
               className="flex-1"
             >
-              Cancelar
+              {t("common.cancel")}
             </Button>
             <Button type="submit" loading={creating} className="flex-1">
-              Criar Treino
+              {t("wk.newWorkout")}
             </Button>
           </div>
         </form>
@@ -383,6 +375,7 @@ export default function WorkoutsPage() {
 
 function WorkoutCard({ workout }: { workout: Workout }) {
   const colorClass = dayLetterColor[workout.dayLetter] || dayLetterColor.A;
+  const { t } = useLanguage();
   return (
     <Link href={`/workouts/${workout.id}`}>
       <Card hover className="h-full">
@@ -400,15 +393,18 @@ function WorkoutCard({ workout }: { workout: Workout }) {
               </div>
             </div>
             <Badge variant={workout.isActive ? "success" : "default"}>
-              {workout.isActive ? "Ativo" : "Inativo"}
+              {workout.isActive ? t("common.active") : t("common.inactive")}
             </Badge>
           </div>
           <div className="flex items-center justify-between mt-auto pt-2 border-t border-border">
             <span className="text-xs text-muted">
-              {workout.student?.name ?? "Aluno"}
+              {workout.student?.name ?? t("auth.student")}
             </span>
             <span className="text-xs text-muted">
-              {workout.exercises.length} exercicio{workout.exercises.length !== 1 ? "s" : ""}
+              {t("common.exercisesCount", {
+                count: workout.exercises.length,
+                plural: workout.exercises.length !== 1 ? "s" : "",
+              })}
             </span>
           </div>
         </CardContent>

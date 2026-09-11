@@ -16,31 +16,35 @@ import {
   DumbbellIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 type UserRole = "ADMIN" | "PERSONAL" | "STUDENT" | undefined;
 
 interface NavItem {
   href: string;
   label: string;
+  labelKey: string;
   icon: React.ReactNode;
 }
 
 const allNavItems: { items: NavItem[]; roles?: UserRole[] }[] = [
-  { items: [{ href: "/dashboard", label: "Dashboard", icon: <LayoutDashboard className="w-5 h-5" /> }] },
   {
-    items: [{ href: "/admin", label: "Administracao", icon: <Shield className="w-5 h-5" /> }],
+    items: [{ href: "/dashboard", label: "Dashboard", labelKey: "nav.dashboard", icon: <LayoutDashboard className="w-5 h-5" /> }],
+  },
+  {
+    items: [{ href: "/admin", label: "Administracao", labelKey: "nav.admin", icon: <Shield className="w-5 h-5" /> }],
     roles: ["ADMIN"],
   },
   {
-    items: [{ href: "/students", label: "Alunos", icon: <Users className="w-5 h-5" /> }],
+    items: [{ href: "/students", label: "Alunos", labelKey: "nav.students", icon: <Users className="w-5 h-5" /> }],
     roles: ["ADMIN", "PERSONAL"],
   },
   {
     items: [
-      { href: "/workouts", label: "Treinos", icon: <Dumbbell className="w-5 h-5" /> },
-      { href: "/diets", label: "Dieta", icon: <Apple className="w-5 h-5" /> },
-      { href: "/progress", label: "Progresso", icon: <TrendingUp className="w-5 h-5" /> },
-      { href: "/exercises", label: "Exercicios", icon: <Library className="w-5 h-5" /> },
+      { href: "/workouts", label: "Treinos", labelKey: "nav.workouts", icon: <Dumbbell className="w-5 h-5" /> },
+      { href: "/diets", label: "Dieta", labelKey: "nav.diets", icon: <Apple className="w-5 h-5" /> },
+      { href: "/progress", label: "Progresso", labelKey: "nav.progress", icon: <TrendingUp className="w-5 h-5" /> },
+      { href: "/exercises", label: "Exercicios", labelKey: "nav.exercises", icon: <Library className="w-5 h-5" /> },
     ],
   },
 ];
@@ -54,6 +58,7 @@ interface SidebarProps {
 export function Sidebar({ open, onClose, role }: SidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const { t } = useLanguage();
 
   const navItems = allNavItems
     .flatMap((section) => section.items)
@@ -123,12 +128,12 @@ export function Sidebar({ open, onClose, role }: SidebarProps) {
                     ? "bg-accent/15 text-accent"
                     : "text-muted hover:text-white hover:bg-[#222]"
                 )}
-                title={collapsed ? item.label : undefined}
+                title={collapsed ? t(item.labelKey) : undefined}
               >
                 <span className={cn("shrink-0", isActive && "text-accent")}>
                   {item.icon}
                 </span>
-                {!collapsed && <span>{item.label}</span>}
+                {!collapsed && <span>{t(item.labelKey)}</span>}
               </Link>
             );
           })}
