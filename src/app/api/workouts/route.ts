@@ -40,6 +40,17 @@ export async function GET(request: NextRequest) {
         include: { exercise: true },
         orderBy: { order: "asc" },
       },
+      sessions: {
+        where: { completed: false },
+        orderBy: { date: "desc" },
+        take: 1,
+        select: {
+          id: true,
+          date: true,
+          _count: { select: { completedExercises: true } },
+          completedExercises: { where: { completed: true }, select: { id: true } },
+        },
+      },
     },
     orderBy: { createdAt: "desc" },
   });

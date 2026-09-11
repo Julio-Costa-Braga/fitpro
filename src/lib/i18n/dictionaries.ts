@@ -110,6 +110,7 @@ export const dictionaries: Record<Lang, Dict> = {
     "wk.dayLetter": "Letra do Dia",
     "wk.dayOfWeek": "Dia da Semana",
     "wk.startWorkout": "Iniciar Treino",
+    "wk.inProgress": "Em andamento",
 
     "diet.markEaten": "Comi essa refeição",
     "diet.eaten": "Comido",
@@ -129,6 +130,8 @@ export const dictionaries: Record<Lang, Dict> = {
     "ex.pending": "Pendente",
     "ex.complete": "Concluir",
     "ex.completed": "Concluído",
+    "ex.completeAll": "Concluir Todo o Treino",
+    "ex.completeAllConfirm": "Marcar todos os exercícios como concluídos e finalizar o treino agora?",
     "ex.closeViewer": "Toque em qualquer lugar ou pressione Esc para fechar",
   },
 
@@ -233,6 +236,7 @@ export const dictionaries: Record<Lang, Dict> = {
     "wk.dayLetter": "Day Letter",
     "wk.dayOfWeek": "Day of the Week",
     "wk.startWorkout": "Start Workout",
+    "wk.inProgress": "In progress",
 
     "diet.markEaten": "I ate this meal",
     "diet.eaten": "Eaten",
@@ -252,6 +256,8 @@ export const dictionaries: Record<Lang, Dict> = {
     "ex.pending": "Pending",
     "ex.complete": "Complete",
     "ex.completed": "Completed",
+    "ex.completeAll": "Complete Entire Workout",
+    "ex.completeAllConfirm": "Mark all exercises as completed and finish the workout now?",
     "ex.closeViewer": "Tap anywhere or press Esc to close",
   },
 
@@ -356,6 +362,7 @@ export const dictionaries: Record<Lang, Dict> = {
     "wk.dayLetter": "Letra del Día",
     "wk.dayOfWeek": "Día de la Semana",
     "wk.startWorkout": "Iniciar Entrenamiento",
+    "wk.inProgress": "En curso",
 
     "diet.markEaten": "Comí esta comida",
     "diet.eaten": "Comido",
@@ -375,6 +382,8 @@ export const dictionaries: Record<Lang, Dict> = {
     "ex.pending": "Pendiente",
     "ex.complete": "Completar",
     "ex.completed": "Completado",
+    "ex.completeAll": "Completar Todo el Entrenamiento",
+    "ex.completeAllConfirm": "¿Marcar todos los ejercicios como completados y finalizar el entrenamiento ahora?",
     "ex.closeViewer": "Toca en cualquier lugar o pulsa Esc para cerrar",
   },
 };

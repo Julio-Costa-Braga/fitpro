@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Dumbbell, Plus, Filter, Search } from "lucide-react";
+import { Loader2, Dumbbell, Plus, Filter, Search, Activity } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { api } from "@/lib/api";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -47,6 +47,12 @@ interface Workout {
   studentId: string;
   student?: Student;
   exercises: WorkoutExercise[];
+  sessions?: {
+    id: string;
+    date: string;
+    _count: { completedExercises: number };
+    completedExercises: { id: string }[];
+  }[];
 }
 
 const DAY_LETTERS = ["A", "B", "C", "D", "E", "F"];
@@ -376,6 +382,10 @@ export default function WorkoutsPage() {
 function WorkoutCard({ workout }: { workout: Workout }) {
   const colorClass = dayLetterColor[workout.dayLetter] || dayLetterColor.A;
   const { t } = useLanguage();
+  const openSession = workout.sessions?.[0];
+  const totalSets = openSession?._count.completedExercises ?? 0;
+  const doneSets = openSession?.completedExercises.length ?? 0;
+  const progressPct = totalSets > 0 ? Math.round((doneSets / totalSets) * 100) : 0;
   return (
     <Link href={`/workouts/${workout.id}`}>
       <Card hover className="h-full">
@@ -396,6 +406,25 @@ function WorkoutCard({ workout }: { workout: Workout }) {
               {workout.isActive ? t("common.active") : t("common.inactive")}
             </Badge>
           </div>
+          {openSession && totalSets > 0 && (
+            <div className="mb-3 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted flex items-center gap-1.5">
+                  <Activity className="w-3.5 h-3.5 text-accent" />
+                  {t("wk.inProgress")}
+                </span>
+                <span className="text-xs font-semibold text-accent">
+                  {doneSets}/{totalSets} &middot; {progressPct}%
+                </span>
+              </div>
+              <div className="h-1.5 bg-bg rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-accent to-accent-hover rounded-full transition-all duration-500"
+                  style={{ width: `${progressPct}%` }}
+                />
+              </div>
+            </div>
+          )}
           <div className="flex items-center justify-between mt-auto pt-2 border-t border-border">
             <span className="text-xs text-muted">
               {workout.student?.name ?? t("auth.student")}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { Loader2, Check, ArrowRight, ArrowLeft, Timer, Dumbbell, Trophy, Maximize2, X } from "lucide-react";
+import { Loader2, Check, ArrowRight, ArrowLeft, Timer, Dumbbell, Trophy, Maximize2, X, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { api } from "@/lib/api";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -98,6 +98,7 @@ export default function WorkoutExecutePage() {
   const [restTimer, setRestTimer] = useState<number | null>(null);
   const [restConfig, setRestConfig] = useState(60);
   const [fullscreenGif, setFullscreenGif] = useState<string | null>(null);
+  const [completingAll, setCompletingAll] = useState(false);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const restRef = useRef<NodeJS.Timeout | null>(null);
@@ -275,6 +276,28 @@ export default function WorkoutExecutePage() {
     }
   }
 
+  async function handleCompleteAll() {
+    if (!session) return;
+    if (!window.confirm(t("ex.completeAllConfirm"))) return;
+    setCompletingAll(true);
+    try {
+      if (timerRef.current) clearInterval(timerRef.current);
+      await api.put(`/api/workout-sessions/${sessionId}`, {
+        completed: true,
+        completedExercises: session.completedExercises.map((ce) => ({
+          id: ce.id,
+          reps: ce.reps,
+          load: ce.load ?? null,
+          completed: true,
+        })),
+      });
+      router.push("/dashboard");
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
+      setCompletingAll(false);
+    }
+  }
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center">
@@ -435,6 +458,16 @@ export default function WorkoutExecutePage() {
             </div>
           </CardContent>
         </Card>
+
+        <Button
+          variant="secondary"
+          className="w-full"
+          icon={<CheckCircle2 className="w-4 h-4" />}
+          onClick={handleCompleteAll}
+          loading={completingAll}
+        >
+          {t("ex.completeAll")}
+        </Button>
 
         <div className="flex items-center justify-between pt-2">
           <Button
