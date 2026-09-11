@@ -28,7 +28,7 @@ export default function StudentsPage() {
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "", phone: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", password: "" });
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -57,9 +57,10 @@ export default function StudentsPage() {
         name: form.name.trim(),
         email: form.email.trim() || undefined,
         phone: form.phone.trim() || undefined,
+        password: form.password.trim() || undefined,
       });
       setStudents((prev) => [{ ...data.student, _count: { workouts: 0, dietPlans: 0 } }, ...prev]);
-      setForm({ name: "", email: "", phone: "" });
+      setForm({ name: "", email: "", phone: "", password: "" });
       setShowCreate(false);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Erro ao criar aluno");
@@ -182,6 +183,13 @@ export default function StudentsPage() {
               placeholder="(00) 00000-0000"
               value={form.phone}
               onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+            />
+            <Input
+              label="Senha de acesso (para o aluno entrar)"
+              type="password"
+              placeholder="Temporaria — aluno troca no 1o login"
+              value={form.password}
+              onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
             />
             <div className="flex gap-3 pt-2">
               <Button variant="secondary" onClick={() => setShowCreate(false)} className="flex-1">

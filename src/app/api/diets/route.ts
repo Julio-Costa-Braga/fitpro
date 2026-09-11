@@ -39,8 +39,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const student = await prisma.student.findUnique({
-      where: { id: studentId },
+    const student = await prisma.student.findFirst({
+      where:
+        user.role === "ADMIN"
+          ? { id: studentId }
+          : user.role === "PERSONAL"
+            ? { id: studentId, personalId: user.userId }
+            : { id: studentId, userId: user.userId },
     });
     if (!student) {
       return NextResponse.json(
@@ -48,12 +53,9 @@ export async function GET(request: NextRequest) {
         { status: 404 }
       );
     }
-    if (student.personalId !== user.userId) {
-      return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
-    }
 
     const dietPlans = await prisma.dietPlan.findMany({
-      where: { studentId, trainerId: user.userId },
+      where: { studentId },
       include: {
         meals: {
           orderBy: { order: "asc" },
@@ -118,8 +120,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const student = await prisma.student.findUnique({
-      where: { id: studentId },
+    const student = await prisma.student.findFirst({
+      where:
+        user.role === "ADMIN"
+          ? { id: studentId }
+          : user.role === "PERSONAL"
+            ? { id: studentId, personalId: user.userId }
+            : { id: studentId, userId: user.userId },
     });
     if (!student) {
       return NextResponse.json(
@@ -127,7 +134,7 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
-    if (student.personalId !== user.userId) {
+    if (user.role === "STUDENT") {
       return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
     }
 

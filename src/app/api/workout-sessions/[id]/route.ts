@@ -33,6 +33,15 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  if (user.role === "STUDENT") {
+    const student = await prisma.student.findFirst({
+      where: { id: session.studentId, userId: user.userId },
+    });
+    if (!student) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
+
   return NextResponse.json(session);
 }
 
@@ -58,6 +67,15 @@ export async function PUT(
 
   if (user.role === "PERSONAL" && existing.workout.trainerId !== user.userId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  if (user.role === "STUDENT") {
+    const student = await prisma.student.findFirst({
+      where: { id: existing.studentId, userId: user.userId },
+    });
+    if (!student) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
   }
 
   const body = await request.json();

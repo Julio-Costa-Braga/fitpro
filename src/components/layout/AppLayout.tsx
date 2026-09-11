@@ -17,7 +17,7 @@ export function AppLayout({ children, title = "Dashboard" }: AppLayoutProps) {
 
   return (
     <div className="min-h-screen bg-bg">
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} role={user?.role} />
 
       <div className="lg:ml-64 flex flex-col min-h-screen transition-all duration-300">
         <Header
@@ -29,7 +29,7 @@ export function AppLayout({ children, title = "Dashboard" }: AppLayoutProps) {
         <main className="flex-1 p-4 lg:p-6 pb-24 lg:pb-6">{children}</main>
       </div>
 
-      <BottomNav />
+      <BottomNav role={user?.role} />
     </div>
   );
 }

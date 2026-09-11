@@ -17,13 +17,12 @@ export async function GET(request: NextRequest) {
     }
 
     const student = await prisma.student.findFirst({
-      where: {
-        id: studentId,
-        OR:
-          user.role === "PERSONAL"
-            ? [{ personalId: user.userId }]
-            : [{ id: user.userId }],
-      },
+      where:
+        user.role === "ADMIN"
+          ? { id: studentId }
+          : user.role === "PERSONAL"
+            ? { id: studentId, personalId: user.userId }
+            : { id: studentId, userId: user.userId },
     });
     if (!student) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
@@ -61,14 +60,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (user.role !== "PERSONAL" && user.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Acesso negado" },
+        { status: 403 }
+      );
+    }
+
     const student = await prisma.student.findFirst({
-      where: {
-        id: studentId,
-        OR:
-          user.role === "PERSONAL"
-            ? [{ personalId: user.userId }]
-            : [{ id: user.userId }],
-      },
+      where:
+        user.role === "ADMIN"
+          ? { id: studentId }
+          : { id: studentId, personalId: user.userId },
     });
     if (!student) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });

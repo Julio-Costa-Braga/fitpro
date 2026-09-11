@@ -23,6 +23,7 @@ interface AuthContextType {
     role: "PERSONAL" | "STUDENT";
   }) => Promise<void>;
   logout: () => void;
+  updateUser: (updater: (prev: User | null) => User | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -39,7 +40,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(stored);
       api.auth
         .me()
-        .then((res) => setUser(res.user))
+        .then((res) => {
+          setUser(res.user);
+          if (res.user.mustChangePassword && typeof window !== "undefined") {
+            if (window.location.pathname !== "/change-password") {
+              window.location.assign("/change-password");
+            }
+          }
+        })
         .catch(() => {
           localStorage.removeItem("fitpro_token");
           setToken(null);
@@ -56,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem("fitpro_token", res.token);
       setToken(res.token);
       setUser(res.user);
-      router.push("/dashboard");
+      router.push(res.user.mustChangePassword ? "/change-password" : "/dashboard");
     },
     [router]
   );
@@ -72,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem("fitpro_token", res.token);
       setToken(res.token);
       setUser(res.user);
-      router.push("/dashboard");
+      router.push(res.user.mustChangePassword ? "/change-password" : "/dashboard");
     },
     [router]
   );
@@ -84,9 +92,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push("/");
   }, [router]);
 
+  const updateUser = useCallback((updater: (prev: User | null) => User | null) => {
+    setUser(updater);
+  }, []);
+
   return (
     <AuthContext.Provider
-      value={{ user, token, loading, login, register, logout }}
+      value={{ user, token, loading, login, register, logout, updateUser }}
     >
       {children}
     </AuthContext.Provider>

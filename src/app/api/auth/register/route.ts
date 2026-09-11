@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { hashPassword, generateToken } from "@/lib/auth";
+import { hashPassword, generateToken, type UserRole } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,19 +36,32 @@ export async function POST(request: NextRequest) {
         name,
         email,
         password: hashedPassword,
-        role: role as "PERSONAL" | "STUDENT",
+        role: role as UserRole,
       },
     });
 
     if (role === "STUDENT") {
-      await prisma.student.create({
-        data: {
-          name: user.name,
-          email: user.email,
-          phone: user.phone,
-          personalId: user.id,
-        },
+      // Vincula ao cadastro já criado pelo personal (mesmo email), ou cria um registro sem trainer por enquanto.
+      const existingStudent = await prisma.student.findFirst({
+        where: { email },
+        orderBy: { createdAt: "asc" },
       });
+
+      if (existingStudent) {
+        await prisma.student.update({
+          where: { id: existingStudent.id },
+          data: { userId: user.id },
+        });
+      } else {
+        await prisma.student.create({
+          data: {
+            name: user.name,
+            email: user.email,
+            phone: user.phone,
+            userId: user.id,
+          },
+        });
+      }
     }
 
     const token = generateToken({
@@ -67,6 +80,7 @@ export async function POST(request: NextRequest) {
         role: user.role,
         avatarUrl: user.avatarUrl,
         phone: user.phone,
+        mustChangePassword: user.mustChangePassword,
         createdAt: user.createdAt,
       },
     });

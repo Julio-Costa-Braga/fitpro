@@ -10,7 +10,13 @@ export async function GET(request: NextRequest) {
 
   try {
     const students = await prisma.student.findMany({
-      where: { personalId: payload.userId },
+      where:
+        payload.role === "ADMIN"
+          ? undefined
+          : payload.role === "PERSONAL"
+            ? { personalId: payload.userId }
+            : { userId: payload.userId },
+      include: { _count: { select: { workouts: true, dietPlans: true } } },
       orderBy: { createdAt: "desc" },
     });
 
@@ -30,9 +36,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Nao autenticado" }, { status: 401 });
   }
 
+  if (payload.role === "STUDENT") {
+    return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+  }
+
   try {
     const body = await request.json();
-    const { name, email, phone } = body;
+    const { name, email, phone, password } = body;
 
     if (!name) {
       return NextResponse.json(
@@ -53,12 +63,38 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Personal cria a conta do aluno (com senha temporaria) e o registro de Student vinculado.
+    let userId: string | undefined;
+    if (email && password) {
+      const existingUser = await prisma.user.findUnique({ where: { email } });
+      if (existingUser) {
+        // Já existe conta: apenas vincula o registro a ela.
+        userId = existingUser.id;
+      } else {
+        const bcrypt = await import("bcryptjs");
+        const hashed = await bcrypt.hash(password, 12);
+        const created = await prisma.user.create({
+          data: {
+            name,
+            email,
+            password: hashed,
+            phone: phone || null,
+            role: "STUDENT",
+            mustChangePassword: true,
+            trainerId: payload.userId,
+          },
+        });
+        userId = created.id;
+      }
+    }
+
     const student = await prisma.student.create({
       data: {
         name,
         email: email ?? null,
         phone: phone ?? null,
         personalId: payload.userId,
+        ...(userId ? { userId } : {}),
       },
     });
 

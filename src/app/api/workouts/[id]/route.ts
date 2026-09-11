@@ -28,8 +28,21 @@ export async function GET(
     return NextResponse.json({ error: "Workout not found" }, { status: 404 });
   }
 
+  if (user.role === "ADMIN") {
+    return NextResponse.json(workout);
+  }
+
   if (user.role === "PERSONAL" && workout.trainerId !== user.userId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  if (user.role === "STUDENT") {
+    const student = await prisma.student.findFirst({
+      where: { id: workout.studentId, userId: user.userId },
+    });
+    if (!student) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
   }
 
   return NextResponse.json(workout);
@@ -44,7 +57,7 @@ export async function PUT(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (user.role !== "PERSONAL") {
+  if (user.role !== "PERSONAL" && user.role !== "ADMIN") {
     return NextResponse.json({ error: "Only trainers can update workouts" }, { status: 403 });
   }
 
@@ -55,7 +68,7 @@ export async function PUT(
     return NextResponse.json({ error: "Workout not found" }, { status: 404 });
   }
 
-  if (existing.trainerId !== user.userId) {
+  if (user.role === "PERSONAL" && existing.trainerId !== user.userId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -108,7 +121,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (user.role !== "PERSONAL") {
+  if (user.role !== "PERSONAL" && user.role !== "ADMIN") {
     return NextResponse.json({ error: "Only trainers can delete workouts" }, { status: 403 });
   }
 
@@ -119,7 +132,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Workout not found" }, { status: 404 });
   }
 
-  if (existing.trainerId !== user.userId) {
+  if (user.role === "PERSONAL" && existing.trainerId !== user.userId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

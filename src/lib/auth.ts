@@ -4,10 +4,12 @@ import { NextRequest } from "next/server";
 
 const JWT_SECRET = process.env.JWT_SECRET || "fitpro-jwt-secret";
 
+export type UserRole = "ADMIN" | "PERSONAL" | "STUDENT";
+
 export interface TokenPayload {
   userId: string;
   email: string;
-  role: "PERSONAL" | "STUDENT";
+  role: UserRole;
   name: string;
 }
 

@@ -209,6 +209,10 @@ export default function DashboardPage() {
       router.replace("/");
       return;
     }
+    if (user.role === "ADMIN") {
+      router.replace("/admin");
+      return;
+    }
 
     async function loadStats() {
       try {
@@ -216,7 +220,10 @@ export default function DashboardPage() {
           const data = await api.stats.get();
           setTrainerStats(data);
         } else {
-          const data = await api.stats.getStudent(user!.id);
+          const me = await api.get<{ student: { id: string } }>(
+            "/api/students/me"
+          );
+          const data = await api.stats.getStudent(me.student.id);
           setStudentStats(data);
         }
       } catch (err: unknown) {

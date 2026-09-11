@@ -8,9 +8,9 @@ function parseDate(value: string | null | undefined): Date | null {
   return isNaN(date.getTime()) ? null : date;
 }
 
-async function getOwnedDiet(id: string, trainerId: string) {
-  return prisma.dietPlan.findFirst({
-    where: { id, trainerId },
+async function getDietById(id: string) {
+  return prisma.dietPlan.findUnique({
+    where: { id },
     include: {
       student: true,
       meals: {
@@ -19,6 +19,20 @@ async function getOwnedDiet(id: string, trainerId: string) {
       },
     },
   });
+}
+
+async function canAccessDiet(
+  user: { userId: string; role: string },
+  diet: { trainerId: string; student?: { userId?: string | null; personalId?: string | null } | null }
+): Promise<boolean> {
+  if (user.role === "ADMIN") return true;
+  if (user.role === "PERSONAL") return diet.trainerId === user.userId;
+  if (user.role === "STUDENT") {
+    if (diet.trainerId === user.userId) return false;
+    const student = diet.student;
+    return !!student && student.userId === user.userId;
+  }
+  return false;
 }
 
 export async function GET(
@@ -31,16 +45,16 @@ export async function GET(
       return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
     }
 
-    const { id } = await params;
-    const dietPlan = await getOwnedDiet(id, user.userId);
-    if (!dietPlan) {
+const { id } = await params;
+    const existing = await getDietById(id);
+    if (!existing || !(await canAccessDiet(user, existing))) {
       return NextResponse.json(
         { error: "Plano alimentar nao encontrado" },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({ dietPlan });
+    return NextResponse.json({ dietPlan: existing });
   } catch (error) {
     console.error("Get diet plan error:", error);
     return NextResponse.json(
@@ -61,12 +75,15 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const existing = await getOwnedDiet(id, user.userId);
-    if (!existing) {
+    const existing = await getDietById(id);
+    if (!existing || !(await canAccessDiet(user, existing))) {
       return NextResponse.json(
         { error: "Plano alimentar nao encontrado" },
         { status: 404 }
       );
+    }
+    if (user.role === "STUDENT") {
+      return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
     }
 
     const body = await request.json();
@@ -151,12 +168,15 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    const existing = await getOwnedDiet(id, user.userId);
-    if (!existing) {
+    const existing = await getDietById(id);
+    if (!existing || !(await canAccessDiet(user, existing))) {
       return NextResponse.json(
         { error: "Plano alimentar nao encontrado" },
         { status: 404 }
       );
+    }
+    if (user.role === "STUDENT") {
+      return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
     }
 
     await prisma.dietPlan.delete({ where: { id } });

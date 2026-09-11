@@ -64,6 +64,7 @@ async function main() {
       email: "joao@fitpro.com",
       phone: "(11) 99999-1234",
       personalId: personal.id,
+      userId: studentUser.id,
     },
   });
 

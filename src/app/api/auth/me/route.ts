@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
         role: true,
         avatarUrl: true,
         phone: true,
+        mustChangePassword: true,
         createdAt: true,
         updatedAt: true,
       },

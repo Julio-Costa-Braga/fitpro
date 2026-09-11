@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
         role: user.role,
         avatarUrl: user.avatarUrl,
         phone: user.phone,
+        mustChangePassword: user.mustChangePassword,
         createdAt: user.createdAt,
       },
     });

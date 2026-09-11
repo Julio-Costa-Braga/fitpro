@@ -24,11 +24,13 @@ export async function GET(request: NextRequest) {
     }
   } else if (user.role === "STUDENT") {
     const student = await prisma.student.findFirst({
-      where: { id: studentId },
+      where: { id: studentId, userId: user.userId },
     });
     if (!student) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
+  } else if (user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
   }
 
   const workouts = await prisma.workout.findMany({

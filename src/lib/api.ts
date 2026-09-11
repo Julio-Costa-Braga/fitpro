@@ -54,9 +54,10 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: "PERSONAL" | "STUDENT";
+  role: "ADMIN" | "PERSONAL" | "STUDENT";
   avatarUrl?: string;
   phone?: string;
+  mustChangePassword?: boolean;
   createdAt: string;
 }
 
@@ -123,6 +124,25 @@ export const api = {
       request<AuthResponse>("/api/auth/register", {
         method: "POST",
         body: data,
+      }),
+
+    createAccount: (data: {
+      name: string;
+      email: string;
+      password: string;
+      phone?: string;
+      role: "PERSONAL" | "STUDENT";
+      trainerId?: string;
+    }) =>
+      request<{ user: User }>("/api/auth/accounts", {
+        method: "POST",
+        body: data,
+      }),
+
+    changePassword: (currentPassword: string, newPassword: string) =>
+      request<{ ok: boolean }>("/api/auth/change-password", {
+        method: "POST",
+        body: { currentPassword, newPassword },
       }),
 
     me: () => request<{ user: User }>("/api/auth/me"),

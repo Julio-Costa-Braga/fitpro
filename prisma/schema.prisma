@@ -8,6 +8,7 @@ datasource db {
 }
 
 enum UserRole {
+  ADMIN
   PERSONAL
   STUDENT
 }
@@ -20,6 +21,7 @@ model User {
   role          UserRole  @default(STUDENT)
   avatarUrl     String?
   phone         String?
+  mustChangePassword Boolean @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -32,18 +34,25 @@ model User {
   trainerId     String?
   myTrainer     User?     @relation("TrainerOf", fields: [trainerId], references: [id])
   myStudents    User[]    @relation("TrainerOf")
+
+  // Student record linked to this login account
+  studentRecord Student?  @relation("StudentAccount")
 }
 
 model Student {
-  id        String @id @default(cuid())
+  id        String  @id @default(cuid())
   name      String
   email     String?
   phone     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  personalId String
-  personal   User   @relation("PersonalTrainer", fields: [personalId], references: [id])
+  personalId String?
+  personal   User?   @relation("PersonalTrainer", fields: [personalId], references: [id])
+
+  // Vínculo com a conta de login do aluno
+  userId String? @unique
+  user   User?   @relation("StudentAccount", fields: [userId], references: [id])
 
   workouts     Workout[]
   dietPlans    DietPlan[]

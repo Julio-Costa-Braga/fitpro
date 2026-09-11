@@ -10,11 +10,14 @@ import {
   Apple,
   TrendingUp,
   Library,
+  Shield,
   X,
   ChevronLeft,
   DumbbellIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+type UserRole = "ADMIN" | "PERSONAL" | "STUDENT" | undefined;
 
 interface NavItem {
   href: string;
@@ -22,23 +25,42 @@ interface NavItem {
   icon: React.ReactNode;
 }
 
-const navItems: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: <LayoutDashboard className="w-5 h-5" /> },
-  { href: "/students", label: "Alunos", icon: <Users className="w-5 h-5" /> },
-  { href: "/workouts", label: "Treinos", icon: <Dumbbell className="w-5 h-5" /> },
-  { href: "/diets", label: "Dieta", icon: <Apple className="w-5 h-5" /> },
-  { href: "/progress", label: "Progresso", icon: <TrendingUp className="w-5 h-5" /> },
-  { href: "/exercises", label: "Exercicios", icon: <Library className="w-5 h-5" /> },
+const allNavItems: { items: NavItem[]; roles?: UserRole[] }[] = [
+  { items: [{ href: "/dashboard", label: "Dashboard", icon: <LayoutDashboard className="w-5 h-5" /> }] },
+  {
+    items: [{ href: "/admin", label: "Administracao", icon: <Shield className="w-5 h-5" /> }],
+    roles: ["ADMIN"],
+  },
+  {
+    items: [{ href: "/students", label: "Alunos", icon: <Users className="w-5 h-5" /> }],
+    roles: ["ADMIN", "PERSONAL"],
+  },
+  {
+    items: [
+      { href: "/workouts", label: "Treinos", icon: <Dumbbell className="w-5 h-5" /> },
+      { href: "/diets", label: "Dieta", icon: <Apple className="w-5 h-5" /> },
+      { href: "/progress", label: "Progresso", icon: <TrendingUp className="w-5 h-5" /> },
+      { href: "/exercises", label: "Exercicios", icon: <Library className="w-5 h-5" /> },
+    ],
+  },
 ];
 
 interface SidebarProps {
   open: boolean;
   onClose: () => void;
+  role?: UserRole;
 }
 
-export function Sidebar({ open, onClose }: SidebarProps) {
+export function Sidebar({ open, onClose, role }: SidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+
+  const navItems = allNavItems
+    .flatMap((section) => section.items)
+    .filter((item) => {
+      const section = allNavItems.find((s) => s.items.includes(item));
+      return !section?.roles || (role && section.roles.includes(role));
+    });
 
   return (
     <>
