@@ -59,7 +59,7 @@ const muscleGroupColors: Record<string, string> = {
 
 export default function WorkoutDetailPage() {
   const { user, token, loading: authLoading } = useAuth();
-  const { tExerciseName } = useLanguage();
+  const { t, tExerciseName } = useLanguage();
   const router = useRouter();
   const params = useParams();
   const workoutId = params.id as string;
@@ -224,7 +224,7 @@ export default function WorkoutDetailPage() {
   }
 
   async function handleStartSession() {
-    if (!workout || user?.role !== "PERSONAL") return;
+    if (!workout || (user?.role !== "PERSONAL" && user?.role !== "STUDENT")) return;
     try {
       const session = await api.post<{ id: string }>("/api/workout-sessions", {
         workoutId: workout.id,
@@ -333,26 +333,26 @@ export default function WorkoutDetailPage() {
             )}
           </div>
           <div className="flex gap-2">
+            {(user.role === "PERSONAL" || user.role === "STUDENT") && (
+              <Button
+                icon={<Play className="w-4 h-4" />}
+                onClick={handleStartSession}
+                disabled={workout.exercises.length === 0}
+              >
+                {t("wk.startWorkout")}
+              </Button>
+            )}
             {user.role === "PERSONAL" && (
-              <>
-                <Button
-                  variant="secondary"
-                  icon={<Plus className="w-4 h-4" />}
-                  onClick={() => {
-                    loadExercises();
-                    setShowAddExercise(true);
-                  }}
-                >
-                  Adicionar
-                </Button>
-                <Button
-                  icon={<Play className="w-4 h-4" />}
-                  onClick={handleStartSession}
-                  disabled={workout.exercises.length === 0}
-                >
-                  Iniciar Treino
-                </Button>
-              </>
+              <Button
+                variant="secondary"
+                icon={<Plus className="w-4 h-4" />}
+                onClick={() => {
+                  loadExercises();
+                  setShowAddExercise(true);
+                }}
+              >
+                Adicionar
+              </Button>
             )}
           </div>
         </div>

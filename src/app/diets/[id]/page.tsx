@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { Loader2, ArrowLeft, Plus, Trash2, Edit3, Droplets, Pill, Clock, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, ArrowLeft, Plus, Trash2, Edit3, Droplets, Pill, Clock, ChevronDown, ChevronUp, Check } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { api } from "@/lib/api";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 interface MealFood {
   id: string;
@@ -45,6 +46,7 @@ interface DietPlan {
   supplementation: string | null;
   student: { id: string; name: string };
   meals: Meal[];
+  mealLogs: { id: string; mealId: string; date: string }[];
 }
 
 function ProgressBar({ current, target, color }: { current: number; target: number; color: string }) {
@@ -73,8 +75,26 @@ function MacroCard({ label, current, target, unit, color }: {
   );
 }
 
+function isSameDay(d1: Date, d2: Date): boolean {
+  return (
+    d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate()
+  );
+}
+
+function todayEatenIds(logs: { mealId: string; date: string }[]): Set<string> {
+  const now = new Date();
+  return new Set(
+    logs
+      .filter((l) => isSameDay(new Date(l.date), now))
+      .map((l) => l.mealId)
+  );
+}
+
 export default function DietDetailPage() {
   const { user, loading: authLoading } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
   const params = useParams();
   const dietId = params.id as string;
@@ -89,6 +109,9 @@ export default function DietDetailPage() {
   const [savingMeal, setSavingMeal] = useState(false);
 
   const [expandedMealId, setExpandedMealId] = useState<string | null>(null);
+  const [eatenMealIds, setEatenMealIds] = useState<Set<string>>(new Set());
+  const [togglingMeal, setTogglingMeal] = useState<string | null>(null);
+  const [notice, setNotice] = useState("");
   const [foodFormMap, setFoodFormMap] = useState<Record<string, { name: string; quantity: string; protein: string; carbs: string; fat: string; calories: string }>>({});
   const [addingFoodToMeal, setAddingFoodToMeal] = useState<string | null>(null);
 
@@ -103,6 +126,7 @@ export default function DietDetailPage() {
     try {
       const data = await api.get<{ dietPlan: DietPlan }>(`/api/diets/${dietId}`);
       setDiet(data.dietPlan);
+      setEatenMealIds(todayEatenIds(data.dietPlan.mealLogs ?? []));
     } catch {
       setError("Erro ao carregar plano alimentar");
     } finally {
@@ -151,6 +175,32 @@ export default function DietDetailPage() {
       await loadDiet();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Erro ao excluir refeicao");
+    }
+  }
+
+  async function toggleEaten(meal: Meal) {
+    if (user?.role !== "STUDENT") return;
+    const wasEaten = eatenMealIds.has(meal.id);
+    setTogglingMeal(meal.id);
+    try {
+      const res = await api.post<{ eaten: boolean }>(
+        `/api/diets/${dietId}/meals/${meal.id}/eat`,
+        { eaten: !wasEaten }
+      );
+      setEatenMealIds((prev) => {
+        const next = new Set(prev);
+        if (res.eaten) next.add(meal.id);
+        else next.delete(meal.id);
+        return next;
+      });
+      if (res.eaten && user.name) {
+        setNotice(t("diet.notified", { student: user.name }));
+        setTimeout(() => setNotice(""), 4000);
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erro ao marcar refeicao");
+    } finally {
+      setTogglingMeal(null);
     }
   }
 
@@ -292,6 +342,12 @@ export default function DietDetailPage() {
           </div>
         )}
 
+        {notice && (
+          <div className="bg-green-500/10 border border-green-500/20 text-green-400 text-sm rounded-lg px-4 py-3">
+            {notice}
+          </div>
+        )}
+
         <Card className="p-5">
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -307,9 +363,11 @@ export default function DietDetailPage() {
                 {diet.endDate && <span>Fim: {new Date(diet.endDate).toLocaleDateString("pt-BR")}</span>}
               </div>
             </div>
-            <Button variant="secondary" size="sm" icon={<Edit3 className="w-3.5 h-3.5" />} onClick={openEditPlan}>
-              Editar
-            </Button>
+            {user?.role !== "STUDENT" && (
+              <Button variant="secondary" size="sm" icon={<Edit3 className="w-3.5 h-3.5" />} onClick={openEditPlan}>
+                Editar
+              </Button>
+            )}
           </div>
         </Card>
 
@@ -345,9 +403,11 @@ export default function DietDetailPage() {
 
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Refeicoes</h2>
-          <Button size="sm" icon={<Plus className="w-4 h-4" />} onClick={() => { setEditingMealId(null); setMealForm({ time: "", name: "" }); setShowMealForm(true); }}>
-            Adicionar Refeicao
-          </Button>
+          {user?.role !== "STUDENT" && (
+            <Button size="sm" icon={<Plus className="w-4 h-4" />} onClick={() => { setEditingMealId(null); setMealForm({ time: "", name: "" }); setShowMealForm(true); }}>
+              Adicionar Refeicao
+            </Button>
+          )}
         </div>
 
         {diet.meals.length === 0 ? (
@@ -387,6 +447,27 @@ export default function DietDetailPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
+                      {user?.role === "STUDENT" && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleEaten(meal);
+                          }}
+                          disabled={togglingMeal === meal.id}
+                          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                            eatenMealIds.has(meal.id)
+                              ? "bg-green-500/15 text-green-400"
+                              : "bg-card border border-border text-muted hover:text-white"
+                          }`}
+                        >
+                          {togglingMeal === meal.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Check className="w-3.5 h-3.5" />
+                          )}
+                          {eatenMealIds.has(meal.id) ? t("diet.eaten") : t("diet.markEaten")}
+                        </button>
+                      )}
                       <div className="hidden sm:flex gap-2 text-xs text-muted">
                         <span>P: {mealTotals.protein.toFixed(0)}g</span>
                         <span>C: {mealTotals.carbs.toFixed(0)}g</span>
@@ -446,11 +527,16 @@ export default function DietDetailPage() {
                           </div>
                         </div>
                       ) : (
-                        <Button variant="secondary" size="sm" icon={<Plus className="w-3.5 h-3.5" />} onClick={() => startAddFood(meal.id)}>
-                          Adicionar Alimento
-                        </Button>
+                        <>
+                          {user?.role !== "STUDENT" && (
+                            <Button variant="secondary" size="sm" icon={<Plus className="w-3.5 h-3.5" />} onClick={() => startAddFood(meal.id)}>
+                              Adicionar Alimento
+                            </Button>
+                          )}
+                        </>
                       )}
 
+                      {user?.role !== "STUDENT" && (
                       <div className="flex gap-2">
                         <Button variant="ghost" size="sm" icon={<Edit3 className="w-3.5 h-3.5" />} onClick={() => startEditMeal(meal)}>
                           Editar
@@ -459,6 +545,7 @@ export default function DietDetailPage() {
                           Excluir
                         </Button>
                       </div>
+                    )}
                     </div>
                   )}
                 </Card>

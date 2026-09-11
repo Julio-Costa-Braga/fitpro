@@ -20,6 +20,12 @@ export const dictionaries: Record<Lang, Dict> = {
     "header.logout": "Sair",
     "header.changePassword": "Alterar senha",
 
+    "notif.title": "Notificações",
+    "notif.empty": "Nenhuma notificação por enquanto",
+    "notif.markAllRead": "Marcar todas como lidas",
+    "notif.workoutCompleted": "{student} concluiu o treino {workout}",
+    "notif.mealEaten": "{student} comeu: {meal}",
+
     "common.back": "Anterior",
     "common.next": "Próximo",
     "common.cancel": "Cancelar",
@@ -102,6 +108,11 @@ export const dictionaries: Record<Lang, Dict> = {
     "wk.student": "Aluno",
     "wk.dayLetter": "Letra do Dia",
     "wk.dayOfWeek": "Dia da Semana",
+    "wk.startWorkout": "Iniciar Treino",
+
+    "diet.markEaten": "Comi essa refeição",
+    "diet.eaten": "Comido",
+    "diet.notified": "{student}, refeição registrada! Seu personal foi notificado.",
 
     "ex.title": "Executar: {name}",
     "ex.rest": "Descanso",
@@ -128,6 +139,12 @@ export const dictionaries: Record<Lang, Dict> = {
     "nav.exercises": "Exercises",
     "header.logout": "Sign out",
     "header.changePassword": "Change password",
+
+    "notif.title": "Notifications",
+    "notif.empty": "No notifications yet",
+    "notif.markAllRead": "Mark all as read",
+    "notif.workoutCompleted": "{student} completed the workout {workout}",
+    "notif.mealEaten": "{student} ate: {meal}",
 
     "common.back": "Back",
     "common.next": "Next",
@@ -211,6 +228,11 @@ export const dictionaries: Record<Lang, Dict> = {
     "wk.student": "Student",
     "wk.dayLetter": "Day Letter",
     "wk.dayOfWeek": "Day of the Week",
+    "wk.startWorkout": "Start Workout",
+
+    "diet.markEaten": "I ate this meal",
+    "diet.eaten": "Eaten",
+    "diet.notified": "{student}, meal recorded! Your trainer has been notified.",
 
     "ex.title": "Execute: {name}",
     "ex.rest": "Rest",
@@ -237,6 +259,12 @@ export const dictionaries: Record<Lang, Dict> = {
     "nav.exercises": "Ejercicios",
     "header.logout": "Cerrar sesión",
     "header.changePassword": "Cambiar contraseña",
+
+    "notif.title": "Notificaciones",
+    "notif.empty": "Sin notificaciones por ahora",
+    "notif.markAllRead": "Marcar todas como leídas",
+    "notif.workoutCompleted": "{student} completó el entrenamiento {workout}",
+    "notif.mealEaten": "{student} comió: {meal}",
 
     "common.back": "Atrás",
     "common.next": "Siguiente",
@@ -320,6 +348,11 @@ export const dictionaries: Record<Lang, Dict> = {
     "wk.student": "Alumno",
     "wk.dayLetter": "Letra del Día",
     "wk.dayOfWeek": "Día de la Semana",
+    "wk.startWorkout": "Iniciar Entrenamiento",
+
+    "diet.markEaten": "Comí esta comida",
+    "diet.eaten": "Comido",
+    "diet.notified": "{student}, ¡comida registrada! Tu entrenador ha sido notificado.",
 
     "ex.title": "Ejecutar: {name}",
     "ex.rest": "Descanso",

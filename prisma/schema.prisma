@@ -37,6 +37,8 @@ model User {
 
   // Student record linked to this login account
   studentRecord Student?  @relation("StudentAccount")
+
+  notifications Notification[]
 }
 
 model Student {
@@ -58,6 +60,7 @@ model Student {
   dietPlans    DietPlan[]
   progressLogs ProgressLog[]
   sessions     WorkoutSession[]
+  mealLogs     MealLog[]
 
   @@unique([email, personalId])
 }
@@ -161,6 +164,7 @@ model DietPlan {
   trainer   User    @relation(fields: [trainerId], references: [id])
 
   meals Meal[]
+  mealLogs MealLog[]
 }
 
 model Meal {
@@ -173,6 +177,7 @@ model Meal {
   dietPlan   DietPlan @relation(fields: [dietPlanId], references: [id], onDelete: Cascade)
 
   foods MealFood[]
+  logs  MealLog[]
 }
 
 model MealFood {
@@ -202,4 +207,33 @@ model ProgressLog {
 
   studentId String
   student   Student @relation(fields: [studentId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  type      String
+  read      Boolean  @default(false)
+  data      Json?
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model MealLog {
+  id         String   @id @default(cuid())
+  date       DateTime @default(now())
+
+  mealId     String
+  meal       Meal     @relation(fields: [mealId], references: [id], onDelete: Cascade)
+
+  studentId  String
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  dietPlanId String
+  dietPlan   DietPlan @relation(fields: [dietPlanId], references: [id], onDelete: Cascade)
+
+  @@index([studentId, date])
 }

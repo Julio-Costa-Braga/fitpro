@@ -129,5 +129,36 @@ export async function PUT(
     },
   });
 
+  if (allDone === true) {
+    const workout = await prisma.workout.findUnique({
+      where: { id: existing.workoutId },
+    });
+    const student = await prisma.student.findUnique({
+      where: { id: existing.studentId },
+    });
+    if (workout && student) {
+      await prisma.notification.deleteMany({
+        where: {
+          userId: workout.trainerId,
+          type: "WORKOUT_COMPLETED",
+          data: { path: ["sessionId"], equals: id },
+        },
+      });
+      await prisma.notification.create({
+        data: {
+          type: "WORKOUT_COMPLETED",
+          userId: workout.trainerId,
+          data: {
+            studentName: student.name,
+            workoutName: workout.name,
+            sessionId: id,
+            workoutId: workout.id,
+            studentId: student.id,
+          },
+        },
+      });
+    }
+  }
+
   return NextResponse.json(session);
 }

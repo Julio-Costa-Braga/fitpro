@@ -1,16 +1,20 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { Menu, LogOut, User as UserIcon, Globe, Check } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { Menu, LogOut, User as UserIcon, Globe, Check, Bell, CheckCheck, Dumbbell, Apple } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { LANGS } from "@/lib/i18n/dictionaries";
+import { api } from "@/lib/api";
 
 interface HeaderProps {
   title: string;
   onMenuToggle: () => void;
   user?: {
+    id: string;
+    role?: string;
     name: string;
     email: string;
     avatarUrl?: string | null;
@@ -18,12 +22,70 @@ interface HeaderProps {
   onLogout?: () => void;
 }
 
+interface NotifData {
+  studentName?: string;
+  workoutName?: string;
+  mealName?: string;
+  sessionId?: string;
+  workoutId?: string;
+  studentId?: string;
+  dietId?: string;
+  mealId?: string;
+}
+
+interface AppNotification {
+  id: string;
+  type: string;
+  read: boolean;
+  data: NotifData | null;
+  createdAt: string;
+}
+
+function formatRelative(iso: string, lang: string): string {
+  const date = new Date(iso);
+  const diffMs = Date.now() - date.getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return lang === "pt" ? "agora" : lang === "es" ? "ahora" : "now";
+  if (mins < 60) return `${mins}${lang === "pt" ? " min" : lang === "es" ? " min" : "m"}`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h`;
+  return date.toLocaleDateString(lang === "pt" ? "pt-BR" : lang === "es" ? "es-ES" : "en-US", {
+    day: "2-digit",
+    month: "2-digit",
+  });
+}
+
 export function Header({ title, onMenuToggle, user, onLogout }: HeaderProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const langRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
   const { lang, setLang, t } = useLanguage();
+
+  const loadNotifications = useCallback(async () => {
+    if (!user) return;
+    try {
+      const data = await api.get<{ notifications: AppNotification[]; unreadCount: number }>(
+        "/api/notifications"
+      );
+      setNotifications(data.notifications);
+      setUnreadCount(data.unreadCount);
+    } catch {
+      // ignore
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    loadNotifications();
+    const interval = setInterval(loadNotifications, 60000);
+    return () => clearInterval(interval);
+  }, [user, loadNotifications]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -33,10 +95,43 @@ export function Header({ title, onMenuToggle, user, onLogout }: HeaderProps) {
       if (langRef.current && !langRef.current.contains(e.target as Node)) {
         setLangOpen(false);
       }
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  async function openNotification(n: AppNotification) {
+    if (!n.read) {
+      try {
+        await api.put(`/api/notifications/${n.id}`, { read: true });
+        setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
+        setUnreadCount((c) => Math.max(0, c - 1));
+      } catch {
+        // ignore
+      }
+    }
+    setNotifOpen(false);
+    if (n.type === "WORKOUT_COMPLETED" && n.data?.sessionId) {
+      router.push(`/workouts/execute/${n.data.sessionId}`);
+    } else if (n.type === "MEAL_EATEN" && n.data?.dietId) {
+      router.push(`/diets/${n.data.dietId}`);
+    }
+  }
+
+  async function markAllRead() {
+    try {
+      await api.post("/api/notifications", { markAllRead: true });
+      setNotifications((prev) => prev.map((x) => ({ ...x, read: true })));
+      setUnreadCount(0);
+    } catch {
+      // ignore
+    }
+  }
+
+  const showBell = user && (user.role === "PERSONAL" || user.role === "ADMIN");
 
   return (
     <header className="sticky top-0 z-30 h-14 bg-bg/80 backdrop-blur-md border-b border-border flex items-center justify-between px-4 lg:px-6">
@@ -51,6 +146,85 @@ export function Header({ title, onMenuToggle, user, onLogout }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-1.5">
+        {showBell && (
+          <div className="relative" ref={notifRef}>
+            <button
+              onClick={() => {
+                setNotifOpen(!notifOpen);
+                if (!notifOpen) loadNotifications();
+              }}
+              className="relative p-2 rounded-lg text-muted hover:text-white hover:bg-card transition-colors"
+              aria-label={t("notif.title")}
+            >
+              <Bell className="w-4 h-4" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </button>
+
+            {notifOpen && (
+              <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-card border border-border rounded-xl shadow-2xl animate-slideIn overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                  <p className="text-sm font-semibold">{t("notif.title")}</p>
+                  {notifications.length > 0 && (
+                    <button
+                      onClick={markAllRead}
+                      className="flex items-center gap-1 text-xs text-accent hover:text-accent-hover transition-colors"
+                    >
+                      <CheckCheck className="w-3.5 h-3.5" />
+                      {t("notif.markAllRead")}
+                    </button>
+                  )}
+                </div>
+                <div className="max-h-[60vh] overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <p className="text-center text-muted text-sm py-8">{t("notif.empty")}</p>
+                  ) : (
+                    notifications.map((n) => {
+                      const isWorkout = n.type === "WORKOUT_COMPLETED";
+                      const titleText = isWorkout
+                        ? t("notif.workoutCompleted", {
+                            student: n.data?.studentName ?? "",
+                            workout: n.data?.workoutName ?? "",
+                          })
+                        : t("notif.mealEaten", {
+                            student: n.data?.studentName ?? "",
+                            meal: n.data?.mealName ?? "",
+                          });
+                      return (
+                        <button
+                          key={n.id}
+                          onClick={() => openNotification(n)}
+                          className={cn(
+                            "w-full flex items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-[#222]",
+                            n.read ? "bg-card" : "bg-accent/5"
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
+                              isWorkout ? "bg-accent/10 text-accent" : "bg-green-500/10 text-green-400"
+                            )}
+                          >
+                            {isWorkout ? <Dumbbell className="w-4 h-4" /> : <Apple className="w-4 h-4" />}
+                          </span>
+                          <span className="flex-1 min-w-0">
+                            <span className="block text-sm text-white leading-snug">{titleText}</span>
+                            <span className="block text-xs text-muted mt-1">{formatRelative(n.createdAt, lang)}</span>
+                          </span>
+                          {!n.read && <span className="w-2 h-2 rounded-full bg-red-500 shrink-0 mt-1.5" />}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="relative" ref={langRef}>
           <button
             onClick={() => setLangOpen(!langOpen)}

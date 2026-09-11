@@ -17,6 +17,10 @@ async function getDietById(id: string) {
         orderBy: { order: "asc" },
         include: { foods: true },
       },
+      mealLogs: {
+        orderBy: { date: "desc" },
+        take: 50,
+      },
     },
   });
 }

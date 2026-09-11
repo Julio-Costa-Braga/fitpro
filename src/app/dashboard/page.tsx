@@ -8,6 +8,7 @@ import { api, type StatsResponse, type StudentStatsResponse } from "@/lib/api";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import Link from "next/link";
 import {
@@ -116,8 +117,29 @@ function TrainerDashboard({ stats }: { stats: StatsResponse }) {
   );
 }
 
-function StudentDashboard({ stats }: { stats: StudentStatsResponse }) {
+function StudentDashboard({ stats, studentId }: { stats: StudentStatsResponse; studentId?: string }) {
   const { t, tExerciseName } = useLanguage();
+  const router = useRouter();
+  const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState("");
+
+  async function startWorkout() {
+    const workoutId = stats.todayWorkout?.id;
+    if (!workoutId || !studentId) return;
+    setStarting(true);
+    setStartError("");
+    try {
+      const session = await api.post<{ id: string }>("/api/workout-sessions", {
+        workoutId,
+        studentId,
+      });
+      router.push(`/workouts/execute/${session.id}`);
+    } catch (err: unknown) {
+      setStartError(err instanceof Error ? err.message : "Erro ao iniciar treino");
+      setStarting(false);
+    }
+  }
+
   return (
     <div className="space-y-6 animate-fadeIn">
       <div>
@@ -145,12 +167,17 @@ function StudentDashboard({ stats }: { stats: StudentStatsResponse }) {
               </div>
             ))}
           </div>
-          <Link
-            href={`/workout-sessions/new?workoutId=${stats.todayWorkout.id}`}
-            className="mt-4 w-full bg-accent hover:bg-accent-hover text-white font-semibold rounded-lg px-4 py-2.5 transition-colors flex items-center justify-center gap-2"
+          {startError && (
+            <p className="mt-3 text-xs text-red-400">{startError}</p>
+          )}
+          <Button
+            onClick={startWorkout}
+            loading={starting}
+            disabled={!studentId}
+            className="mt-4 w-full"
           >
             {t("dash.startWorkout")}
-          </Link>
+          </Button>
         </Card>
       ) : (
         <Card className="p-8 text-center">
@@ -204,6 +231,7 @@ export default function DashboardPage() {
   const { t, lang } = useLanguage();
   const [trainerStats, setTrainerStats] = useState<StatsResponse | null>(null);
   const [studentStats, setStudentStats] = useState<StudentStatsResponse | null>(null);
+  const [studentId, setStudentId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -227,6 +255,7 @@ export default function DashboardPage() {
           const me = await api.get<{ student: { id: string } }>(
             "/api/students/me"
           );
+          setStudentId(me.student.id);
           const data = await api.stats.getStudent(me.student.id);
           setStudentStats(data);
         }
@@ -265,7 +294,7 @@ export default function DashboardPage() {
       )}
 
       {user.role === "STUDENT" && studentStats && (
-        <StudentDashboard stats={studentStats} />
+        <StudentDashboard stats={studentStats} studentId={studentId} />
       )}
 
       {user.role === "STUDENT" && !studentStats && !error && (
