@@ -114,7 +114,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
         {!collapsed && (
           <div className="px-4 py-3 border-t border-border">
-            <p className="text-[10px] text-muted/50 text-center">FitPro v0.1</p>
+            <p className="text-[10px] text-muted/50 text-center">FitPro v0.2</p>
           </div>
         )}
       </aside>
