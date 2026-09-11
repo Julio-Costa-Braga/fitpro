@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
+import { ExerciseGif } from "@/components/ui/ExerciseGif";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import Link from "next/link";
 
 interface Exercise {
@@ -57,6 +59,7 @@ const muscleGroupColors: Record<string, string> = {
 
 export default function WorkoutDetailPage() {
   const { user, token, loading: authLoading } = useAuth();
+  const { tExerciseName } = useLanguage();
   const router = useRouter();
   const params = useParams();
   const workoutId = params.id as string;
@@ -236,7 +239,11 @@ export default function WorkoutDetailPage() {
   const filteredExercises = allExercises.filter((ex) => {
     if (!exerciseSearch) return true;
     const q = exerciseSearch.toLowerCase();
-    return ex.name.toLowerCase().includes(q) || ex.muscleGroup.toLowerCase().includes(q);
+    return (
+      ex.name.toLowerCase().includes(q) ||
+      tExerciseName(ex.name).toLowerCase().includes(q) ||
+      ex.muscleGroup.toLowerCase().includes(q)
+    );
   });
 
   const existingIds = new Set(workout?.exercises.map((we) => we.exercise.id) ?? []);
@@ -374,13 +381,12 @@ export default function WorkoutDetailPage() {
                       {idx + 1}
                     </span>
                     {we.exercise.gifUrl ? (
-                      <div className="w-12 h-12 rounded-lg bg-bg overflow-hidden shrink-0">
-                        <img
-                          src={we.exercise.gifUrl}
-                          alt={we.exercise.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
+                      <ExerciseGif
+                        src={we.exercise.gifUrl}
+                        alt={we.exercise.name}
+                        title={tExerciseName(we.exercise.name)}
+                        className="w-12 h-12 rounded-lg bg-bg"
+                      />
                     ) : (
                       <div className="w-12 h-12 rounded-lg bg-bg flex items-center justify-center shrink-0">
                         <Dumbbell className="w-5 h-5 text-muted" />
@@ -390,7 +396,7 @@ export default function WorkoutDetailPage() {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-medium text-sm">{we.exercise.name}</h3>
+                      <h3 className="font-medium text-sm">{tExerciseName(we.exercise.name)}</h3>
                       <span className={`text-xs ${muscleGroupColors[we.exercise.muscleGroup] ?? "text-muted"}`}>
                         {we.exercise.muscleGroup}
                       </span>
@@ -518,7 +524,7 @@ export default function WorkoutDetailPage() {
                         <Dumbbell className="w-4 h-4 text-muted" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium">{ex.name}</p>
+                        <p className="text-sm font-medium">{tExerciseName(ex.name)}</p>
                         <p className={`text-xs ${muscleGroupColors[ex.muscleGroup] ?? "text-muted"}`}>
                           {ex.muscleGroup}
                         </p>

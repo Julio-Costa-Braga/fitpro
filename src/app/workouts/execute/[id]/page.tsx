@@ -56,7 +56,7 @@ export default function WorkoutExecutePage() {
   const { user, token, loading: authLoading } = useAuth();
   const router = useRouter();
   const params = useParams();
-  const { t } = useLanguage();
+  const { t, tExerciseName } = useLanguage();
   const sessionId = params.id as string;
 
   const [session, setSession] = useState<Session | null>(null);
@@ -315,7 +315,7 @@ export default function WorkoutExecutePage() {
                 </div>
               )}
               <div>
-                <h2 className="text-xl font-bold">{currentGroup.exerciseName}</h2>
+                <h2 className="text-xl font-bold">{tExerciseName(currentGroup.exerciseName)}</h2>
                 <p className="text-sm text-muted">{currentGroup.muscleGroup}</p>
                 <p className="text-xs text-muted mt-1">
                   {t("ex.setOf", { current: currentExerciseIdx + 1, total: totalExercises })}
@@ -433,7 +433,7 @@ export default function WorkoutExecutePage() {
             <X className="w-5 h-5" />
           </button>
           <p className="text-white font-semibold text-center px-6 mb-4 max-w-md">
-            {currentGroup.exerciseName}
+            {tExerciseName(currentGroup.exerciseName)}
           </p>
           <img
             src={fullscreenGif}

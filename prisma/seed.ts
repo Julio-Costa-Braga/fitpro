@@ -21,6 +21,15 @@ async function main() {
   await prisma.user.deleteMany();
 
   console.log("👤 Criando usuários...");
+  const admin = await prisma.user.create({
+    data: {
+      name: "Administrador",
+      email: "admin@fitpro.com",
+      password: HASHED_PASSWORD,
+      role: UserRole.ADMIN,
+    },
+  });
+
   const personal = await prisma.user.create({
     data: {
       name: "Eddie",
@@ -181,6 +190,7 @@ async function main() {
   });
 
   console.log("✅ Seed concluído com sucesso!");
+  console.log(`   - Admin: ${admin.email} (senha: 123456)`);
   console.log(`   - Personal: ${personal.email} (senha: 123456)`);
   console.log(`   - Aluno: ${studentUser.email} (senha: 123456)`);
   console.log(`   - ${CATALOG.length} exercícios criados`);

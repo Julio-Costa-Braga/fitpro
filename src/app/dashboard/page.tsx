@@ -117,7 +117,7 @@ function TrainerDashboard({ stats }: { stats: StatsResponse }) {
 }
 
 function StudentDashboard({ stats }: { stats: StudentStatsResponse }) {
-  const { t } = useLanguage();
+  const { t, tExerciseName } = useLanguage();
   return (
     <div className="space-y-6 animate-fadeIn">
       <div>
@@ -136,7 +136,7 @@ function StudentDashboard({ stats }: { stats: StudentStatsResponse }) {
             {stats.todayWorkout.exercises.map((we, i) => (
               <div key={i} className="flex items-center justify-between bg-bg rounded-lg px-3 py-2">
                 <div>
-                  <p className="text-sm font-medium">{we.exercise.name}</p>
+                  <p className="text-sm font-medium">{tExerciseName(we.exercise.name)}</p>
                   <p className="text-xs text-muted">{we.exercise.muscleGroup}</p>
                 </div>
                 <p className="text-xs text-muted whitespace-nowrap">

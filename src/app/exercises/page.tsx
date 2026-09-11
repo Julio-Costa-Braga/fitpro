@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Tabs } from "@/components/ui/Tabs";
+import { ExerciseGif } from "@/components/ui/ExerciseGif";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 interface Exercise {
   id: string;
@@ -47,6 +49,7 @@ const muscleGroupColors: Record<string, string> = {
 
 export default function ExercisesPage() {
   const { user, token, loading: authLoading } = useAuth();
+  const { tExerciseName } = useLanguage();
   const router = useRouter();
 
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -90,7 +93,11 @@ export default function ExercisesPage() {
     if (filterGroup !== "all" && ex.muscleGroup !== filterGroup) return false;
     if (search) {
       const q = search.toLowerCase();
-      return ex.name.toLowerCase().includes(q) || ex.muscleGroup.toLowerCase().includes(q);
+      return (
+        ex.name.toLowerCase().includes(q) ||
+        tExerciseName(ex.name).toLowerCase().includes(q) ||
+        ex.muscleGroup.toLowerCase().includes(q)
+      );
     }
     return true;
   });
@@ -219,20 +226,19 @@ export default function ExercisesPage() {
                 <CardContent className="flex flex-col">
                   <div className="flex items-start gap-3 mb-3">
                     {ex.gifUrl ? (
-                      <div className="w-16 h-16 rounded-lg bg-bg overflow-hidden shrink-0">
-                        <img
-                          src={ex.gifUrl}
-                          alt={ex.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
+                      <ExerciseGif
+                        src={ex.gifUrl}
+                        alt={ex.name}
+                        title={tExerciseName(ex.name)}
+                        className="w-16 h-16 rounded-lg bg-bg"
+                      />
                     ) : (
                       <div className="w-16 h-16 rounded-lg bg-bg flex items-center justify-center shrink-0">
                         <Image className="w-6 h-6 text-muted/40" />
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-sm truncate">{ex.name}</h3>
+                      <h3 className="font-medium text-sm truncate">{tExerciseName(ex.name)}</h3>
                       <Badge
                         variant="default"
                         className={`mt-1 ${muscleGroupColors[ex.muscleGroup] ?? ""}`}

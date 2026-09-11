@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useCallback, useEffect } from "react";
 import type { Lang, Dict } from "./dictionaries";
+import { EXERCISE_NAMES } from "./exerciseNames";
 
 type T = (key: string, args?: Record<string, string | number>) => string;
 
@@ -9,12 +10,14 @@ interface LanguageCtx {
   lang: Lang;
   setLang: (l: Lang) => void;
   t: T;
+  tExerciseName: (name: string) => string;
 }
 
 const LanguageContext = createContext<LanguageCtx>({
   lang: "pt",
   setLang: () => {},
   t: (k) => k,
+  tExerciseName: (name) => name,
 });
 
 const STORAGE_KEY = "fitpro-lang";
@@ -69,8 +72,16 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     [lang, dicts]
   );
 
+  const tExerciseName = useCallback(
+    (name: string) => {
+      if (lang === "pt") return name;
+      return EXERCISE_NAMES[name]?.[lang] ?? name;
+    },
+    [lang]
+  );
+
   return (
-    <LanguageContext.Provider value={{ lang, setLang, t }}>
+    <LanguageContext.Provider value={{ lang, setLang, t, tExerciseName }}>
       {children}
     </LanguageContext.Provider>
   );
