@@ -30,8 +30,8 @@ export default function ChangePasswordPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!newPassword || newPassword.length < 6) {
-      setError("A nova senha deve ter no minimo 6 caracteres");
+    if (!newPassword || newPassword.length < 8) {
+      setError("A nova senha deve ter no minimo 8 caracteres");
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -85,7 +85,7 @@ export default function ChangePasswordPage() {
             <label className="text-xs font-medium text-muted">Nova senha *</label>
             <input
               type="password"
-              placeholder="Minimo 6 caracteres"
+              placeholder="Minimo 8 caracteres"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"

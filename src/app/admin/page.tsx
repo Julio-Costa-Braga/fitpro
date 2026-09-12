@@ -511,7 +511,7 @@ export default function AdminPage() {
             <Input
               label="Senha *"
               type="password"
-              placeholder="Minimo 6 caracteres"
+              placeholder="Minimo 8 caracteres"
               value={form.password}
               onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
             />

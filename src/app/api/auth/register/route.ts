@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { hashPassword, generateToken } from "@/lib/auth";
+import { hashPassword, generateToken, setAuthCookie } from "@/lib/auth";
 import { generateReferralCode } from "@/lib/referral";
 import { REFERRAL_DISCOUNT_MONTHS, trialUntil } from "@/lib/billing";
 import { checkRateLimit, clientIp } from "@/lib/rateLimit";
@@ -13,6 +13,13 @@ export async function POST(request: NextRequest) {
     if (!name || !email || !password) {
       return NextResponse.json(
         { error: "Nome, email e senha sao obrigatorios" },
+        { status: 400 }
+      );
+    }
+
+    if (typeof password !== "string" || password.length < 8) {
+      return NextResponse.json(
+        { error: "A senha deve ter no minimo 8 caracteres" },
         { status: 400 }
       );
     }
@@ -88,8 +95,7 @@ export async function POST(request: NextRequest) {
       name: user.name,
     });
 
-    return NextResponse.json({
-      token,
+    const response = NextResponse.json({
       user: {
         id: user.id,
         name: user.name,
@@ -104,6 +110,8 @@ export async function POST(request: NextRequest) {
         referredByUserId: user.referredByUserId,
       },
     });
+    setAuthCookie(response, token);
+    return response;
   } catch (error) {
     console.error("Register error:", error);
     return NextResponse.json(

@@ -14,22 +14,18 @@ export class ApiError extends Error {
   }
 }
 
-function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("fitpro_token");
-}
+const AUTH_REDIRECT_EXEMPT = new Set([
+  "/api/auth/login",
+  "/api/auth/register",
+  "/api/auth/me",
+]);
 
 async function request<T = unknown>(path: string, options: RequestOptions = {}): Promise<T> {
   const { method = "GET", body } = options;
-  const token = getToken();
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
-
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
 
   const res = await fetch(`${API_BASE}${path}`, {
     method,
@@ -40,8 +36,7 @@ async function request<T = unknown>(path: string, options: RequestOptions = {}):
   const data = await res.json();
 
   if (!res.ok) {
-    if (res.status === 401 && typeof window !== "undefined") {
-      localStorage.removeItem("fitpro_token");
+    if (res.status === 401 && !AUTH_REDIRECT_EXEMPT.has(path)) {
       window.location.href = "/";
     }
     throw new ApiError(data.error || "Erro na requisicao", res.status);
@@ -71,7 +66,6 @@ export interface User {
 }
 
 export interface AuthResponse {
-  token: string;
   user: User;
 }
 
@@ -201,6 +195,8 @@ export const api = {
       }),
 
     me: () => request<{ user: User }>("/api/auth/me"),
+
+    logout: () => request<{ ok: boolean }>("/api/auth/logout", { method: "POST" }),
   },
 
   admin: {

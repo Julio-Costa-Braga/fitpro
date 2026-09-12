@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { comparePassword, generateToken } from "@/lib/auth";
+import { comparePassword, generateToken, setAuthCookie } from "@/lib/auth";
 import { checkRateLimit, clientIp } from "@/lib/rateLimit";
 
 export async function POST(request: NextRequest) {
@@ -70,8 +70,7 @@ export async function POST(request: NextRequest) {
       name: user.name,
     });
 
-    return NextResponse.json({
-      token,
+    const response = NextResponse.json({
       user: {
         id: user.id,
         name: user.name,
@@ -93,6 +92,8 @@ export async function POST(request: NextRequest) {
         monthlyPrice: user.monthlyPrice,
       },
     });
+    setAuthCookie(response, token);
+    return response;
   } catch (error) {
     console.error("Login error:", error);
     return NextResponse.json(

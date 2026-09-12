@@ -31,41 +31,41 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    const stored = localStorage.getItem("fitpro_token");
-    if (stored) {
-      setToken(stored);
-      api.auth
-        .me()
-        .then((res) => {
-          setUser(res.user);
-          if (res.user.mustChangePassword && typeof window !== "undefined") {
-            if (window.location.pathname !== "/change-password") {
-              window.location.assign("/change-password");
-            }
+    let cancelled = false;
+    api.auth
+      .me()
+      .then((res) => {
+        if (cancelled) return;
+        setUser(res.user);
+        if (res.user.mustChangePassword && typeof window !== "undefined") {
+          if (window.location.pathname !== "/change-password") {
+            window.location.assign("/change-password");
           }
-        })
-        .catch(() => {
-          localStorage.removeItem("fitpro_token");
-          setToken(null);
-        })
-        .finally(() => setLoading(false));
-    } else {
-      setLoading(false);
-    }
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setUser(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const login = useCallback(
     async (email: string, password: string) => {
       const res = await api.auth.login(email, password);
-      localStorage.setItem("fitpro_token", res.token);
-      setToken(res.token);
       setUser(res.user);
-      router.push(res.user.mustChangePassword ? "/change-password" : "/dashboard");
+      router.push(
+        res.user.mustChangePassword ? "/change-password" : "/dashboard"
+      );
     },
     [router]
   );
@@ -78,17 +78,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       role: "PERSONAL" | "STUDENT";
     }) => {
       const res = await api.auth.register(data);
-      localStorage.setItem("fitpro_token", res.token);
-      setToken(res.token);
       setUser(res.user);
-      router.push(res.user.mustChangePassword ? "/change-password" : "/dashboard");
+      router.push(
+        res.user.mustChangePassword ? "/change-password" : "/dashboard"
+      );
     },
     [router]
   );
 
   const logout = useCallback(() => {
-    localStorage.removeItem("fitpro_token");
-    setToken(null);
+    api.auth.logout().catch(() => {});
     setUser(null);
     router.push("/");
   }, [router]);
@@ -99,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, loading, login, register, logout, updateUser }}
+      value={{ user, token: null, loading, login, register, logout, updateUser }}
     >
       {children}
     </AuthContext.Provider>

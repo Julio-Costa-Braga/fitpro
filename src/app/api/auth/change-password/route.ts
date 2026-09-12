@@ -11,9 +11,9 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const { currentPassword, newPassword } = body;
 
-  if (!newPassword || newPassword.length < 6) {
+  if (!newPassword || newPassword.length < 8) {
     return NextResponse.json(
-      { error: "A nova senha deve ter no minimo 6 caracteres" },
+      { error: "A nova senha deve ter no minimo 8 caracteres" },
       { status: 400 }
     );
   }
