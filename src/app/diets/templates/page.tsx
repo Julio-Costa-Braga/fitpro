@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import Link from "next/link";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 interface TemplateMeal {
   id: string;
@@ -34,14 +35,15 @@ interface Student {
   name: string;
 }
 
-const LEVEL_META: Record<string, { label: string; badge: string }> = {
-  INICIANTE: { label: "Iniciante", badge: "bg-green-500/15 text-green-400" },
-  MODERADO: { label: "Moderado", badge: "bg-blue-500/15 text-blue-400" },
-  AVANCADO: { label: "Avancado", badge: "bg-red-500/15 text-red-400" },
+const LEVEL_META: Record<string, { labelKey: string; badge: string }> = {
+  INICIANTE: { labelKey: "common.level.beginner", badge: "bg-green-500/15 text-green-400" },
+  MODERADO: { labelKey: "common.level.intermediate", badge: "bg-blue-500/15 text-blue-400" },
+  AVANCADO: { labelKey: "common.level.advanced", badge: "bg-red-500/15 text-red-400" },
 };
 
 export default function DietTemplatesPage() {
   const { user, token, loading: authLoading } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
 
   const [templates, setTemplates] = useState<DietTemplate[]>([]);
@@ -59,7 +61,7 @@ export default function DietTemplatesPage() {
       const data = await api.get<{ templates: DietTemplate[] }>("/api/diet-templates");
       setTemplates(data.templates);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao carregar modelos");
+      setError(e instanceof Error ? e.message : t("diet.errLoadModels"));
     } finally {
       setLoading(false);
     }
@@ -95,20 +97,20 @@ export default function DietTemplatesPage() {
       setApplyStudentId("");
       router.push(`/diets/${data.dietPlan.id}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao aplicar modelo");
+      setError(e instanceof Error ? e.message : t("diet.errApply"));
     } finally {
       setApplying(false);
     }
   }
 
-  async function handleDelete(t: DietTemplate) {
-    if (!confirm(`Excluir o modelo "${t.name}"?`)) return;
-    setDeletingId(t.id);
+  async function handleDelete(tmpl: DietTemplate) {
+    if (!confirm(t("diet.confirmDeleteModel", { name: tmpl.name }))) return;
+    setDeletingId(tmpl.id);
     try {
-      await api.delete(`/api/diet-templates/${t.id}`);
+      await api.delete(`/api/diet-templates/${tmpl.id}`);
       await loadTemplates();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao excluir modelo");
+      setError(e instanceof Error ? e.message : t("diet.errDeleteModel"));
     } finally {
       setDeletingId(null);
     }
@@ -129,14 +131,14 @@ export default function DietTemplatesPage() {
     .filter((g) => g.items.length > 0);
 
   return (
-    <AppLayout title="Modelos de Dieta">
+    <AppLayout title={t("diet.templatesTitle")}>
       <div className="space-y-6 animate-fadeIn">
         <Link
           href="/diets"
           className="inline-flex items-center gap-2 text-sm text-muted hover:text-white transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Voltar para Dietas
+          {t("diet.backList")}
         </Link>
 
         {error && (
@@ -147,35 +149,35 @@ export default function DietTemplatesPage() {
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">Modelos de Dieta</h1>
+            <h1 className="text-2xl font-bold">{t("diet.templatesTitle")}</h1>
             <p className="text-muted text-sm">
-              Crie modelos de dieta e compartilhe com os alunos sem criar do zero.
+              {t("diet.templatesSubtitle")}
             </p>
           </div>
           <Button icon={<Plus className="w-4 h-4" />} onClick={() => router.push("/diets/templates/new")}>
-            Novo Modelo
+            {t("diet.newModel")}
           </Button>
         </div>
 
         {grouped.length === 0 ? (
           <Card className="p-12 text-center">
             <Layers className="w-10 h-10 text-muted mx-auto mb-3" />
-            <p className="text-muted">Nenhum modelo de dieta criado</p>
+            <p className="text-muted">{t("diet.noModels")}</p>
           </Card>
         ) : (
           grouped.map(({ level, items }) => (
             <div key={level} className="space-y-3">
               <div className="flex items-center gap-2">
                 <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${LEVEL_META[level].badge}`}>
-                  {LEVEL_META[level].label}
+                  {t(LEVEL_META[level].labelKey)}
                 </span>
                 <span className="text-xs text-muted">({items.length})</span>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {items.map((t) => {
-                  const totalFoods = t.meals.reduce((s, m) => s + m.foods.length, 0);
+                {items.map((tmpl) => {
+                  const totalFoods = tmpl.meals.reduce((s, m) => s + m.foods.length, 0);
                   return (
-                    <Card key={t.id} className="flex flex-col h-full">
+                    <Card key={tmpl.id} className="flex flex-col h-full">
                       <CardContent className="flex flex-col h-full">
                         <div className="flex items-start justify-between gap-2 mb-2">
                           <div className="flex items-center gap-2 min-w-0">
@@ -183,23 +185,23 @@ export default function DietTemplatesPage() {
                               <Apple className="w-4 h-4" />
                             </div>
                             <div className="min-w-0">
-                              <h3 className="font-semibold text-sm leading-tight truncate">{t.name}</h3>
+                              <h3 className="font-semibold text-sm leading-tight truncate">{tmpl.name}</h3>
                               <p className="text-xs text-muted">
-                                {t.meals.length} refeicao{t.meals.length !== 1 ? "es" : ""} · {totalFoods} alimento{totalFoods !== 1 ? "s" : ""}
+                                {t(tmpl.meals.length === 1 ? "diet.mealCountOne" : "diet.mealCountMany", { n: tmpl.meals.length })} · {t(totalFoods === 1 ? "diet.foodCountOne" : "diet.foodCountMany", { n: totalFoods })}
                               </p>
                             </div>
                           </div>
-                          {t.isPreset && <Badge variant="default">Padrao</Badge>}
+                          {tmpl.isPreset && <Badge variant="default">{t("diet.presetLabel")}</Badge>}
                         </div>
-                        {t.description && (
-                          <p className="text-xs text-muted/80 mb-3 line-clamp-2">{t.description}</p>
+                        {tmpl.description && (
+                          <p className="text-xs text-muted/80 mb-3 line-clamp-2">{tmpl.description}</p>
                         )}
                         <div className="flex flex-wrap gap-1.5 mb-3">
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${LEVEL_META[t.level].badge}`}>
-                            {LEVEL_META[t.level].label}
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${LEVEL_META[tmpl.level].badge}`}>
+                            {t(LEVEL_META[tmpl.level].labelKey)}
                           </span>
                           <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted/10 text-muted font-semibold flex items-center gap-1">
-                            <UtensilsCrossed className="w-3 h-3" /> {t.meals.length}x
+                            <UtensilsCrossed className="w-3 h-3" /> {tmpl.meals.length}x
                           </span>
                         </div>
                         <div className="flex gap-2 mt-auto pt-3 border-t border-border">
@@ -208,22 +210,22 @@ export default function DietTemplatesPage() {
                             variant="secondary"
                             className="flex-1"
                             icon={<Send className="w-3.5 h-3.5" />}
-                            onClick={() => setApplyTarget(t)}
+                            onClick={() => setApplyTarget(tmpl)}
                           >
-                            Aplicar p/ aluno
+                            {t("diet.applyShort")}
                           </Button>
                           <Button
                             size="sm"
                             variant="ghost"
                             icon={<Pencil className="w-3.5 h-3.5" />}
-                            onClick={() => router.push(`/diets/templates/${t.id}`)}
+                            onClick={() => router.push(`/diets/templates/${tmpl.id}`)}
                           />
                           <Button
                             size="sm"
                             variant="danger"
                             icon={<Trash2 className="w-3.5 h-3.5" />}
-                            loading={deletingId === t.id}
-                            onClick={() => handleDelete(t)}
+                            loading={deletingId === tmpl.id}
+                            onClick={() => handleDelete(tmpl)}
                           />
                         </div>
                       </CardContent>
@@ -239,7 +241,7 @@ export default function DietTemplatesPage() {
       <Modal
         open={!!applyTarget}
         onClose={() => setApplyTarget(null)}
-        title="Aplicar modelo para o aluno"
+        title={t("diet.applyTitle")}
       >
         <div className="space-y-4">
           {applyTarget && (
@@ -249,13 +251,13 @@ export default function DietTemplatesPage() {
             </div>
           )}
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-muted">Aluno *</label>
+            <label className="block text-sm font-medium text-muted">{t("diet.studentLabel")}</label>
             <select
               value={applyStudentId}
               onChange={(e) => setApplyStudentId(e.target.value)}
               className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent/60 transition-all"
             >
-              <option value="">Selecione o aluno</option>
+              <option value="">{t("diet.selectStudent")}</option>
               {students.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
@@ -265,10 +267,10 @@ export default function DietTemplatesPage() {
           </div>
           <div className="flex gap-3 pt-2">
             <Button variant="secondary" className="flex-1" onClick={() => setApplyTarget(null)}>
-              Cancelar
+              {t("common.cancel")}
             </Button>
             <Button className="flex-1" loading={applying} disabled={!applyStudentId} onClick={handleApply}>
-              Criar Dieta p/ o Aluno
+              {t("diet.applyCreate")}
             </Button>
           </div>
         </div>

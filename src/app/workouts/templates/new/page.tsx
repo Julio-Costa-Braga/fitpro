@@ -9,17 +9,19 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import Link from "next/link";
 
 const LEVELS = [
-  { value: "INICIANTE", label: "Iniciante" },
-  { value: "MODERADO", label: "Moderado" },
-  { value: "AVANCADO", label: "Avancado" },
+  { value: "INICIANTE", labelKey: "common.level.beginner" },
+  { value: "MODERADO", labelKey: "common.level.intermediate" },
+  { value: "AVANCADO", labelKey: "common.level.advanced" },
 ];
 
 export default function NewWorkoutTemplatePage() {
   const { user } = useAuth();
   const router = useRouter();
+  const { t } = useLanguage();
   const [form, setForm] = useState({ name: "", description: "", level: "INICIANTE" });
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
@@ -37,7 +39,7 @@ export default function NewWorkoutTemplatePage() {
       });
       router.push(`/workouts/templates/${data.template.id}`);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao criar modelo");
+      setError(err instanceof Error ? err.message : t("wk.errCreateModel"));
       setCreating(false);
     }
   }
@@ -45,14 +47,14 @@ export default function NewWorkoutTemplatePage() {
   if (!user) return null;
 
   return (
-    <AppLayout title="Novo Modelo de Treino">
+    <AppLayout title={t("wk.newModelTitle")}>
       <div className="max-w-xl mx-auto space-y-6 animate-fadeIn">
         <Link
           href="/workouts/templates"
           className="inline-flex items-center gap-2 text-sm text-muted hover:text-white transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Voltar para Modelos
+          {t("wk.backModels")}
         </Link>
 
         <Card className="p-6">
@@ -61,8 +63,8 @@ export default function NewWorkoutTemplatePage() {
               <Layers className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-xl font-bold">Novo Modelo de Treino</h1>
-              <p className="text-sm text-muted">Depois de criar, adicione os exercicios</p>
+              <h1 className="text-xl font-bold">{t("wk.newModelTitle")}</h1>
+              <p className="text-sm text-muted">{t("wk.newModelSubtitle")}</p>
             </div>
           </div>
 
@@ -74,21 +76,21 @@ export default function NewWorkoutTemplatePage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
-              label="Nome do Modelo *"
-              placeholder="Ex: Treino A - Peito e Triceps"
+              label={t("wk.tmplNameLabel")}
+              placeholder={t("wk.tmplNamePlaceholder")}
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               required
             />
             <Textarea
-              label="Descricao"
-              placeholder="Para qual objetivo esse modelo serve?"
+              label={t("wk.description")}
+              placeholder={t("wk.tmplDescPlaceholder")}
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
               rows={3}
             />
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-muted">Nivel do aluno</label>
+              <label className="block text-sm font-medium text-muted">{t("wk.studentLevel")}</label>
               <div className="grid grid-cols-3 gap-2">
                 {LEVELS.map((lvl) => (
                   <button
@@ -101,7 +103,7 @@ export default function NewWorkoutTemplatePage() {
                         : "border-border bg-card text-muted hover:text-white"
                     }`}
                   >
-                    {lvl.label}
+                    {t(lvl.labelKey)}
                   </button>
                 ))}
               </div>
@@ -113,10 +115,10 @@ export default function NewWorkoutTemplatePage() {
                 onClick={() => router.push("/workouts/templates")}
                 className="flex-1"
               >
-                Cancelar
+                {t("common.cancel")}
               </Button>
               <Button type="submit" loading={creating} className="flex-1" icon={<Dumbbell className="w-4 h-4" />}>
-                Criar Modelo
+                {t("wk.createModel")}
               </Button>
             </div>
           </form>

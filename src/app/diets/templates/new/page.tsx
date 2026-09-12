@@ -10,15 +10,17 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
 import Link from "next/link";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 const LEVELS = [
-  { value: "INICIANTE", label: "Iniciante" },
-  { value: "MODERADO", label: "Moderado" },
-  { value: "AVANCADO", label: "Avancado" },
+  { value: "INICIANTE", labelKey: "common.level.beginner" },
+  { value: "MODERADO", labelKey: "common.level.intermediate" },
+  { value: "AVANCADO", labelKey: "common.level.advanced" },
 ];
 
 export default function NewDietTemplatePage() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
   const [form, setForm] = useState({ name: "", description: "", level: "INICIANTE" });
   const [creating, setCreating] = useState(false);
@@ -37,7 +39,7 @@ export default function NewDietTemplatePage() {
       });
       router.push(`/diets/templates/${data.template.id}`);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao criar modelo");
+      setError(err instanceof Error ? err.message : t("diet.errCreateModel"));
       setCreating(false);
     }
   }
@@ -45,14 +47,14 @@ export default function NewDietTemplatePage() {
   if (!user) return null;
 
   return (
-    <AppLayout title="Novo Modelo de Dieta">
+    <AppLayout title={t("diet.newTemplateTitle")}>
       <div className="max-w-xl mx-auto space-y-6 animate-fadeIn">
         <Link
           href="/diets/templates"
           className="inline-flex items-center gap-2 text-sm text-muted hover:text-white transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Voltar para Modelos
+          {t("diet.backTemplates")}
         </Link>
 
         <Card className="p-6">
@@ -61,8 +63,8 @@ export default function NewDietTemplatePage() {
               <Layers className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-xl font-bold">Novo Modelo de Dieta</h1>
-              <p className="text-sm text-muted">Depois de criar, adicione as refeicoes</p>
+              <h1 className="text-xl font-bold">{t("diet.newTemplateTitle")}</h1>
+              <p className="text-sm text-muted">{t("diet.newTemplateSubtitle")}</p>
             </div>
           </div>
 
@@ -74,21 +76,21 @@ export default function NewDietTemplatePage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
-              label="Nome do Modelo *"
-              placeholder="Ex: Dieta Hipertrofia - 2800 kcal"
+              label={t("diet.templateNameLabel")}
+              placeholder={t("diet.templateNamePlaceholder")}
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               required
             />
             <Textarea
-              label="Descricao"
-              placeholder="Para qual objetivo esse modelo serve?"
+              label={t("wk.description")}
+              placeholder={t("diet.templateDescPlaceholder")}
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
               rows={3}
             />
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-muted">Nivel do aluno</label>
+              <label className="block text-sm font-medium text-muted">{t("diet.templateLevelLabel")}</label>
               <div className="grid grid-cols-3 gap-2">
                 {LEVELS.map((lvl) => (
                   <button
@@ -101,7 +103,7 @@ export default function NewDietTemplatePage() {
                         : "border-border bg-card text-muted hover:text-white"
                     }`}
                   >
-                    {lvl.label}
+                    {t(lvl.labelKey)}
                   </button>
                 ))}
               </div>
@@ -113,10 +115,10 @@ export default function NewDietTemplatePage() {
                 onClick={() => router.push("/diets/templates")}
                 className="flex-1"
               >
-                Cancelar
+                {t("common.cancel")}
               </Button>
               <Button type="submit" loading={creating} className="flex-1" icon={<Apple className="w-4 h-4" />}>
-                Criar Modelo
+                {t("common.create")}
               </Button>
             </div>
           </form>

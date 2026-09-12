@@ -179,7 +179,7 @@ export default function WorkoutDetailPage() {
   }
 
   async function handleRemoveExercise(we: WorkoutExercise) {
-    if (!confirm("Remover este exercicio do treino?")) return;
+    if (!confirm(t("wk.confirmRemoveExercise"))) return;
     try {
       const remaining = workout?.exercises
         .filter((e) => e.id !== we.id)
@@ -256,7 +256,7 @@ export default function WorkoutDetailPage() {
 
   async function handleDeleteWorkout() {
     if (!workout) return;
-    if (!confirm(`Excluir o treino "${workout.name}"? Esta acao nao pode ser desfeita.`)) return;
+    if (!confirm(t("wk.confirmDeleteWorkout", { name: workout.name }))) return;
     setDeleting(true);
     try {
       await api.delete(`/api/workouts/${workout.id}`);
@@ -343,7 +343,7 @@ export default function WorkoutDetailPage() {
                 <Input
                   value={descValue}
                   onChange={(e) => setDescValue(e.target.value)}
-                  placeholder="Descricao..."
+                  placeholder={t("wk.descEllipsis")}
                   className="flex-1"
                 />
                 <Button
@@ -408,7 +408,7 @@ export default function WorkoutDetailPage() {
                   setShowAddExercise(true);
                 }}
               >
-                Adicionar
+                {t("common.add")}
               </Button>
             )}
             {(user.role === "PERSONAL" || user.role === "ADMIN") && (
@@ -418,7 +418,7 @@ export default function WorkoutDetailPage() {
                 onClick={handleDeleteWorkout}
                 loading={deleting}
               >
-                Excluir
+                {t("common.delete")}
               </Button>
             )}
           </div>
@@ -428,14 +428,14 @@ export default function WorkoutDetailPage() {
           <Card className="p-5">
             <div className="flex items-center gap-2 mb-3">
               <Rocket className="w-4 h-4 text-accent" />
-              <h2 className="font-semibold text-sm">Automatizacao do Treino</h2>
+              <h2 className="font-semibold text-sm">{t("wk.automation")}</h2>
             </div>
             <div className="flex flex-col sm:flex-row sm:items-end gap-4">
               <div className="flex items-center justify-between gap-4 flex-1">
                 <div>
-                  <p className="text-sm font-medium">Avancar automaticamente para o proximo treino</p>
+                  <p className="text-sm font-medium">{t("wk.autoAdvance")}</p>
                   <p className="text-xs text-muted">
-                    Ao concluir (ou quando o prazo vencer), o app troca para o proximo treino/modelo deste aluno.
+                    {t("wk.autoAdvanceHint")}
                   </p>
                 </div>
                 <button
@@ -452,24 +452,24 @@ export default function WorkoutDetailPage() {
                 </button>
               </div>
               <div className="w-full sm:w-56">
-                <label className="block text-xs font-medium text-muted mb-1">Prazo para concluir (dias)</label>
+                <label className="block text-xs font-medium text-muted mb-1">{t("wk.deadline")}</label>
                 <input
                   type="number"
                   min={1}
                   disabled={!autoAdvance}
                   value={deadlineDays}
                   onChange={(e) => setDeadlineDays(e.target.value)}
-                  placeholder={autoAdvance ? "Ex: 30" : "Ative o auto-avancar"}
+                  placeholder={autoAdvance ? t("wk.deadlinePlaceholder") : t("wk.autoAdvancePlaceholder")}
                   className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent/40 disabled:opacity-40"
                 />
               </div>
               <Button size="sm" icon={<Save className="w-4 h-4" />} onClick={handleSaveSettings} loading={savingSettings}>
-                Salvar
+                {t("common.save")}
               </Button>
             </div>
             {autoAdvance && Number(deadlineDays) > 0 && (
               <p className="text-xs text-muted mt-3">
-                Se o aluno nao concluir em {deadlineDays} dia{Number(deadlineDays) > 1 ? "s" : ""}, o sistema troca para o proximo treino automaticamente.
+                {t("wk.deadlineHint", { n: deadlineDays, s: Number(deadlineDays) > 1 ? "s" : "" })}
               </p>
             )}
           </Card>
@@ -478,7 +478,7 @@ export default function WorkoutDetailPage() {
         {workout.exercises.length === 0 ? (
           <Card className="p-12 text-center">
             <Dumbbell className="w-10 h-10 text-muted mx-auto mb-3" />
-            <p className="text-muted mb-3">Nenhum exercicio neste treino</p>
+            <p className="text-muted mb-3">{t("wk.noExercises")}</p>
             <Button
               icon={<Plus className="w-4 h-4" />}
               onClick={() => {
@@ -486,7 +486,7 @@ export default function WorkoutDetailPage() {
                 setShowAddExercise(true);
               }}
             >
-              Adicionar Exercicio
+              {t("wk.addExercise")}
             </Button>
           </Card>
         ) : (
@@ -522,7 +522,7 @@ export default function WorkoutDetailPage() {
                     {editingExercise === we.id ? (
                       <div className="flex items-center gap-2 mt-2 flex-wrap">
                         <div className="flex items-center gap-1">
-                          <label className="text-xs text-muted">S:</label>
+                          <label className="text-xs text-muted">{t("wk.sAbbr")}</label>
                           <input
                             type="number"
                             min={1}
@@ -532,7 +532,7 @@ export default function WorkoutDetailPage() {
                           />
                         </div>
                         <div className="flex items-center gap-1">
-                          <label className="text-xs text-muted">R:</label>
+                          <label className="text-xs text-muted">{t("wk.rAbbr")}</label>
                           <input
                             value={editForm.reps}
                             onChange={(e) => setEditForm({ ...editForm, reps: e.target.value })}
@@ -540,7 +540,7 @@ export default function WorkoutDetailPage() {
                           />
                         </div>
                         <div className="flex items-center gap-1">
-                          <label className="text-xs text-muted">Carga:</label>
+                          <label className="text-xs text-muted">{t("wk.loadLabel")}</label>
                           <input
                             value={editForm.initialLoad}
                             onChange={(e) => setEditForm({ ...editForm, initialLoad: e.target.value })}
@@ -548,7 +548,7 @@ export default function WorkoutDetailPage() {
                           />
                         </div>
                         <div className="flex items-center gap-1">
-                          <label className="text-xs text-muted">Desc:</label>
+                          <label className="text-xs text-muted">{t("wk.descAbbr")}</label>
                           <input
                             type="number"
                             min={0}
@@ -559,12 +559,12 @@ export default function WorkoutDetailPage() {
                         </div>
                         <div className="w-full flex-1 min-w-[220px]">
                           <label className="block text-xs text-muted mb-1">
-                            Exercicio semelhante (caso nao tenha essa maquina)
+                            {t("wk.alternativeLabel")}
                           </label>
                           <input
                             value={editForm.alternative}
                             onChange={(e) => setEditForm({ ...editForm, alternative: e.target.value })}
-                            placeholder="Ex: Leg Press no lugar do Agachamento"
+                            placeholder={t("wk.alternativePlaceholder")}
                             className="w-full bg-bg border border-border rounded px-2 py-1 text-xs text-white focus:outline-none focus:ring-1 focus:ring-accent/40"
                           />
                         </div>
@@ -585,13 +585,13 @@ export default function WorkoutDetailPage() {
                       <p className="text-xs text-muted mt-0.5">
                         {we.sets}x{we.reps}
                         {we.initialLoad && ` \u00B7 ${we.initialLoad}`}
-                        {` \u00B7 ${we.restTime}s descanso`}
+                        {` \u00B7 ${t("wk.restTime", { s: we.restTime })}`}
                       </p>
                     )}
                     {we.alternative && (
                       <p className="text-xs text-accent/90 mt-1 flex items-start gap-1">
                         <Repeat className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                        <span>Sem essa maquina? Use: {we.alternative}</span>
+                        <span>{t("wk.noMachineHint", { name: we.alternative })}</span>
                       </p>
                     )}
                   </div>
@@ -634,19 +634,19 @@ export default function WorkoutDetailPage() {
           setShowAddExercise(false);
           setExerciseSearch("");
         }}
-        title="Adicionar Exercicio"
+        title={t("wk.addExercise")}
         size="lg"
       >
         <div className="space-y-4">
           <Input
-            placeholder="Buscar exercicio..."
+            placeholder={t("wk.modalSearch")}
             icon={<Search className="w-4 h-4" />}
             value={exerciseSearch}
             onChange={(e) => setExerciseSearch(e.target.value)}
           />
           <div className="max-h-[50vh] overflow-y-auto space-y-2">
             {filteredExercises.length === 0 ? (
-              <p className="text-center text-muted text-sm py-6">Nenhum exercicio encontrado</p>
+              <p className="text-center text-muted text-sm py-6">{t("wk.modalNoResults")}</p>
             ) : (
               filteredExercises.map((ex) => {
                 const alreadyAdded = existingIds.has(ex.id);
@@ -667,7 +667,7 @@ export default function WorkoutDetailPage() {
                       </div>
                     </div>
                     {alreadyAdded ? (
-                      <Badge variant="default">Ja adicionado</Badge>
+                      <Badge variant="default">{t("wk.alreadyAdded")}</Badge>
                     ) : (
                       <Button
                         size="sm"
@@ -676,7 +676,7 @@ export default function WorkoutDetailPage() {
                         onClick={() => handleAddExercise(ex.id)}
                         loading={addingExercise === ex.id}
                       >
-                        Adicionar
+                        {t("common.add")}
                       </Button>
                     )}
                   </div>

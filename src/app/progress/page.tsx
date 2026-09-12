@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Select } from "@/components/ui/Select";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 interface Student {
   id: string;
@@ -55,6 +56,15 @@ const MEASURES: { key: keyof ProgressInput; label: string; unit: string }[] = [
   { key: "thigh", label: "Coxa", unit: "cm" },
 ];
 
+const MEASURE_LABEL_KEYS: Record<string, string> = {
+  Peso: "prog.measure.weight",
+  Gordura: "prog.measure.bodyFat",
+  Peito: "prog.measure.chest",
+  Cintura: "prog.measure.waist",
+  Braco: "prog.measure.arm",
+  Coxa: "prog.measure.thigh",
+};
+
 function Delta({ value }: { value: number }) {
   const str = value > 0 ? `+${value.toFixed(1)}` : value.toFixed(1);
   return (
@@ -74,6 +84,7 @@ function Delta({ value }: { value: number }) {
 
 export default function ProgressPage() {
   const { user, loading: authLoading } = useAuth();
+  const { t, lang } = useLanguage();
   const router = useRouter();
 
   const [students, setStudents] = useState<Student[]>([]);
@@ -105,7 +116,7 @@ export default function ProgressPage() {
           setSelectedStudentId(data.students[0].id);
         }
       } catch {
-        setError("Erro ao carregar alunos");
+        setError(t("stu.errLoad"));
       } finally {
         setLoading(false);
       }
@@ -123,7 +134,7 @@ export default function ProgressPage() {
       setNextReviewDate(data.nextReviewDate);
       setOverdue(data.overdue);
     } catch {
-      setError("Erro ao carregar progresso");
+      setError(t("prog.errLoad"));
     } finally {
       setLoadingProgress(false);
     }
@@ -152,7 +163,7 @@ export default function ProgressPage() {
       setShowForm(false);
       await loadProgress(selectedStudentId);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao salvar registro");
+      setError(err instanceof Error ? err.message : t("prog.errSave"));
     } finally {
       setSaving(false);
     }
@@ -168,7 +179,7 @@ export default function ProgressPage() {
       });
       await loadProgress(selectedStudentId);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao salvar periodo");
+      setError(err instanceof Error ? err.message : t("prog.errSavePeriod"));
     } finally {
       setSavingFreq(false);
     }
@@ -188,16 +199,16 @@ export default function ProgressPage() {
   const weightDiff = latestWeight && firstWeight ? latestWeight - firstWeight : null;
 
   return (
-    <AppLayout title="Progresso">
+    <AppLayout title={t("nav.progress")}>
       <div className="space-y-6 animate-fadeIn">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">Progresso</h1>
-            <p className="text-muted text-sm">Acompanhe a evolucao dos alunos e agende as reavaliacoes</p>
+            <h1 className="text-2xl font-bold">{t("nav.progress")}</h1>
+            <p className="text-muted text-sm">{t("prog.subtitle")}</p>
           </div>
           {selectedStudentId && user?.role !== "STUDENT" && (
             <Button icon={<Plus className="w-4 h-4" />} onClick={() => setShowForm(true)}>
-              Nova Avaliação
+              {t("prog.newAssessment")}
             </Button>
           )}
         </div>
@@ -210,7 +221,7 @@ export default function ProgressPage() {
 
         {students.length > 0 && user?.role !== "STUDENT" && (
           <Select
-            label="Aluno"
+            label={t("prog.student")}
             value={selectedStudentId}
             onChange={(e) => setSelectedStudentId(e.target.value)}
             options={students.map((s) => ({ value: s.id, label: s.name }))}
@@ -220,7 +231,7 @@ export default function ProgressPage() {
         {students.length === 0 && (
           <Card className="p-12 text-center">
             <TrendingUp className="w-10 h-10 text-muted mx-auto mb-3" />
-            <p className="text-muted">Nenhum aluno cadastrado</p>
+            <p className="text-muted">{t("prog.noStudents")}</p>
           </Card>
         )}
 
@@ -237,29 +248,35 @@ export default function ProgressPage() {
                 </div>
                 <div>
                   <p className="font-semibold flex items-center gap-2">
-                    Próxima reavaliação
+                    {t("prog.nextReview")}
                     {overdue ? (
                       <Badge variant="danger">
-                        <AlertTriangle className="w-3 h-3" /> Em atraso
+                        <AlertTriangle className="w-3 h-3" /> {t("common.late")}
                       </Badge>
                     ) : (
                       <Badge variant="success">
-                        <CheckCircle2 className="w-3 h-3" /> Em dia
+                        <CheckCircle2 className="w-3 h-3" /> {t("common.ontime")}
                       </Badge>
                     )}
                   </p>
                   <p className="text-sm text-muted mt-0.5">
                     {overdue
-                      ? "Já está na hora de registrar uma nova avaliação do aluno."
-                      : `Agendada para ${new Date(nextReviewDate).toLocaleDateString("pt-BR", {
-                          day: "2-digit",
-                          month: "long",
-                          year: "numeric",
-                        })} — ${Math.max(0, Math.ceil((new Date(nextReviewDate).getTime() - Date.now()) / 86400000))} dia(s).`}
+                      ? t("prog.dueNow")
+                      : t("prog.scheduled", {
+                          date: new Date(nextReviewDate).toLocaleDateString(
+                            lang === "pt" ? "pt-BR" : lang === "en" ? "en-US" : "es-ES",
+                            {
+                              day: "2-digit",
+                              month: "long",
+                              year: "numeric",
+                            }
+                          ),
+                          n: Math.max(0, Math.ceil((new Date(nextReviewDate).getTime() - Date.now()) / 86400000)),
+                        })}
                   </p>
                   {user?.role === "STUDENT" && !overdue && (
                     <p className="text-xs text-muted mt-1">
-                      Quando seu personal registrar uma nova avaliação, você verá aqui a sua evolução.
+                      {t("prog.studentEmpty")}
                     </p>
                   )}
                 </div>
@@ -268,7 +285,7 @@ export default function ProgressPage() {
               {user && user.role !== "STUDENT" && (
                 <div className="flex items-end gap-2">
                   <div>
-                    <label className="block text-xs text-muted mb-1">Reavaliação a cada</label>
+                    <label className="block text-xs text-muted mb-1">{t("prog.every")}</label>
                     <div className="flex items-center gap-2">
                       <Input
                         type="number"
@@ -278,9 +295,9 @@ export default function ProgressPage() {
                         value={reviewFrequencyDays}
                         onChange={(e) => setReviewFrequencyDays(Number(e.target.value || 30))}
                       />
-                      <span className="text-sm text-muted">dias</span>
+                      <span className="text-sm text-muted">{t("prog.days")}</span>
                       <Button variant="secondary" size="sm" onClick={handleSaveFrequency} loading={savingFreq}>
-                        Salvar
+                        {t("common.save")}
                       </Button>
                     </div>
                   </div>
@@ -302,17 +319,17 @@ export default function ProgressPage() {
               <div className="grid grid-cols-3 gap-3">
                 <Card className="p-4 text-center">
                   <p className="text-2xl font-bold">{latestWeight}kg</p>
-                  <p className="text-xs text-muted mt-1">Peso Atual</p>
+                  <p className="text-xs text-muted mt-1">{t("prog.currentWeight")}</p>
                 </Card>
                 <Card className="p-4 text-center">
                   <p className="text-2xl font-bold">{progress[0]?.bodyFat ? `${progress[0].bodyFat}%` : "-"}</p>
-                  <p className="text-xs text-muted mt-1">% Gordura</p>
+                  <p className="text-xs text-muted mt-1">{t("prog.measure.bodyFat")}</p>
                 </Card>
                 <Card className="p-4 text-center">
                   <p className={`text-2xl font-bold ${weightDiff && weightDiff < 0 ? "text-green-400" : weightDiff && weightDiff > 0 ? "text-red-400" : ""}`}>
                     {weightDiff != null ? `${weightDiff > 0 ? "+" : ""}${weightDiff.toFixed(1)}kg` : "-"}
                   </p>
-                  <p className="text-xs text-muted mt-1">Variacao</p>
+                  <p className="text-xs text-muted mt-1">{t("prog.variation")}</p>
                 </Card>
               </div>
             )}
@@ -321,7 +338,7 @@ export default function ProgressPage() {
               <Card className="p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <Calculator className="w-4 h-4 text-accent" />
-                  <p className="text-sm font-medium">Evolução desde a primeira avaliação</p>
+                  <p className="text-sm font-medium">{t("prog.sinceFirst")}</p>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {MEASURES.map((m) => {
@@ -332,7 +349,7 @@ export default function ProgressPage() {
                     return (
                       <div key={m.key} className="bg-bg rounded-lg p-3 flex items-center justify-between">
                         <span className="text-xs text-muted">
-                          {m.label} ({m.unit})
+                          {t(MEASURE_LABEL_KEYS[m.label] ?? m.label)} ({m.unit})
                         </span>
                         <span className="text-sm font-semibold">
                           <Delta value={value} />
@@ -346,7 +363,7 @@ export default function ProgressPage() {
 
             {weightEntries.length > 1 && (
               <Card className="p-5">
-                <p className="text-sm font-medium mb-4">Evolucao do Peso</p>
+                <p className="text-sm font-medium mb-4">{t("prog.weightEvolution")}</p>
                 <div className="space-y-2">
                   {weightEntries.slice().reverse().map((p) => {
                     const weights = weightEntries.map((x) => x.weight!).filter(Boolean);
@@ -357,7 +374,7 @@ export default function ProgressPage() {
                     return (
                       <div key={p.id} className="flex items-center gap-3 text-xs">
                         <span className="w-20 text-muted shrink-0">
-                          {new Date(p.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" })}
+                          {new Date(p.date).toLocaleDateString(lang === "pt" ? "pt-BR" : lang === "en" ? "en-US" : "es-ES", { day: "2-digit", month: "2-digit", year: "2-digit" })}
                         </span>
                         <div className="flex-1 bg-bg rounded-full h-5 overflow-hidden relative">
                           <div
@@ -378,7 +395,7 @@ export default function ProgressPage() {
             {progress.length === 0 && !loadingProgress && (
               <Card className="p-8 text-center">
                 <TrendingUp className="w-8 h-8 text-muted mx-auto mb-2" />
-                <p className="text-muted text-sm">Nenhum registro de progresso para este aluno</p>
+                <p className="text-muted text-sm">{t("prog.noRecords")}</p>
               </Card>
             )}
 
@@ -390,54 +407,54 @@ export default function ProgressPage() {
                     <div className="absolute -left-4 top-4 w-2.5 h-2.5 rounded-full bg-accent border-2 border-bg" />
                     <Card className="p-4 ml-2">
                       <div className="flex items-center justify-between gap-2 mb-2">
-                        <p className="text-xs text-muted">{new Date(p.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}</p>
+                        <p className="text-xs text-muted">{new Date(p.date).toLocaleDateString(lang === "pt" ? "pt-BR" : lang === "en" ? "en-US" : "es-ES", { day: "2-digit", month: "long", year: "numeric" })}</p>
                         {index === 0 ? (
-                          <Badge variant="success">Mais recente</Badge>
+                          <Badge variant="success">{t("prog.sortRecent")}</Badge>
                         ) : (
-                          <Badge variant="default">Avaliação</Badge>
+                          <Badge variant="default">{t("prog.sortAssessment")}</Badge>
                         )}
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
                         {p.weight && (
                           <div className="bg-bg rounded-lg p-2 text-center">
                             <p className="text-lg font-bold">{p.weight}</p>
-                            <p className="text-[10px] text-muted">Peso (kg)</p>
+                            <p className="text-[10px] text-muted">{t("prog.form.weight")}</p>
                           </div>
                         )}
                         {p.bodyFat && (
                           <div className="bg-bg rounded-lg p-2 text-center">
                             <p className="text-lg font-bold">{p.bodyFat}%</p>
-                            <p className="text-[10px] text-muted">Gordura</p>
+                            <p className="text-[10px] text-muted">{t("prog.form.bodyFat")}</p>
                           </div>
                         )}
                         {p.chest && (
                           <div className="bg-bg rounded-lg p-2 text-center">
                             <p className="text-lg font-bold">{p.chest}</p>
-                            <p className="text-[10px] text-muted">Peito (cm)</p>
+                            <p className="text-[10px] text-muted">{t("prog.form.chest")}</p>
                           </div>
                         )}
                         {p.waist && (
                           <div className="bg-bg rounded-lg p-2 text-center">
                             <p className="text-lg font-bold">{p.waist}</p>
-                            <p className="text-[10px] text-muted">Cintura (cm)</p>
+                            <p className="text-[10px] text-muted">{t("prog.form.waist")}</p>
                           </div>
                         )}
                         {p.arm && (
                           <div className="bg-bg rounded-lg p-2 text-center">
                             <p className="text-lg font-bold">{p.arm}</p>
-                            <p className="text-[10px] text-muted">Braco (cm)</p>
+                            <p className="text-[10px] text-muted">{t("prog.form.arm")}</p>
                           </div>
                         )}
                         {p.thigh && (
                           <div className="bg-bg rounded-lg p-2 text-center">
                             <p className="text-lg font-bold">{p.thigh}</p>
-                            <p className="text-[10px] text-muted">Coxa (cm)</p>
+                            <p className="text-[10px] text-muted">{t("prog.form.thigh")}</p>
                           </div>
                         )}
                       </div>
                       {index < progress.length - 1 && (
                         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted mt-2 pt-2 border-t border-border/60">
-                          <span className="text-muted/80">vs anterior:</span>
+                          <span className="text-muted/80">{t("prog.vsPrevious")}</span>
                           {MEASURES.map((m) => {
                             const current = p[m.key];
                             const prev = progress[index + 1][m.key];
@@ -445,7 +462,7 @@ export default function ProgressPage() {
                             const diff = (current as number) - (prev as number);
                             return (
                               <span key={m.key}>
-                                {m.label}: <Delta value={diff} />
+                                {t(MEASURE_LABEL_KEYS[m.label] ?? m.label)}: <Delta value={diff} />
                                 {m.unit}
                               </span>
                             );
@@ -461,20 +478,20 @@ export default function ProgressPage() {
           </>
         )}
 
-        <Modal open={showForm} onClose={() => setShowForm(false)} title="Nova Avaliação" size="lg">
+        <Modal open={showForm} onClose={() => setShowForm(false)} title={t("prog.newAssessment")} size="lg">
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <Input label="Peso (kg)" type="number" step="0.1" placeholder="80.5" value={form.weight} onChange={(e) => setForm((f) => ({ ...f, weight: e.target.value }))} />
-              <Input label="% Gordura" type="number" step="0.1" placeholder="15.2" value={form.bodyFat} onChange={(e) => setForm((f) => ({ ...f, bodyFat: e.target.value }))} />
-              <Input label="Peito (cm)" type="number" step="0.1" placeholder="100" value={form.chest} onChange={(e) => setForm((f) => ({ ...f, chest: e.target.value }))} />
-              <Input label="Cintura (cm)" type="number" step="0.1" placeholder="80" value={form.waist} onChange={(e) => setForm((f) => ({ ...f, waist: e.target.value }))} />
-              <Input label="Braco (cm)" type="number" step="0.1" placeholder="35" value={form.arm} onChange={(e) => setForm((f) => ({ ...f, arm: e.target.value }))} />
-              <Input label="Coxa (cm)" type="number" step="0.1" placeholder="55" value={form.thigh} onChange={(e) => setForm((f) => ({ ...f, thigh: e.target.value }))} />
+              <Input label={t("prog.form.weight")} type="number" step="0.1" placeholder="80.5" value={form.weight} onChange={(e) => setForm((f) => ({ ...f, weight: e.target.value }))} />
+              <Input label={t("prog.form.bodyFat")} type="number" step="0.1" placeholder="15.2" value={form.bodyFat} onChange={(e) => setForm((f) => ({ ...f, bodyFat: e.target.value }))} />
+              <Input label={t("prog.form.chest")} type="number" step="0.1" placeholder="100" value={form.chest} onChange={(e) => setForm((f) => ({ ...f, chest: e.target.value }))} />
+              <Input label={t("prog.form.waist")} type="number" step="0.1" placeholder="80" value={form.waist} onChange={(e) => setForm((f) => ({ ...f, waist: e.target.value }))} />
+              <Input label={t("prog.form.arm")} type="number" step="0.1" placeholder="35" value={form.arm} onChange={(e) => setForm((f) => ({ ...f, arm: e.target.value }))} />
+              <Input label={t("prog.form.thigh")} type="number" step="0.1" placeholder="55" value={form.thigh} onChange={(e) => setForm((f) => ({ ...f, thigh: e.target.value }))} />
             </div>
-            <Textarea label="Observacoes" placeholder="Notas sobre o progresso..." value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={3} />
+            <Textarea label={t("prog.notes")} placeholder={t("prog.notesPlaceholder")} value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={3} />
             <div className="flex gap-3 pt-2">
-              <Button variant="secondary" onClick={() => setShowForm(false)} className="flex-1">Cancelar</Button>
-              <Button onClick={handleSave} loading={saving} className="flex-1">Salvar</Button>
+              <Button variant="secondary" onClick={() => setShowForm(false)} className="flex-1">{t("common.cancel")}</Button>
+              <Button onClick={handleSave} loading={saving} className="flex-1">{t("common.save")}</Button>
             </div>
           </div>
         </Modal>

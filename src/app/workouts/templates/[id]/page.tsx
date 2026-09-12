@@ -42,9 +42,9 @@ interface WTemplate {
 }
 
 const LEVELS = [
-  { value: "INICIANTE", label: "Iniciante" },
-  { value: "MODERADO", label: "Moderado" },
-  { value: "AVANCADO", label: "Avancado" },
+  { value: "INICIANTE", labelKey: "common.level.beginner" },
+  { value: "MODERADO", labelKey: "common.level.intermediate" },
+  { value: "AVANCADO", labelKey: "common.level.advanced" },
 ];
 
 const muscleGroupColors: Record<string, string> = {
@@ -102,7 +102,7 @@ export default function WorkoutTemplateEditPage() {
         level: data.template.level,
       });
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao carregar modelo");
+      setError(err instanceof Error ? err.message : t("wk.errLoadModel"));
     } finally {
       setLoading(false);
     }
@@ -177,7 +177,7 @@ export default function WorkoutTemplateEditPage() {
 
   async function handleRemoveExercise(we: WTemplateExercise) {
     if (!template) return;
-    if (!confirm("Remover este exercicio do modelo?")) return;
+    if (!confirm(t("wk.confirmRemoveModelExercise"))) return;
     try {
       const next = template.exercises
         .filter((e) => e.id !== we.id)
@@ -244,7 +244,7 @@ export default function WorkoutTemplateEditPage() {
           className="inline-flex items-center gap-2 text-sm text-muted hover:text-white transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Voltar para Modelos
+          {t("wk.backModels")}
         </Link>
 
         <div className="flex items-center gap-3">
@@ -256,14 +256,14 @@ export default function WorkoutTemplateEditPage() {
               <Input
                 value={metaForm.name}
                 onChange={(e) => setMetaForm((f) => ({ ...f, name: e.target.value }))}
-                placeholder="Nome do modelo"
+                placeholder={t("wk.tmplNamePlaceholderEdit")}
                 className="text-lg font-bold min-w-[200px]"
                 autoFocus
               />
               <Input
                 value={metaForm.description}
                 onChange={(e) => setMetaForm((f) => ({ ...f, description: e.target.value }))}
-                placeholder="Descricao..."
+                placeholder={t("wk.descEllipsis")}
                 className="flex-1 min-w-[200px]"
               />
               <select
@@ -273,7 +273,7 @@ export default function WorkoutTemplateEditPage() {
               >
                 {LEVELS.map((l) => (
                   <option key={l.value} value={l.value}>
-                    {l.label}
+                    {t(l.labelKey)}
                   </option>
                 ))}
               </select>
@@ -299,7 +299,7 @@ export default function WorkoutTemplateEditPage() {
                   <h1 className="text-xl font-bold">{template.name}</h1>
                   {template.isPreset && (
                     <span className="text-xs px-2 py-0.5 rounded-full bg-accent/10 text-accent font-semibold">
-                      Padrao
+                      {t("wk.isDefault")}
                     </span>
                   )}
                   <button
@@ -310,23 +310,23 @@ export default function WorkoutTemplateEditPage() {
                   </button>
                 </div>
                 <p className="text-sm text-muted">
-                  Nivel: {LEVELS.find((l) => l.value === template.level)?.label}
+                  {t("wk.levelLabel", { label: t(LEVELS.find((l) => l.value === template.level)?.labelKey ?? "") })}
                   {template.description && ` \u00B7 ${template.description}`}
                 </p>
               </div>
             </div>
           )}
           <Button icon={<Plus className="w-4 h-4" />} onClick={() => { loadExercises(); setShowAddExercise(true); }}>
-            Adicionar
+            {t("common.add")}
           </Button>
         </div>
 
         {template.exercises.length === 0 ? (
           <Card className="p-12 text-center">
             <Dumbbell className="w-10 h-10 text-muted mx-auto mb-3" />
-            <p className="text-muted mb-3">Nenhum exercicio neste modelo</p>
+            <p className="text-muted mb-3">{t("wk.noExercisesModel")}</p>
             <Button icon={<Plus className="w-4 h-4" />} onClick={() => { loadExercises(); setShowAddExercise(true); }}>
-              Adicionar Exercicio
+              {t("wk.addExercise")}
             </Button>
           </Card>
         ) : (
@@ -359,7 +359,7 @@ export default function WorkoutTemplateEditPage() {
                     {editingExercise === we.id ? (
                       <div className="flex items-center gap-2 mt-2 flex-wrap">
                         <div className="flex items-center gap-1">
-                          <label className="text-xs text-muted">S:</label>
+                          <label className="text-xs text-muted">{t("wk.sAbbr")}</label>
                           <input
                             type="number"
                             min={1}
@@ -369,7 +369,7 @@ export default function WorkoutTemplateEditPage() {
                           />
                         </div>
                         <div className="flex items-center gap-1">
-                          <label className="text-xs text-muted">R:</label>
+                          <label className="text-xs text-muted">{t("wk.rAbbr")}</label>
                           <input
                             value={editForm.reps}
                             onChange={(e) => setEditForm({ ...editForm, reps: e.target.value })}
@@ -377,7 +377,7 @@ export default function WorkoutTemplateEditPage() {
                           />
                         </div>
                         <div className="flex items-center gap-1">
-                          <label className="text-xs text-muted">Carga:</label>
+                          <label className="text-xs text-muted">{t("wk.loadLabel")}</label>
                           <input
                             value={editForm.initialLoad}
                             onChange={(e) => setEditForm({ ...editForm, initialLoad: e.target.value })}
@@ -385,7 +385,7 @@ export default function WorkoutTemplateEditPage() {
                           />
                         </div>
                         <div className="flex items-center gap-1">
-                          <label className="text-xs text-muted">Desc:</label>
+                          <label className="text-xs text-muted">{t("wk.descAbbr")}</label>
                           <input
                             type="number"
                             min={0}
@@ -401,7 +401,7 @@ export default function WorkoutTemplateEditPage() {
                       <p className="text-xs text-muted mt-0.5">
                         {we.sets}x{we.reps}
                         {we.initialLoad && ` \u00B7 ${we.initialLoad}`}
-                        {` \u00B7 ${we.restTime}s descanso`}
+                        {` \u00B7 ${t("wk.restTime", { s: we.restTime })}`}
                       </p>
                     )}
                   </div>
@@ -437,19 +437,19 @@ export default function WorkoutTemplateEditPage() {
       <Modal
         open={showAddExercise}
         onClose={() => { setShowAddExercise(false); setExerciseSearch(""); }}
-        title="Adicionar Exercicio"
+        title={t("wk.addExercise")}
         size="lg"
       >
         <div className="space-y-4">
           <Input
-            placeholder="Buscar exercicio..."
+            placeholder={t("wk.modalSearch")}
             icon={<Search className="w-4 h-4" />}
             value={exerciseSearch}
             onChange={(e) => setExerciseSearch(e.target.value)}
           />
           <div className="max-h-[50vh] overflow-y-auto space-y-2">
             {filteredExercises.length === 0 ? (
-              <p className="text-center text-muted text-sm py-6">Nenhum exercicio encontrado</p>
+              <p className="text-center text-muted text-sm py-6">{t("wk.modalNoResults")}</p>
             ) : (
               filteredExercises.map((ex) => {
                 const alreadyAdded = existingIds.has(ex.id);
@@ -470,7 +470,7 @@ export default function WorkoutTemplateEditPage() {
                       </div>
                     </div>
                     {alreadyAdded ? (
-                      <span className="text-xs text-muted">Ja adicionado</span>
+                      <span className="text-xs text-muted">{t("wk.alreadyAdded")}</span>
                     ) : (
                       <Button
                         size="sm"
@@ -479,7 +479,7 @@ export default function WorkoutTemplateEditPage() {
                         onClick={() => handleAddExercise(ex.id)}
                         loading={addingExercise === ex.id}
                       >
-                        Adicionar
+                        {t("common.add")}
                       </Button>
                     )}
                   </div>

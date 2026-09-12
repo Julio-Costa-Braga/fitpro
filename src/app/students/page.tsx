@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 interface Student {
   id: string;
@@ -25,6 +26,7 @@ interface Student {
 export default function StudentsPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const { t } = useLanguage();
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -45,7 +47,7 @@ export default function StudentsPage() {
       const data = await api.get<{ students: Student[] }>("/api/students");
       setStudents(data.students);
     } catch {
-      setError("Erro ao carregar alunos");
+      setError(t("stu.errLoad"));
     } finally {
       setLoading(false);
     }
@@ -67,7 +69,7 @@ export default function StudentsPage() {
         )
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao alterar acesso");
+      setError(err instanceof Error ? err.message : t("stu.errAccess"));
     } finally {
       setAccessBusy(null);
     }
@@ -88,7 +90,7 @@ export default function StudentsPage() {
       setForm({ name: "", email: "", phone: "", password: "" });
       setShowCreate(false);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao criar aluno");
+      setError(err instanceof Error ? err.message : t("stu.errCreate"));
     } finally {
       setCreating(false);
     }
@@ -110,15 +112,15 @@ export default function StudentsPage() {
   }
 
   return (
-    <AppLayout title="Alunos">
+    <AppLayout title={t("nav.students")}>
       <div className="space-y-6 animate-fadeIn">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">Alunos</h1>
-            <p className="text-muted text-sm">{students.length} aluno{students.length !== 1 ? "s" : ""} cadastrado{students.length !== 1 ? "s" : ""}</p>
+            <h1 className="text-2xl font-bold">{t("nav.students")}</h1>
+            <p className="text-muted text-sm">{t("stu.count", { n: students.length, s: students.length !== 1 ? "s" : "" })}</p>
           </div>
           <Button icon={<Plus className="w-4 h-4" />} onClick={() => setShowCreate(true)}>
-            Novo Aluno
+            {t("stu.new")}
           </Button>
         </div>
 
@@ -132,7 +134,7 @@ export default function StudentsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
           <input
             type="text"
-            placeholder="Buscar por nome, email ou telefone..."
+            placeholder={t("stu.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-card border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent/60 transition-all"
@@ -142,7 +144,7 @@ export default function StudentsPage() {
         {filtered.length === 0 ? (
           <Card className="p-12 text-center">
             <Users className="w-10 h-10 text-muted mx-auto mb-3" />
-            <p className="text-muted">{students.length === 0 ? "Nenhum aluno cadastrado ainda" : "Nenhum aluno encontrado"}</p>
+            <p className="text-muted">{students.length === 0 ? t("stu.empty") : t("stu.noResults")}</p>
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -175,10 +177,10 @@ export default function StudentsPage() {
                   <div className="ml-auto flex flex-col items-end gap-2 shrink-0">
                     {student.user ? (
                       <Badge variant={student.user.isActive ? "success" : "danger"}>
-                        {student.user.isActive ? "Ativo" : "Inativo"}
+                        {student.user.isActive ? t("common.active") : t("common.inactive")}
                       </Badge>
                     ) : (
-                      <Badge variant="default">Sem conta</Badge>
+                      <Badge variant="default">{t("stu.noAccount")}</Badge>
                     )}
                     {student.user && (
                       <button
@@ -187,7 +189,7 @@ export default function StudentsPage() {
                           toggleAccess(student);
                         }}
                         disabled={accessBusy === student.id}
-                        title={student.user.isActive ? "Desativar acesso do aluno" : "Ativar acesso do aluno"}
+                        title={student.user.isActive ? t("stu.deactivateAccess") : t("stu.activateAccess")}
                         className={`p-1.5 rounded-lg transition-colors ${
                           student.user.isActive
                             ? "text-muted hover:text-red-400 hover:bg-red-500/10"
@@ -208,11 +210,11 @@ export default function StudentsPage() {
                 <div className="flex gap-4 text-xs text-muted pt-3 border-t border-border">
                   <span className="flex items-center gap-1">
                     <Dumbbell className="w-3 h-3" />
-                    {student._count?.workouts ?? 0} treinos
+                    {t("stu.workoutsCount", { n: student._count?.workouts ?? 0 })}
                   </span>
                   <span className="flex items-center gap-1">
                     <Apple className="w-3 h-3" />
-                    {student._count?.dietPlans ?? 0} dietas
+                    {t("stu.dietsCount", { n: student._count?.dietPlans ?? 0 })}
                   </span>
                 </div>
               </Card>
@@ -220,40 +222,40 @@ export default function StudentsPage() {
           </div>
         )}
 
-        <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Novo Aluno" size="md">
+        <Modal open={showCreate} onClose={() => setShowCreate(false)} title={t("stu.new")} size="md">
           <div className="space-y-4">
             <Input
-              label="Nome *"
-              placeholder="Nome completo"
+              label={t("stu.formName")}
+              placeholder={t("auth.namePlaceholder")}
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
             />
             <Input
-              label="Email"
+              label={t("auth.email")}
               type="email"
-              placeholder="email@exemplo.com"
+              placeholder={t("stu.emailPlaceholder")}
               value={form.email}
               onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
             />
             <Input
-              label="Telefone"
-              placeholder="(00) 00000-0000"
+              label={t("stu.phoneLabel")}
+              placeholder={t("stu.phonePlaceholder")}
               value={form.phone}
               onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
             />
             <Input
-              label="Senha de acesso (para o aluno entrar)"
+              label={t("stu.accessPassLabel")}
               type="password"
-              placeholder="Temporaria — aluno troca no 1o login"
+              placeholder={t("stu.accessPassPlaceholder")}
               value={form.password}
               onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
             />
             <div className="flex gap-3 pt-2">
               <Button variant="secondary" onClick={() => setShowCreate(false)} className="flex-1">
-                Cancelar
+                {t("common.cancel")}
               </Button>
               <Button onClick={handleCreate} loading={creating} className="flex-1">
-                Criar Aluno
+                {t("stu.new")}
               </Button>
             </div>
           </div>

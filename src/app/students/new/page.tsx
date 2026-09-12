@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import Link from "next/link";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 interface NewStudent {
   id: string;
@@ -18,6 +19,7 @@ interface NewStudent {
 export default function NewStudentPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const { t } = useLanguage();
   const [form, setForm] = useState({ name: "", email: "", phone: "", password: "" });
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
@@ -36,7 +38,7 @@ export default function NewStudentPage() {
       });
       router.push(`/students/${data.student.id}`);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao criar aluno");
+      setError(err instanceof Error ? err.message : t("stu.errCreate"));
       setCreating(false);
     }
   }
@@ -44,14 +46,14 @@ export default function NewStudentPage() {
   if (!user) return null;
 
   return (
-    <AppLayout title="Novo Aluno">
+    <AppLayout title={t("stu.new")}>
       <div className="max-w-xl mx-auto space-y-6 animate-fadeIn">
         <Link
           href="/students"
           className="inline-flex items-center gap-2 text-sm text-muted hover:text-white transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Voltar para alunos
+          {t("stu.backList")}
         </Link>
 
         <Card className="p-6">
@@ -60,8 +62,8 @@ export default function NewStudentPage() {
               <UserPlus className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-xl font-bold">Novo Aluno</h1>
-              <p className="text-sm text-muted">Cadastre um novo aluno e crie o acesso dele</p>
+              <h1 className="text-xl font-bold">{t("stu.new")}</h1>
+              <p className="text-sm text-muted">{t("stu.newSubtitle")}</p>
             </div>
           </div>
 
@@ -73,29 +75,29 @@ export default function NewStudentPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
-              label="Nome *"
-              placeholder="Nome completo"
+              label={t("stu.formName")}
+              placeholder={t("auth.namePlaceholder")}
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               required
             />
             <Input
-              label="Email"
+              label={t("auth.email")}
               type="email"
-              placeholder="email@exemplo.com"
+              placeholder={t("stu.emailPlaceholder")}
               value={form.email}
               onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
             />
             <Input
-              label="Telefone"
-              placeholder="(00) 00000-0000"
+              label={t("stu.phoneLabel")}
+              placeholder={t("stu.phonePlaceholder")}
               value={form.phone}
               onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
             />
             <Input
-              label="Senha de acesso (para o aluno entrar)"
+              label={t("stu.accessPassLabel")}
               type="password"
-              placeholder="Temporaria — aluno troca no 1o login"
+              placeholder={t("stu.accessPassPlaceholder")}
               value={form.password}
               onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
             />
@@ -106,10 +108,10 @@ export default function NewStudentPage() {
                 onClick={() => router.push("/students")}
                 className="flex-1"
               >
-                Cancelar
+                {t("common.cancel")}
               </Button>
               <Button type="submit" loading={creating} className="flex-1">
-                Criar Aluno
+                {t("stu.new")}
               </Button>
             </div>
           </form>

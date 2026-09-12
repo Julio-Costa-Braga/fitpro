@@ -52,13 +52,12 @@ export default function RegisterPage() {
             <span className="text-3xl font-bold tracking-tight">FitPro</span>
           </div>
           <h1 className="text-4xl font-bold leading-tight mb-4">
-            Comece agora mesmo
+            {t("auth.heroRegister1")}
             <br />
-            <span className="text-accent">e transforme vidas</span>
+            <span className="text-accent">{t("auth.heroRegister2")}</span>
           </h1>
           <p className="text-muted text-lg max-w-md">
-            Crie sua conta e tenha acesso a todas as ferramentas
-            para gerenciar treinos, dietas e acompanhamento.
+            {t("auth.heroRegisterSubtitle")}
           </p>
         </div>
       </div>
@@ -101,7 +100,7 @@ export default function RegisterPage() {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Seu nome completo"
+                placeholder={t("auth.namePlaceholder")}
                 className="w-full bg-card border border-border rounded-lg px-4 py-2.5 text-white placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-colors"
               />
             </div>
@@ -116,7 +115,7 @@ export default function RegisterPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="seu@email.com"
+                placeholder={t("auth.emailPlaceholder")}
                 className="w-full bg-card border border-border rounded-lg px-4 py-2.5 text-white placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-colors"
               />
             </div>
@@ -147,7 +146,7 @@ export default function RegisterPage() {
 
             <div className="space-y-1">
               <label htmlFor="referralCode" className="block text-sm font-medium text-muted">
-                {t("auth.referralCode")} <span className="text-accent">(opcional)</span>
+                {t("auth.referralCode")} <span className="text-accent">{t("common.optional")}</span>
               </label>
               <input
                 id="referralCode"

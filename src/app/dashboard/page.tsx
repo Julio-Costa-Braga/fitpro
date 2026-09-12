@@ -61,6 +61,7 @@ function StatusPill({ value, tone }: { value: string; tone: "green" | "red" | "g
 
 function BillingBanner({ studentsCount = 0 }: { studentsCount?: number }) {
   const { user } = useAuth();
+  const { t, lang } = useLanguage();
   const [copied, setCopied] = useState<"pix" | "code" | null>(null);
 
   if (!user) return null;
@@ -68,14 +69,19 @@ function BillingBanner({ studentsCount = 0 }: { studentsCount?: number }) {
 
   let pill: { value: string; tone: "green" | "red" | "gold" | "blue" } | null = null;
   if (user.lifetime) {
-    pill = { value: "Vitalício", tone: "gold" };
+    pill = { value: t("common.lifetime"), tone: "gold" };
   } else if (user.paidUntil) {
     const paid = new Date(user.paidUntil).getTime() >= Date.now();
     pill = paid
-      ? { value: `Ativo até ${new Date(user.paidUntil).toLocaleDateString("pt-BR")}`, tone: "green" }
-      : { value: "Pagamento em atraso", tone: "red" };
+      ? {
+          value: t("dash.paidUntil", {
+            date: new Date(user.paidUntil).toLocaleDateString(lang === "pt" ? "pt-BR" : lang === "en" ? "en-US" : "es-ES"),
+          }),
+          tone: "green",
+        }
+      : { value: t("dash.latePayment"), tone: "red" };
   } else {
-    pill = { value: "Sem pagamento", tone: "red" };
+    pill = { value: t("dash.noPayment"), tone: "red" };
   }
 
   const hasDiscount = (user.referralDiscountMonths ?? 0) > 0;
@@ -103,18 +109,18 @@ function BillingBanner({ studentsCount = 0 }: { studentsCount?: number }) {
           </div>
           <div className="min-w-0">
             <p className="font-semibold flex items-center gap-2">
-              Seu plano: {limit} aluno{limit !== 1 ? "s" : ""} &middot; R$ {fee.toFixed(2).replace(".", ",")}/mês
+              {t("dash.planLine", { limit, s: limit !== 1 ? "s" : "", fee: fee.toFixed(2).replace(".", ",") })}
               {pill && <StatusPill {...pill} />}
             </p>
             <p className="text-xs text-muted mt-1">
-              {studentsCount} de {limit} aluno{limit !== 1 ? "s" : ""} em uso
-              {full && <span className="text-red-400 font-medium"> &middot; limite atingido</span>}
+              {t("dash.studentsUsed", { studentsCount, limit, s: limit !== 1 ? "s" : "" })}
+              {full && <span className="text-red-400 font-medium">{t("dash.limitReached")}</span>}
               {hasDiscount && (
-                <span className="text-green-400 font-medium"> &middot; inclui R$ {REFERRAL_DISCOUNT.toFixed(2).replace(".", ",")} de desconto da indicação</span>
+                <span className="text-green-400 font-medium">{t("dash.referralDiscount", { amount: REFERRAL_DISCOUNT.toFixed(2).replace(".", ",") })}</span>
               )}
             </p>
             <p className="text-xs text-muted mt-1">
-              Pague via PIX para manter o plano ativo.
+              {t("dash.payPix")}
             </p>
             <div className="mt-2 flex items-center gap-2 flex-wrap">
               <code className="text-xs bg-bg border border-border rounded-md px-2 py-1 font-mono break-all">
@@ -125,13 +131,13 @@ function BillingBanner({ studentsCount = 0 }: { studentsCount?: number }) {
                 className="inline-flex items-center gap-1 text-xs font-medium text-accent hover:text-accent-hover transition-colors shrink-0"
               >
                 {copied === "pix" ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                {copied === "pix" ? "Copiado!" : "Copiar"}
+                {copied === "pix" ? t("common.copied") : t("common.copy")}
               </button>
               <Link
                 href="/pix"
                 className="inline-flex items-center gap-1 text-xs font-medium text-muted hover:text-white transition-colors shrink-0"
               >
-                Ver cartão &#8599;
+                {t("dash.seeCard")} &#8599;
               </Link>
             </div>
           </div>
@@ -145,12 +151,12 @@ function BillingBanner({ studentsCount = 0 }: { studentsCount?: number }) {
             <div>
               <p className="font-semibold text-sm flex items-center gap-1.5">
                 <Star className="w-4 h-4 text-amber-400" />
-                Programa de indicação
+                {t("dash.referralProgram")}
               </p>
               <p className="text-xs text-muted mt-0.5">
                 {hasDiscount
-                  ? `Você ganhou R$ ${REFERRAL_DISCOUNT.toFixed(2).replace(".", ",")} de desconto por ${REFERRAL_DISCOUNT_MONTHS} meses ao indicar aluno.`
-                  : `Indique um aluno e VOCÊ ganha R$ ${REFERRAL_DISCOUNT.toFixed(2).replace(".", ",")} de desconto por ${REFERRAL_DISCOUNT_MONTHS} meses.`}
+                  ? t("dash.referralGot", { amount: REFERRAL_DISCOUNT.toFixed(2).replace(".", ","), months: REFERRAL_DISCOUNT_MONTHS })
+                  : t("dash.referralInvite", { amount: REFERRAL_DISCOUNT.toFixed(2).replace(".", ","), months: REFERRAL_DISCOUNT_MONTHS })}
               </p>
               {user.referralCode && (
                 <div className="mt-1.5 flex items-center gap-2">
@@ -162,7 +168,7 @@ function BillingBanner({ studentsCount = 0 }: { studentsCount?: number }) {
                     className="inline-flex items-center gap-1 text-xs font-medium text-accent hover:text-accent-hover transition-colors shrink-0"
                   >
                     {copied === "code" ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    {copied === "code" ? "Copiado!" : "Copiar"}
+                    {copied === "code" ? t("common.copied") : t("common.copy")}
                   </button>
                 </div>
               )}
@@ -170,12 +176,12 @@ function BillingBanner({ studentsCount = 0 }: { studentsCount?: number }) {
           </div>
 
           <div className="text-[11px] text-muted bg-bg rounded-lg p-3 space-y-1">
-            <p className="font-semibold text-muted">Tabela do plano (mensal)</p>
-            <p>Até 10 alunos &middot; R$ {MONTHLY_FEE.toFixed(2).replace(".", ",")}</p>
-            <p>+1 aluno &middot; +R$ {EXTRA_STUDENT_PRICE.toFixed(2).replace(".", ",")}</p>
-            <p>+5 alunos &middot; +R$ {PACK5_PRICE.toFixed(2).replace(".", ",")}</p>
-            <p>+10 alunos &middot; +R$ {PACK10_PRICE.toFixed(2).replace(".", ",")}</p>
-            <p className="text-muted/70 pt-1">Seu aluno acessa de graça. A mensalidade é do seu plano.</p>
+            <p className="font-semibold text-muted">{t("dash.planTable")}</p>
+            <p>{t("dash.tableRow1", { fee: MONTHLY_FEE.toFixed(2).replace(".", ",") })}</p>
+            <p>{t("dash.tableRow2", { fee: EXTRA_STUDENT_PRICE.toFixed(2).replace(".", ",") })}</p>
+            <p>{t("dash.tableRow3", { fee: PACK5_PRICE.toFixed(2).replace(".", ",") })}</p>
+            <p>{t("dash.tableRow4", { fee: PACK10_PRICE.toFixed(2).replace(".", ",") })}</p>
+            <p className="text-muted/70 pt-1">{t("dash.tableNote")}</p>
           </div>
         </div>
       </div>
@@ -300,7 +306,7 @@ function StudentDashboard({ stats, studentId }: { stats: StudentStatsResponse; s
       });
       router.push(`/workouts/execute/${session.id}`);
     } catch (err: unknown) {
-      setStartError(err instanceof Error ? err.message : "Erro ao iniciar treino");
+      setStartError(err instanceof Error ? err.message : t("dash.startWorkoutErr"));
       setStarting(false);
     }
   }
@@ -324,7 +330,7 @@ function StudentDashboard({ stats, studentId }: { stats: StudentStatsResponse; s
       });
       router.push(`/workouts/execute/${session.id}`);
     } catch (err: unknown) {
-      setStartError(err instanceof Error ? err.message : "Erro ao iniciar treino");
+      setStartError(err instanceof Error ? err.message : t("dash.startWorkoutErr"));
       setOtherStartingId(null);
     }
   }

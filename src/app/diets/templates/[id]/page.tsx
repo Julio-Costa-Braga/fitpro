@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import Link from "next/link";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 interface Food {
   id: string;
@@ -48,9 +49,9 @@ interface DietTemplate {
 }
 
 const LEVELS = [
-  { value: "INICIANTE", label: "Iniciante" },
-  { value: "MODERADO", label: "Moderado" },
-  { value: "AVANCADO", label: "Avancado" },
+  { value: "INICIANTE", labelKey: "common.level.beginner" },
+  { value: "MODERADO", labelKey: "common.level.intermediate" },
+  { value: "AVANCADO", labelKey: "common.level.advanced" },
 ];
 
 function foodPayload(foods: Food[]) {
@@ -75,6 +76,7 @@ function mealPayload(meals: Meal[]) {
 
 export default function DietTemplateEditPage() {
   const { user, token, loading: authLoading } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
@@ -106,7 +108,7 @@ export default function DietTemplateEditPage() {
         level: data.template.level,
       });
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao carregar modelo");
+      setError(err instanceof Error ? err.message : t("diet.errLoadTemplate"));
     } finally {
       setLoading(false);
     }
@@ -142,7 +144,7 @@ export default function DietTemplateEditPage() {
       await api.put(`/api/diet-templates/${id}`, { meals: mealPayload(meals) });
       await loadTemplate();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao salvar");
+      setError(err instanceof Error ? err.message : t("diet.errSave"));
     } finally {
       setSaving(false);
     }
@@ -160,7 +162,7 @@ export default function DietTemplateEditPage() {
       setEditingMeta(false);
       await loadTemplate();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao salvar");
+      setError(err instanceof Error ? err.message : t("diet.errSave"));
     } finally {
       setSaving(false);
     }
@@ -188,7 +190,7 @@ export default function DietTemplateEditPage() {
 
   async function handleDeleteMeal(mealId: string) {
     if (!template) return;
-    if (!confirm("Excluir esta refeicao?")) return;
+    if (!confirm(t("diet.confirmDeleteMeal"))) return;
     const meals = template.meals.filter((m) => m.id !== mealId).map((m, i) => ({ ...m, order: i + 1 }));
     await saveMeals(meals);
   }
@@ -262,7 +264,7 @@ export default function DietTemplateEditPage() {
           className="inline-flex items-center gap-2 text-sm text-muted hover:text-white transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Voltar para Modelos
+          {t("diet.backTemplates")}
         </Link>
 
         <div className="flex items-center gap-3">
@@ -274,14 +276,14 @@ export default function DietTemplateEditPage() {
               <Input
                 value={metaForm.name}
                 onChange={(e) => setMetaForm((f) => ({ ...f, name: e.target.value }))}
-                placeholder="Nome do modelo"
+                placeholder={t("diet.templateNamePh")}
                 className="text-lg font-bold min-w-[200px]"
                 autoFocus
               />
               <Input
                 value={metaForm.description}
                 onChange={(e) => setMetaForm((f) => ({ ...f, description: e.target.value }))}
-                placeholder="Descricao..."
+                placeholder={t("diet.descPhShort")}
                 className="flex-1 min-w-[200px]"
               />
               <select
@@ -291,7 +293,7 @@ export default function DietTemplateEditPage() {
               >
                 {LEVELS.map((l) => (
                   <option key={l.value} value={l.value}>
-                    {l.label}
+                    {t(l.labelKey)}
                   </option>
                 ))}
               </select>
@@ -316,7 +318,7 @@ export default function DietTemplateEditPage() {
                 <h1 className="text-xl font-bold">{template.name}</h1>
                 {template.isPreset && (
                   <span className="text-xs px-2 py-0.5 rounded-full bg-accent/10 text-accent font-semibold">
-                    Padrao
+                    {t("diet.presetLabel")}
                   </span>
                 )}
                 <button
@@ -327,7 +329,7 @@ export default function DietTemplateEditPage() {
                 </button>
               </div>
               <p className="text-sm text-muted">
-                Nivel: {LEVELS.find((l) => l.value === template.level)?.label}
+                {t("diet.levelLabel", { label: t(LEVELS.find((l) => l.value === template.level)?.labelKey ?? "") })}
                 {template.description && ` \u00B7 ${template.description}`}
               </p>
             </div>
@@ -336,21 +338,21 @@ export default function DietTemplateEditPage() {
             icon={<Plus className="w-4 h-4" />}
             onClick={() => { setEditingMealId(null); setMealForm({ time: "", name: "" }); setShowMealForm(true); }}
           >
-            Refeicao
+            {t("diet.mealButton")}
           </Button>
         </div>
 
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Refeicoes</h2>
+          <h2 className="text-lg font-semibold">{t("diet.mealsTitle")}</h2>
           <span className="text-xs text-muted">
-            {template.meals.length} refeicao{template.meals.length !== 1 ? "es" : ""}
+            {t(template.meals.length === 1 ? "diet.mealCountOne" : "diet.mealCountMany", { n: template.meals.length })}
           </span>
         </div>
 
         {template.meals.length === 0 ? (
           <Card className="p-8 text-center">
             <Clock className="w-8 h-8 text-muted mx-auto mb-2" />
-            <p className="text-muted text-sm">Nenhuma refeicao cadastrada</p>
+            <p className="text-muted text-sm">{t("diet.noMeals")}</p>
           </Card>
         ) : (
           <div className="space-y-4">
@@ -378,7 +380,7 @@ export default function DietTemplateEditPage() {
                       <div>
                         <h3 className="font-medium text-sm">{meal.name}</h3>
                         <p className="text-xs text-muted">
-                          {meal.foods.length} alimento{meal.foods.length !== 1 ? "s" : ""} · {mealTotals.calories.toFixed(0)} kcal
+                          {t(meal.foods.length === 1 ? "diet.foodCountOne" : "diet.foodCountMany", { n: meal.foods.length })} · {mealTotals.calories.toFixed(0)} kcal
                         </p>
                       </div>
                     </div>
@@ -399,12 +401,12 @@ export default function DietTemplateEditPage() {
                           <table className="w-full text-sm">
                             <thead>
                               <tr className="text-muted text-xs">
-                                <th className="text-left pb-2 font-medium">Alimento</th>
-                                <th className="text-right pb-2 font-medium">Qtd</th>
-                                <th className="text-right pb-2 font-medium">Prot</th>
-                                <th className="text-right pb-2 font-medium">Carb</th>
-                                <th className="text-right pb-2 font-medium">Gord</th>
-                                <th className="text-right pb-2 font-medium">Kcal</th>
+                                <th className="text-left pb-2 font-medium">{t("diet.tableFood")}</th>
+                                <th className="text-right pb-2 font-medium">{t("diet.tableQty")}</th>
+                                <th className="text-right pb-2 font-medium">{t("diet.protShort")}</th>
+                                <th className="text-right pb-2 font-medium">{t("diet.carbShort")}</th>
+                                <th className="text-right pb-2 font-medium">{t("diet.fatShort")}</th>
+                                <th className="text-right pb-2 font-medium">{t("diet.kcalShort")}</th>
                                 <th className="pb-2" />
                               </tr>
                             </thead>
@@ -431,35 +433,35 @@ export default function DietTemplateEditPage() {
                           </table>
                         </div>
                       ) : (
-                        <p className="text-xs text-muted text-center py-2">Nenhum alimento adicionado</p>
+                        <p className="text-xs text-muted text-center py-2">{t("diet.noFoods")}</p>
                       )}
 
                       {addingFoodToMeal === meal.id ? (
                         <div className="bg-bg rounded-lg p-3 space-y-3">
-                          <p className="text-xs font-medium text-muted">Novo alimento</p>
+                          <p className="text-xs font-medium text-muted">{t("diet.newFood")}</p>
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                            <Input placeholder="Nome *" value={foodFormMap[meal.id]?.name || ""} onChange={(e) => setFoodFormMap((prev) => ({ ...prev, [meal.id]: { ...prev[meal.id], name: e.target.value } }))} className="text-xs" />
-                            <Input placeholder="Quantidade" value={foodFormMap[meal.id]?.quantity || ""} onChange={(e) => setFoodFormMap((prev) => ({ ...prev, [meal.id]: { ...prev[meal.id], quantity: e.target.value } }))} className="text-xs" />
-                            <Input placeholder="Proteina (g)" type="number" value={foodFormMap[meal.id]?.protein || ""} onChange={(e) => setFoodFormMap((prev) => ({ ...prev, [meal.id]: { ...prev[meal.id], protein: e.target.value } }))} className="text-xs" />
-                            <Input placeholder="Carboidrato (g)" type="number" value={foodFormMap[meal.id]?.carbs || ""} onChange={(e) => setFoodFormMap((prev) => ({ ...prev, [meal.id]: { ...prev[meal.id], carbs: e.target.value } }))} className="text-xs" />
-                            <Input placeholder="Gordura (g)" type="number" value={foodFormMap[meal.id]?.fat || ""} onChange={(e) => setFoodFormMap((prev) => ({ ...prev, [meal.id]: { ...prev[meal.id], fat: e.target.value } }))} className="text-xs" />
-                            <Input placeholder="Calorias" type="number" value={foodFormMap[meal.id]?.calories || ""} onChange={(e) => setFoodFormMap((prev) => ({ ...prev, [meal.id]: { ...prev[meal.id], calories: e.target.value } }))} className="text-xs" />
+                            <Input placeholder={t("diet.foodNamePh")} value={foodFormMap[meal.id]?.name || ""} onChange={(e) => setFoodFormMap((prev) => ({ ...prev, [meal.id]: { ...prev[meal.id], name: e.target.value } }))} className="text-xs" />
+                            <Input placeholder={t("diet.foodQtyPh")} value={foodFormMap[meal.id]?.quantity || ""} onChange={(e) => setFoodFormMap((prev) => ({ ...prev, [meal.id]: { ...prev[meal.id], quantity: e.target.value } }))} className="text-xs" />
+                            <Input placeholder={t("diet.foodProteinPh")} type="number" value={foodFormMap[meal.id]?.protein || ""} onChange={(e) => setFoodFormMap((prev) => ({ ...prev, [meal.id]: { ...prev[meal.id], protein: e.target.value } }))} className="text-xs" />
+                            <Input placeholder={t("diet.foodCarbsPh")} type="number" value={foodFormMap[meal.id]?.carbs || ""} onChange={(e) => setFoodFormMap((prev) => ({ ...prev, [meal.id]: { ...prev[meal.id], carbs: e.target.value } }))} className="text-xs" />
+                            <Input placeholder={t("diet.foodFatPh")} type="number" value={foodFormMap[meal.id]?.fat || ""} onChange={(e) => setFoodFormMap((prev) => ({ ...prev, [meal.id]: { ...prev[meal.id], fat: e.target.value } }))} className="text-xs" />
+                            <Input placeholder={t("diet.foodCalPh")} type="number" value={foodFormMap[meal.id]?.calories || ""} onChange={(e) => setFoodFormMap((prev) => ({ ...prev, [meal.id]: { ...prev[meal.id], calories: e.target.value } }))} className="text-xs" />
                           </div>
                           <div className="flex gap-2">
-                            <Button variant="ghost" size="sm" onClick={() => setAddingFoodToMeal(null)}>Cancelar</Button>
-                            <Button size="sm" onClick={() => handleSaveFood(meal.id)}>Salvar</Button>
+                            <Button variant="ghost" size="sm" onClick={() => setAddingFoodToMeal(null)}>{t("common.cancel")}</Button>
+                            <Button size="sm" onClick={() => handleSaveFood(meal.id)}>{t("common.save")}</Button>
                           </div>
                         </div>
                       ) : (
                         <div className="flex gap-2">
                           <Button variant="secondary" size="sm" icon={<Plus className="w-3.5 h-3.5" />} onClick={() => startAddFood(meal.id)}>
-                            Adicionar Alimento
+                            {t("diet.addFood")}
                           </Button>
                           <Button variant="ghost" size="sm" icon={<Pencil className="w-3.5 h-3.5" />} onClick={() => startEditMeal(meal)}>
-                            Editar
+                            {t("common.edit")}
                           </Button>
                           <Button variant="danger" size="sm" icon={<Trash2 className="w-3.5 h-3.5" />} onClick={() => handleDeleteMeal(meal.id)}>
-                            Excluir
+                            {t("common.delete")}
                           </Button>
                         </div>
                       )}
@@ -472,26 +474,26 @@ export default function DietTemplateEditPage() {
         )}
       </div>
 
-      <Modal open={showMealForm} onClose={() => { setShowMealForm(false); setEditingMealId(null); }} title={editingMealId ? "Editar Refeicao" : "Nova Refeicao"} size="sm">
+      <Modal open={showMealForm} onClose={() => { setShowMealForm(false); setEditingMealId(null); }} title={t(editingMealId ? "diet.editMealTitle" : "diet.newMealTitle")} size="sm">
         <div className="space-y-4">
           <Input
-            label="Horario *"
-            placeholder="Ex: 07:00"
+            label={t("diet.timeLabel")}
+            placeholder={t("diet.timePlaceholder")}
             value={mealForm.time}
             onChange={(e) => setMealForm((f) => ({ ...f, time: e.target.value }))}
           />
           <Input
-            label="Nome *"
-            placeholder="Ex: Cafe da Manha"
+            label={t("diet.mealNameLabel")}
+            placeholder={t("diet.mealNamePlaceholder")}
             value={mealForm.name}
             onChange={(e) => setMealForm((f) => ({ ...f, name: e.target.value }))}
           />
           <div className="flex gap-3 pt-2">
             <Button variant="secondary" onClick={() => { setShowMealForm(false); setEditingMealId(null); }} className="flex-1">
-              Cancelar
+              {t("common.cancel")}
             </Button>
             <Button onClick={handleSaveMeal} className="flex-1">
-              {editingMealId ? "Salvar" : "Criar"}
+              {t(editingMealId ? "common.save" : "common.create")}
             </Button>
           </div>
         </div>

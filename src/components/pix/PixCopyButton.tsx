@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { Copy, Check } from "lucide-react";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 export function PixCopyButton({ value, label }: { value: string; label: string }) {
+  const { t } = useLanguage();
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
@@ -22,7 +24,7 @@ export function PixCopyButton({ value, label }: { value: string; label: string }
       className="mt-3 inline-flex items-center justify-center gap-2 w-full rounded-xl bg-accent hover:bg-accent-hover text-white text-sm font-semibold py-2.5 transition-all"
     >
       {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-      {copied ? "PIX copiado!" : label}
+      {copied ? t("pix.copied") : label}
     </button>
   );
 }

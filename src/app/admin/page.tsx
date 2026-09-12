@@ -13,6 +13,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import {
   MONTHLY_FEE, EXTRA_STUDENT_PRICE, PACK5_PRICE, PACK10_PRICE,
   REFERRAL_DISCOUNT, REFERRAL_DISCOUNT_MONTHS,
@@ -39,6 +40,7 @@ interface AdminStudent {
 
 export default function AdminPage() {
   const { user, loading: authLoading } = useAuth();
+  const { t, lang } = useLanguage();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -88,7 +90,7 @@ export default function AdminPage() {
       setStudents(overview.students);
       setAccounts(accountsData.users);
     } catch {
-      setError("Erro ao carregar visao geral");
+      setError(t("admin.errLoad"));
     } finally {
       setLoading(false);
     }
@@ -108,7 +110,7 @@ export default function AdminPage() {
       await api.admin.updateUser(id, data);
       await loadOverview();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao atualizar conta");
+      setError(err instanceof Error ? err.message : t("admin.errUpdate"));
     }
   }
 
@@ -123,21 +125,19 @@ export default function AdminPage() {
   }
 
   async function removeAccount(acc: AdminAccount) {
-    if (!window.confirm(`Excluir definitivamente a conta de ${acc.name}?`)) return;
+    if (!window.confirm(t("admin.confirmDelete", { name: acc.name }))) return;
     setError("");
     try {
       await api.admin.deleteUser(acc.id);
       await loadOverview();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao excluir conta");
+      setError(err instanceof Error ? err.message : t("admin.errDelete"));
     }
   }
 
   async function upgradePlan(acc: AdminAccount, slots: number, price: number) {
     if (
-      !window.confirm(
-        `Aplicar upgrade de +${slots} aluno(s) (+R$ ${price.toFixed(2).replace(".", ",")}/mes) no plano de ${acc.name}?`
-      )
+      !window.confirm(t("admin.confirmUpgrade", { slots, price: price.toFixed(2).replace(".", ","), name: acc.name }))
     ) {
       return;
     }
@@ -146,18 +146,21 @@ export default function AdminPage() {
       await api.admin.updateUser(acc.id, { planUpgrade: { slots, price } });
       await loadOverview();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao atualizar plano");
+      setError(err instanceof Error ? err.message : t("admin.errPlan"));
     }
   }
 
   function paymentLabel(acc: AdminAccount): string {
-    if (acc.lifetime) return "Vitalicio";
+    if (acc.lifetime) return t("common.lifetime");
     if (acc.paidUntil) {
-      const t = new Date(acc.paidUntil).getTime();
-      if (t >= Date.now()) return `Pago ate ${new Date(acc.paidUntil).toLocaleDateString("pt-BR")}`;
-      return "Pagamento pendente";
+      const time = new Date(acc.paidUntil).getTime();
+      if (time >= Date.now())
+        return t("admin.paidUntil", {
+          date: new Date(acc.paidUntil).toLocaleDateString(lang === "pt" ? "pt-BR" : lang === "en" ? "en-US" : "es-ES"),
+        });
+      return t("admin.pendingPayment");
     }
-    return "Pagamento pendente";
+    return t("admin.pendingPayment");
   }
 
   async function handleCreate() {
@@ -177,7 +180,7 @@ export default function AdminPage() {
       setShowModal(false);
       await loadOverview();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao criar conta");
+      setError(err instanceof Error ? err.message : t("admin.errCreate"));
     } finally {
       setCreating(false);
     }
@@ -194,18 +197,18 @@ export default function AdminPage() {
   if (!user || user.role !== "ADMIN") return null;
 
   return (
-    <AppLayout title="Administracao">
+    <AppLayout title={t("nav.admin")}>
       <div className="space-y-6 animate-fadeIn">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <Shield className="w-6 h-6 text-accent" />
-              Painel Admin
+              {t("admin.panelTitle")}
             </h1>
-            <p className="text-muted text-sm">Visao geral e gestao de contas e mensalidades</p>
+            <p className="text-muted text-sm">{t("admin.subtitle")}</p>
           </div>
           <Button icon={<UserPlus className="w-4 h-4" />} onClick={() => setShowModal(true)}>
-            Criar Conta
+            {t("admin.createAccount")}
           </Button>
         </div>
 
@@ -217,10 +220,10 @@ export default function AdminPage() {
 
         <div className="flex gap-1 bg-card border border-border rounded-xl p-1 w-fit max-w-full overflow-x-auto">
           {([
-            { id: "overview", label: "Visao Geral", icon: LayoutDashboard },
-            { id: "contas", label: "Contas e Pagamentos", icon: CreditCard },
-            { id: "personais", label: "Personal Trainers", icon: Dumbbell },
-            { id: "alunos", label: "Alunos", icon: Users },
+            { id: "overview", label: t("admin.tabOverview"), icon: LayoutDashboard },
+            { id: "contas", label: t("admin.tabAccounts"), icon: CreditCard },
+            { id: "personais", label: t("admin.tabTrainers"), icon: Dumbbell },
+            { id: "alunos", label: t("nav.students"), icon: Users },
           ] as const).map((tb) => {
             const active = tab === tb.id;
             return (
@@ -241,19 +244,19 @@ export default function AdminPage() {
         {tab === "overview" && totals && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="p-5">
-              <p className="text-muted text-xs uppercase tracking-wider mb-1">Personal Trainers</p>
+              <p className="text-muted text-xs uppercase tracking-wider mb-1">{t("admin.tabTrainers")}</p>
               <p className="text-3xl font-bold text-accent">{totals.personals}</p>
             </Card>
             <Card className="p-5">
-              <p className="text-muted text-xs uppercase tracking-wider mb-1">Alunos</p>
+              <p className="text-muted text-xs uppercase tracking-wider mb-1">{t("nav.students")}</p>
               <p className="text-3xl font-bold text-green-400">{totals.students}</p>
             </Card>
             <Card className="p-5">
-              <p className="text-muted text-xs uppercase tracking-wider mb-1">Contas cadastradas</p>
+              <p className="text-muted text-xs uppercase tracking-wider mb-1">{t("admin.statsAccounts")}</p>
               <p className="text-3xl font-bold">{accounts.length}</p>
             </Card>
             <Card className="p-5">
-              <p className="text-muted text-xs uppercase tracking-wider mb-1">Pagamentos em atraso</p>
+              <p className="text-muted text-xs uppercase tracking-wider mb-1">{t("admin.statsOverdue")}</p>
               <p className={`text-3xl font-bold ${overdueCount > 0 ? "text-red-400" : "text-green-400"}`}>
                 {overdueCount}
               </p>
@@ -264,15 +267,20 @@ export default function AdminPage() {
         {tab === "contas" && (
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold">Contas e Pagamentos</h2>
+            <h2 className="text-lg font-semibold">{t("admin.tabAccounts")}</h2>
             <p className="text-xs text-muted">
-              Plano personal: base R$ {MONTHLY_FEE.toFixed(2).replace(".", ",")} (ate 10 alunos) &middot; +1 aluno +R$ {EXTRA_STUDENT_PRICE.toFixed(2).replace(".", ",")} &middot; +5 +R$ {PACK5_PRICE.toFixed(2).replace(".", ",")} &middot; +10 +R$ {PACK10_PRICE.toFixed(2).replace(".", ",")} &middot; aluno acessa gratis
+              {t("admin.planSummary", {
+                fee: MONTHLY_FEE.toFixed(2).replace(".", ","),
+                fee1: EXTRA_STUDENT_PRICE.toFixed(2).replace(".", ","),
+                fee2: PACK5_PRICE.toFixed(2).replace(".", ","),
+                fee3: PACK10_PRICE.toFixed(2).replace(".", ","),
+              })}
             </p>
           </div>
           {accounts.length === 0 ? (
             <Card className="p-10 text-center">
               <Users className="w-10 h-10 text-muted mx-auto mb-3" />
-              <p className="text-muted">Nenhuma conta cadastrada</p>
+              <p className="text-muted">{t("admin.noAccounts")}</p>
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -297,17 +305,17 @@ export default function AdminPage() {
                         acc.role === "PERSONAL" ? "bg-accent/15 text-accent" : "bg-green-500/15 text-green-400"
                       }`}>
                         {acc.role === "PERSONAL" ? <Dumbbell className="w-3 h-3" /> : <User className="w-3 h-3" />}
-                        {acc.role === "PERSONAL" ? "Personal" : "Aluno"}
+                        {acc.role === "PERSONAL" ? t("admin.rolePersonal") : t("admin.roleStudent")}
                       </span>
                       <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
                         acc.isActive ? "bg-blue-500/15 text-blue-400" : "bg-red-500/15 text-red-400"
                       }`}>
-                        {acc.isActive ? "Ativo" : "Inativo"}
+                        {acc.isActive ? t("common.active") : t("common.inactive")}
                       </span>
                       <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
                         acc.lifetime ? "bg-amber-500/15 text-amber-400" : "bg-card border border-border text-muted"
                       }`}>
-                        {acc.lifetime ? "Vitalicio" : "Assinatura"}
+                        {acc.lifetime ? t("common.lifetime") : t("admin.subscription")}
                       </span>
                       {!acc.lifetime && (
                         <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
@@ -319,26 +327,26 @@ export default function AdminPage() {
                     </div>
 
                     <div className="text-xs text-muted space-y-1 border-t border-border pt-2">
-                      <p>Código: <span className="text-white font-mono">{acc.referralCode}</span></p>
+                      <p>{t("admin.code")} <span className="text-white font-mono">{acc.referralCode}</span></p>
                       {acc.role === "PERSONAL" && (
                         <p>
-                          Plano: <span className="text-white">{acc.studentLimit} alunos</span> &middot; R$ {acc.monthlyPrice.toFixed(2).replace(".", ",")}/mes
+                          {t("admin.planLine", { n: acc.studentLimit, price: acc.monthlyPrice.toFixed(2).replace(".", ",") })}
                         </p>
                       )}
                       {acc._count.myReferrals > 0 && (
                         <p>
-                          Indicou {acc._count.myReferrals} aluno(s) &middot; ganha R$ {REFERRAL_DISCOUNT.toFixed(2).replace(".", ",")}/mes por {REFERRAL_DISCOUNT_MONTHS} meses
+                          {t("admin.referralGot", { n: acc._count.myReferrals, price: REFERRAL_DISCOUNT.toFixed(2).replace(".", ","), months: REFERRAL_DISCOUNT_MONTHS })}
                         </p>
                       )}
                       {acc._count.myReferrals === 0 && acc.referredByUser && (
-                        <p>Indicado por {acc.referredByUser.name}</p>
+                        <p>{t("admin.referredBy", { name: acc.referredByUser.name })}</p>
                       )}
                       <p>
                         {acc.role === "STUDENT"
                           ? ((acc.studentRecord?.personal?.name ?? acc.myTrainer?.name)
-                              ? `Aluno de: ${acc.studentRecord?.personal?.name ?? acc.myTrainer?.name}`
-                              : "Sem personal vinculado")
-                          : `${acc._count.students} aluno(s)`}
+                              ? t("admin.studentOf", { name: acc.studentRecord?.personal?.name ?? acc.myTrainer?.name ?? "" })
+                              : t("admin.noTrainerLinked"))
+                          : t("admin.studentsCount", { n: acc._count.students })}
                       </p>
                     </div>
 
@@ -350,7 +358,7 @@ export default function AdminPage() {
                         className="flex-1"
                         onClick={() => toggleActive(acc)}
                       >
-                        {acc.isActive ? "Desativar" : "Ativar"}
+                        {acc.isActive ? t("admin.deactivate") : t("admin.activate")}
                       </Button>
                       {acc.role === "PERSONAL" && (
                         <>
@@ -362,7 +370,7 @@ export default function AdminPage() {
                               className="flex-1"
                               onClick={() => addMonth(acc)}
                             >
-                              +1 mes
+                              {t("admin.addMonth")}
                             </Button>
                           )}
                           <Button
@@ -371,7 +379,7 @@ export default function AdminPage() {
                             icon={acc.lifetime ? <Star className="w-3.5 h-3.5" /> : <InfinityIcon className="w-3.5 h-3.5" />}
                             onClick={() => toggleLifetime(acc)}
                           >
-                            {acc.lifetime ? "Sair" : "Vitalicio"}
+                            {acc.lifetime ? t("header.logout") : t("common.lifetime")}
                           </Button>
                         </>
                       )}
@@ -381,20 +389,20 @@ export default function AdminPage() {
                         icon={<Trash2 className="w-3.5 h-3.5" />}
                         onClick={() => removeAccount(acc)}
                       >
-                        Excluir
+                        {t("common.delete")}
                       </Button>
                     </div>
 
                     {acc.role === "PERSONAL" && acc.lifetime === false && (
                       <div className="flex gap-1.5 border-t border-border pt-2">
                         <Button size="sm" variant="secondary" className="flex-1" onClick={() => upgradePlan(acc, 1, EXTRA_STUDENT_PRICE)}>
-                          +1 aluno (R$ {EXTRA_STUDENT_PRICE.toFixed(2).replace(".", ",")})
+                          {t("admin.upgradeSlots1", { fee: EXTRA_STUDENT_PRICE.toFixed(2).replace(".", ",") })}
                         </Button>
                         <Button size="sm" variant="secondary" className="flex-1" onClick={() => upgradePlan(acc, 5, PACK5_PRICE)}>
-                          +5 (R$ {PACK5_PRICE.toFixed(2).replace(".", ",")})
+                          {t("admin.upgradeSlots5", { fee: PACK5_PRICE.toFixed(2).replace(".", ",") })}
                         </Button>
                         <Button size="sm" variant="secondary" className="flex-1" onClick={() => upgradePlan(acc, 10, PACK10_PRICE)}>
-                          +10 (R$ {PACK10_PRICE.toFixed(2).replace(".", ",")})
+                          {t("admin.upgradeSlots10", { fee: PACK10_PRICE.toFixed(2).replace(".", ",") })}
                         </Button>
                       </div>
                     )}
@@ -408,7 +416,7 @@ export default function AdminPage() {
 
         {tab === "personais" && personals.length > 0 && (
           <div>
-            <h2 className="text-lg font-semibold mb-3">Personal Trainers</h2>
+            <h2 className="text-lg font-semibold mb-3">{t("admin.tabTrainers")}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {personals.map((pt) => (
                 <Card key={pt.id} className="p-5">
@@ -424,9 +432,9 @@ export default function AdminPage() {
                     </div>
                   </div>
                   <div className="text-xs text-muted pt-2 border-t border-border space-y-0.5">
-                    {pt._count.students} aluno{pt._count.students !== 1 ? "s" : ""} de {pt.studentLimit} do plano
+                    {t("admin.trainerStudents", { n: pt._count.students, s: pt._count.students !== 1 ? "s" : "", limit: pt.studentLimit })}
                     <br />
-                    R$ {pt.monthlyPrice.toFixed(2).replace(".", ",")}/mes
+                    {t("admin.trainerFee", { fee: pt.monthlyPrice.toFixed(2).replace(".", ",") })}
                   </div>
                 </Card>
               ))}
@@ -436,11 +444,11 @@ export default function AdminPage() {
 
         {tab === "alunos" && (
         <div>
-          <h2 className="text-lg font-semibold mb-3">Alunos</h2>
+          <h2 className="text-lg font-semibold mb-3">{t("nav.students")}</h2>
           {students.length === 0 ? (
             <Card className="p-10 text-center">
               <Users className="w-10 h-10 text-muted mx-auto mb-3" />
-              <p className="text-muted">Nenhum aluno cadastrado</p>
+              <p className="text-muted">{t("admin.noStudents")}</p>
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -458,7 +466,7 @@ export default function AdminPage() {
                         </p>
                       )}
                       <p className="text-xs text-muted mt-1">
-                        {st.personal ? `Personal: ${st.personal.name}` : "Sem personal"}
+                        {st.personal ? t("admin.trainerOwner", { name: st.personal.name }) : t("admin.noTrainerLinked")}
                       </p>
                     </div>
                   </div>
@@ -472,12 +480,12 @@ export default function AdminPage() {
         <Modal
           open={showModal}
           onClose={() => setShowModal(false)}
-          title="Criar Conta"
+          title={t("admin.createAccount")}
           size="md"
         >
           <div className="space-y-4">
             <div className="space-y-1">
-              <label className="text-xs font-medium text-muted">Tipo de Conta</label>
+              <label className="text-xs font-medium text-muted">{t("auth.accountType")}</label>
               <div className="flex gap-2">
                 {(["STUDENT", "PERSONAL"] as const).map((r) => (
                   <button
@@ -489,48 +497,48 @@ export default function AdminPage() {
                         : "bg-card border-border text-muted hover:border-muted"
                     }`}
                   >
-                    {r === "STUDENT" ? "Aluno" : "Personal"}
+                    {r === "STUDENT" ? t("admin.roleStudent") : t("admin.rolePersonal")}
                   </button>
                 ))}
               </div>
             </div>
 
             <Input
-              label="Nome *"
-              placeholder="Nome completo"
+              label={t("admin.formName")}
+              placeholder={t("auth.namePlaceholder")}
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
             />
             <Input
-              label="Email *"
+              label={t("admin.formEmail")}
               type="email"
-              placeholder="email@exemplo.com"
+              placeholder={t("admin.emailPlaceholder")}
               value={form.email}
               onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
             />
             <Input
-              label="Senha *"
+              label={t("admin.formPassword")}
               type="password"
-              placeholder="Minimo 8 caracteres"
+              placeholder={t("auth.passwordMin")}
               value={form.password}
               onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
             />
             <Input
-              label="Telefone"
-              placeholder="(00) 00000-0000"
+              label={t("stu.phoneLabel")}
+              placeholder={t("stu.phonePlaceholder")}
               value={form.phone}
               onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
             />
 
             {form.role === "STUDENT" && (
               <div className="space-y-1">
-                <label className="text-xs font-medium text-muted">Personal (opcional)</label>
+                <label className="text-xs font-medium text-muted">{t("admin.formTrainer")}</label>
                 <select
                   value={form.trainerId}
                   onChange={(e) => setForm((f) => ({ ...f, trainerId: e.target.value }))}
                   className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent/40"
                 >
-                  <option value="">Sem personal</option>
+                  <option value="">{t("admin.noTrainerLinked")}</option>
                   {personals.map((pt) => (
                     <option key={pt.id} value={pt.id}>
                       {pt.name}
@@ -542,10 +550,10 @@ export default function AdminPage() {
 
             <div className="flex gap-3 pt-2">
               <Button variant="secondary" onClick={() => setShowModal(false)} className="flex-1">
-                Cancelar
+                {t("common.cancel")}
               </Button>
               <Button onClick={handleCreate} loading={creating} className="flex-1">
-                Criar Conta
+                {t("admin.createAccount")}
               </Button>
             </div>
           </div>

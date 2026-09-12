@@ -131,7 +131,7 @@ export default function DietDetailPage() {
       setDiet(data.dietPlan);
       setEatenMealIds(todayEatenIds(data.dietPlan.mealLogs ?? []));
     } catch {
-      setError("Erro ao carregar plano alimentar");
+      setError(t("diet.errLoadPlan"));
     } finally {
       setLoading(false);
     }
@@ -167,19 +167,19 @@ export default function DietDetailPage() {
       setShowMealForm(false);
       await loadDiet();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao salvar refeicao");
+      setError(err instanceof Error ? err.message : t("diet.errSaveMeal"));
     } finally {
       setSavingMeal(false);
     }
   }
 
   async function handleDeleteMeal(mealId: string) {
-    if (!confirm("Excluir esta refeicao?")) return;
+    if (!confirm(t("diet.confirmDeleteMeal"))) return;
     try {
       await api.delete(`/api/diets/${dietId}/meals/${mealId}`);
       await loadDiet();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao excluir refeicao");
+      setError(err instanceof Error ? err.message : t("diet.errDeleteMeal"));
     }
   }
 
@@ -203,7 +203,7 @@ export default function DietDetailPage() {
         setTimeout(() => setNotice(""), 4000);
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao marcar refeicao");
+      setError(err instanceof Error ? err.message : t("diet.errMarkMeal"));
     } finally {
       setTogglingMeal(null);
     }
@@ -258,7 +258,7 @@ export default function DietDetailPage() {
       setAddingFoodToMeal(null);
       await loadDiet();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao adicionar alimento");
+      setError(err instanceof Error ? err.message : t("diet.errAddFood"));
     }
   }
 
@@ -280,7 +280,7 @@ export default function DietDetailPage() {
       setShowEditPlan(false);
       await loadDiet();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao atualizar plano");
+      setError(err instanceof Error ? err.message : t("diet.errUpdatePlan"));
     } finally {
       setSavingPlan(false);
     }
@@ -312,10 +312,10 @@ export default function DietDetailPage() {
 
   if (!diet) {
     return (
-      <AppLayout title="Plano nao encontrado">
+      <AppLayout title={t("diet.notFound")}>
         <Card className="p-12 text-center">
-          <p className="text-muted">Plano nao encontrado</p>
-          <Button variant="secondary" className="mt-4" onClick={() => router.push("/diets")}>Voltar</Button>
+          <p className="text-muted">{t("diet.notFound")}</p>
+          <Button variant="secondary" className="mt-4" onClick={() => router.push("/diets")}>{t("common.back")}</Button>
         </Card>
       </AppLayout>
     );
@@ -336,7 +336,7 @@ export default function DietDetailPage() {
 
   const dailyMeals = diet.meals.filter((m) => !m.dayOfWeek);
   const mealSections: { key: string; label: string | null; meals: Meal[] }[] = [];
-  if (dailyMeals.length > 0) mealSections.push({ key: "all", label: "Todos os dias", meals: dailyMeals });
+  if (dailyMeals.length > 0) mealSections.push({ key: "all", label: t("diet.allDaysSection"), meals: dailyMeals });
   for (const day of DIET_DAYS) {
     const byDay = diet.meals.filter((m) => m.dayOfWeek === day);
     if (byDay.length > 0) mealSections.push({ key: day, label: day, meals: byDay });
@@ -346,7 +346,7 @@ export default function DietDetailPage() {
     <AppLayout title={diet.name}>
       <div className="space-y-6 animate-fadeIn">
         <button onClick={() => router.push("/diets")} className="flex items-center gap-1 text-sm text-muted hover:text-white transition-colors">
-          <ArrowLeft className="w-4 h-4" /> Voltar para Dietas
+          <ArrowLeft className="w-4 h-4" /> {t("diet.backList")}
         </button>
 
         {error && (
@@ -367,13 +367,13 @@ export default function DietDetailPage() {
               <div className="flex items-center gap-2 mb-1">
                 <h1 className="text-xl font-bold">{diet.name}</h1>
                 <Badge variant={diet.isActive ? "success" : "default"}>
-                  {diet.isActive ? "Ativa" : "Inativa"}
+                  {t(diet.isActive ? "common.active" : "common.inactive")}
                 </Badge>
               </div>
-              <p className="text-sm text-muted">Aluno: {diet.student.name}</p>
+              <p className="text-sm text-muted">{t("diet.studentPrefix", { name: diet.student.name })}</p>
               <div className="flex gap-4 text-xs text-muted mt-2">
-                {diet.startDate && <span>Inicio: {new Date(diet.startDate).toLocaleDateString("pt-BR")}</span>}
-                {diet.endDate && <span>Fim: {new Date(diet.endDate).toLocaleDateString("pt-BR")}</span>}
+                {diet.startDate && <span>{t("diet.startLabel")} {new Date(diet.startDate).toLocaleDateString("pt-BR")}</span>}
+                {diet.endDate && <span>{t("diet.endLabel")} {new Date(diet.endDate).toLocaleDateString("pt-BR")}</span>}
               </div>
             </div>
             {user?.role !== "STUDENT" && (
@@ -385,10 +385,10 @@ export default function DietDetailPage() {
         </Card>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <MacroCard label="Proteina" current={totals.protein} target={diet.dailyProtein} unit="g" color="bg-red-400" />
-          <MacroCard label="Carboidrato" current={totals.carbs} target={diet.dailyCarbs} unit="g" color="bg-yellow-400" />
-          <MacroCard label="Gordura" current={totals.fat} target={diet.dailyFat} unit="g" color="bg-blue-400" />
-          <MacroCard label="Calorias" current={totals.calories} target={diet.dailyCalories} unit="" color="bg-green-400" />
+          <MacroCard label={t("diet.proteinMacro")} current={totals.protein} target={diet.dailyProtein} unit="g" color="bg-red-400" />
+          <MacroCard label={t("diet.carbsMacro")} current={totals.carbs} target={diet.dailyCarbs} unit="g" color="bg-yellow-400" />
+          <MacroCard label={t("diet.fatMacro")} current={totals.fat} target={diet.dailyFat} unit="g" color="bg-blue-400" />
+          <MacroCard label={t("diet.caloriesMacro")} current={totals.calories} target={diet.dailyCalories} unit="" color="bg-green-400" />
         </div>
 
         {(diet.waterIntake || diet.supplementation) && (
@@ -397,7 +397,7 @@ export default function DietDetailPage() {
               {diet.waterIntake && (
                 <div className="flex items-center gap-3 text-sm">
                   <Droplets className="w-4 h-4 text-blue-400 shrink-0" />
-                  <span className="text-muted">Agua:</span>
+                  <span className="text-muted">{t("diet.water")}</span>
                   <span className="font-medium">{diet.waterIntake}</span>
                 </div>
               )}
@@ -405,7 +405,7 @@ export default function DietDetailPage() {
                 <div className="flex items-start gap-3 text-sm">
                   <Pill className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
                   <div>
-                    <span className="text-muted">Suplementacao:</span>
+                    <span className="text-muted">{t("diet.supplementation")}</span>
                     <p className="text-white mt-0.5">{diet.supplementation}</p>
                   </div>
                 </div>
@@ -415,10 +415,10 @@ export default function DietDetailPage() {
         )}
 
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Refeicoes</h2>
+          <h2 className="text-lg font-semibold">{t("diet.mealsTitle")}</h2>
           {user?.role !== "STUDENT" && (
             <Button size="sm" icon={<Plus className="w-4 h-4" />} onClick={() => { setEditingMealId(null); setMealForm({ time: "", name: "", dayOfWeek: "" }); setShowMealForm(true); }}>
-              Adicionar Refeicao
+              {t("diet.addMeal")}
             </Button>
           )}
         </div>
@@ -426,7 +426,7 @@ export default function DietDetailPage() {
         {diet.meals.length === 0 ? (
           <Card className="p-8 text-center">
             <Clock className="w-8 h-8 text-muted mx-auto mb-2" />
-            <p className="text-muted text-sm">Nenhuma refeicao cadastrada</p>
+            <p className="text-muted text-sm">{t("diet.noMeals")}</p>
           </Card>
         ) : (
           <div className="space-y-6">
@@ -435,7 +435,7 @@ export default function DietDetailPage() {
                 <div className="flex items-center gap-2 px-1">
                   <h3 className="font-semibold text-sm">{section.label}</h3>
                   {section.key === "all" && (
-                    <span className="text-xs text-muted">(vale para todos os dias)</span>
+                    <span className="text-xs text-muted">{t("diet.appliesAllDays")}</span>
                   )}
                 </div>
                 {section.meals.map((meal) => {
@@ -470,7 +470,7 @@ export default function DietDetailPage() {
                           )}
                         </h3>
                         <p className="text-xs text-muted">
-                          {meal.foods.length} alimento{meal.foods.length !== 1 ? "s" : ""} &middot; {mealTotals.calories.toFixed(0)} kcal
+                          {t(meal.foods.length === 1 ? "diet.foodCountOne" : "diet.foodCountMany", { n: meal.foods.length })} &middot; {mealTotals.calories.toFixed(0)} kcal
                         </p>
                       </div>
                     </div>
@@ -512,12 +512,12 @@ export default function DietDetailPage() {
                           <table className="w-full text-sm">
                             <thead>
                               <tr className="text-muted text-xs">
-                                <th className="text-left pb-2 font-medium">Alimento</th>
-                                <th className="text-right pb-2 font-medium">Qtd</th>
-                                <th className="text-right pb-2 font-medium">Prot</th>
-                                <th className="text-right pb-2 font-medium">Carb</th>
-                                <th className="text-right pb-2 font-medium">Gord</th>
-                                <th className="text-right pb-2 font-medium">Kcal</th>
+                                <th className="text-left pb-2 font-medium">{t("diet.tableFood")}</th>
+                                <th className="text-right pb-2 font-medium">{t("diet.tableQty")}</th>
+                                <th className="text-right pb-2 font-medium">{t("diet.protShort")}</th>
+                                <th className="text-right pb-2 font-medium">{t("diet.carbShort")}</th>
+                                <th className="text-right pb-2 font-medium">{t("diet.fatShort")}</th>
+                                <th className="text-right pb-2 font-medium">{t("diet.kcalShort")}</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-border/50">
@@ -535,30 +535,30 @@ export default function DietDetailPage() {
                           </table>
                         </div>
                       ) : (
-                        <p className="text-xs text-muted text-center py-2">Nenhum alimento adicionado</p>
+                        <p className="text-xs text-muted text-center py-2">{t("diet.noFoods")}</p>
                       )}
 
                       {addingFoodToMeal === meal.id ? (
                         <div className="bg-bg rounded-lg p-3 space-y-3">
-                          <p className="text-xs font-medium text-muted">Novo alimento</p>
+                          <p className="text-xs font-medium text-muted">{t("diet.newFood")}</p>
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                            <Input placeholder="Nome *" value={foodFormMap[meal.id]?.name || ""} onChange={(e) => setFoodFormMap((prev) => ({ ...prev, [meal.id]: { ...prev[meal.id], name: e.target.value } }))} className="text-xs" />
-                            <Input placeholder="Quantidade" value={foodFormMap[meal.id]?.quantity || ""} onChange={(e) => setFoodFormMap((prev) => ({ ...prev, [meal.id]: { ...prev[meal.id], quantity: e.target.value } }))} className="text-xs" />
-                            <Input placeholder="Proteina (g)" type="number" value={foodFormMap[meal.id]?.protein || ""} onChange={(e) => setFoodFormMap((prev) => ({ ...prev, [meal.id]: { ...prev[meal.id], protein: e.target.value } }))} className="text-xs" />
-                            <Input placeholder="Carboidrato (g)" type="number" value={foodFormMap[meal.id]?.carbs || ""} onChange={(e) => setFoodFormMap((prev) => ({ ...prev, [meal.id]: { ...prev[meal.id], carbs: e.target.value } }))} className="text-xs" />
-                            <Input placeholder="Gordura (g)" type="number" value={foodFormMap[meal.id]?.fat || ""} onChange={(e) => setFoodFormMap((prev) => ({ ...prev, [meal.id]: { ...prev[meal.id], fat: e.target.value } }))} className="text-xs" />
-                            <Input placeholder="Calorias" type="number" value={foodFormMap[meal.id]?.calories || ""} onChange={(e) => setFoodFormMap((prev) => ({ ...prev, [meal.id]: { ...prev[meal.id], calories: e.target.value } }))} className="text-xs" />
+                            <Input placeholder={t("diet.foodNamePh")} value={foodFormMap[meal.id]?.name || ""} onChange={(e) => setFoodFormMap((prev) => ({ ...prev, [meal.id]: { ...prev[meal.id], name: e.target.value } }))} className="text-xs" />
+                            <Input placeholder={t("diet.foodQtyPh")} value={foodFormMap[meal.id]?.quantity || ""} onChange={(e) => setFoodFormMap((prev) => ({ ...prev, [meal.id]: { ...prev[meal.id], quantity: e.target.value } }))} className="text-xs" />
+                            <Input placeholder={t("diet.foodProteinPh")} type="number" value={foodFormMap[meal.id]?.protein || ""} onChange={(e) => setFoodFormMap((prev) => ({ ...prev, [meal.id]: { ...prev[meal.id], protein: e.target.value } }))} className="text-xs" />
+                            <Input placeholder={t("diet.foodCarbsPh")} type="number" value={foodFormMap[meal.id]?.carbs || ""} onChange={(e) => setFoodFormMap((prev) => ({ ...prev, [meal.id]: { ...prev[meal.id], carbs: e.target.value } }))} className="text-xs" />
+                            <Input placeholder={t("diet.foodFatPh")} type="number" value={foodFormMap[meal.id]?.fat || ""} onChange={(e) => setFoodFormMap((prev) => ({ ...prev, [meal.id]: { ...prev[meal.id], fat: e.target.value } }))} className="text-xs" />
+                            <Input placeholder={t("diet.foodCalPh")} type="number" value={foodFormMap[meal.id]?.calories || ""} onChange={(e) => setFoodFormMap((prev) => ({ ...prev, [meal.id]: { ...prev[meal.id], calories: e.target.value } }))} className="text-xs" />
                           </div>
                           <div className="flex gap-2">
-                            <Button variant="ghost" size="sm" onClick={() => setAddingFoodToMeal(null)}>Cancelar</Button>
-                            <Button size="sm" onClick={() => handleSaveFood(meal.id)}>Salvar</Button>
+                            <Button variant="ghost" size="sm" onClick={() => setAddingFoodToMeal(null)}>{t("common.cancel")}</Button>
+                            <Button size="sm" onClick={() => handleSaveFood(meal.id)}>{t("common.save")}</Button>
                           </div>
                         </div>
                       ) : (
                         <>
                           {user?.role !== "STUDENT" && (
                             <Button variant="secondary" size="sm" icon={<Plus className="w-3.5 h-3.5" />} onClick={() => startAddFood(meal.id)}>
-                              Adicionar Alimento
+                              {t("diet.addFood")}
                             </Button>
                           )}
                         </>
@@ -567,10 +567,10 @@ export default function DietDetailPage() {
                       {user?.role !== "STUDENT" && (
                       <div className="flex gap-2">
                         <Button variant="ghost" size="sm" icon={<Edit3 className="w-3.5 h-3.5" />} onClick={() => startEditMeal(meal)}>
-                          Editar
+                          {t("common.edit")}
                         </Button>
                         <Button variant="danger" size="sm" icon={<Trash2 className="w-3.5 h-3.5" />} onClick={() => handleDeleteMeal(meal.id)}>
-                          Excluir
+                          {t("common.delete")}
                         </Button>
                       </div>
                     )}
@@ -584,28 +584,28 @@ export default function DietDetailPage() {
           </div>
         )}
 
-        <Modal open={showMealForm} onClose={() => { setShowMealForm(false); setEditingMealId(null); }} title={editingMealId ? "Editar Refeicao" : "Nova Refeicao"} size="sm">
+        <Modal open={showMealForm} onClose={() => { setShowMealForm(false); setEditingMealId(null); }} title={t(editingMealId ? "diet.editMealTitle" : "diet.newMealTitle")} size="sm">
           <div className="space-y-4">
             <Input
-              label="Horario *"
-              placeholder="Ex: 07:00"
+              label={t("diet.timeLabel")}
+              placeholder={t("diet.timePlaceholder")}
               value={mealForm.time}
               onChange={(e) => setMealForm((f) => ({ ...f, time: e.target.value }))}
             />
             <Input
-              label="Nome *"
-              placeholder="Ex: Cafe da Manha"
+              label={t("diet.mealNameLabel")}
+              placeholder={t("diet.mealNamePlaceholder")}
               value={mealForm.name}
               onChange={(e) => setMealForm((f) => ({ ...f, name: e.target.value }))}
             />
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-muted">Dia da semana</label>
+              <label className="block text-sm font-medium text-muted">{t("diet.dayOfWeekLabel")}</label>
               <select
                 value={mealForm.dayOfWeek}
                 onChange={(e) => setMealForm((f) => ({ ...f, dayOfWeek: e.target.value }))}
                 className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent/60 transition-all"
               >
-                <option value="">Todos os dias (mesma refeicao)</option>
+                <option value="">{t("diet.allDaysOption")}</option>
                 {DIET_DAYS.map((d) => (
                   <option key={d} value={d}>{d}</option>
                 ))}
@@ -613,34 +613,34 @@ export default function DietDetailPage() {
             </div>
             <div className="flex gap-3 pt-2">
               <Button variant="secondary" onClick={() => { setShowMealForm(false); setEditingMealId(null); }} className="flex-1">
-                Cancelar
+                {t("common.cancel")}
               </Button>
               <Button onClick={handleSaveMeal} loading={savingMeal} className="flex-1">
-                {editingMealId ? "Salvar" : "Criar"}
+                {t(editingMealId ? "common.save" : "common.create")}
               </Button>
             </div>
           </div>
         </Modal>
 
-        <Modal open={showEditPlan} onClose={() => setShowEditPlan(false)} title="Editar Plano" size="lg">
+        <Modal open={showEditPlan} onClose={() => setShowEditPlan(false)} title={t("diet.editPlanTitle")} size="lg">
           <div className="space-y-4">
-            <Input label="Nome *" value={planForm.name} onChange={(e) => setPlanForm((f) => ({ ...f, name: e.target.value }))} />
-            <Textarea label="Descricao" value={planForm.description} onChange={(e) => setPlanForm((f) => ({ ...f, description: e.target.value }))} rows={2} />
+            <Input label={t("diet.planNameLabel")} value={planForm.name} onChange={(e) => setPlanForm((f) => ({ ...f, name: e.target.value }))} />
+            <Textarea label={t("wk.description")} value={planForm.description} onChange={(e) => setPlanForm((f) => ({ ...f, description: e.target.value }))} rows={2} />
             <div className="grid grid-cols-2 gap-4">
-              <Input label="Proteina diaria (g)" type="number" value={planForm.dailyProtein} onChange={(e) => setPlanForm((f) => ({ ...f, dailyProtein: e.target.value }))} />
-              <Input label="Carboidrato diario (g)" type="number" value={planForm.dailyCarbs} onChange={(e) => setPlanForm((f) => ({ ...f, dailyCarbs: e.target.value }))} />
-              <Input label="Gordura diaria (g)" type="number" value={planForm.dailyFat} onChange={(e) => setPlanForm((f) => ({ ...f, dailyFat: e.target.value }))} />
-              <Input label="Calorias diárias" type="number" value={planForm.dailyCalories} onChange={(e) => setPlanForm((f) => ({ ...f, dailyCalories: e.target.value }))} />
+              <Input label={t("diet.dailyProtein")} type="number" value={planForm.dailyProtein} onChange={(e) => setPlanForm((f) => ({ ...f, dailyProtein: e.target.value }))} />
+              <Input label={t("diet.dailyCarbs")} type="number" value={planForm.dailyCarbs} onChange={(e) => setPlanForm((f) => ({ ...f, dailyCarbs: e.target.value }))} />
+              <Input label={t("diet.dailyFat")} type="number" value={planForm.dailyFat} onChange={(e) => setPlanForm((f) => ({ ...f, dailyFat: e.target.value }))} />
+              <Input label={t("diet.dailyCalories")} type="number" value={planForm.dailyCalories} onChange={(e) => setPlanForm((f) => ({ ...f, dailyCalories: e.target.value }))} />
             </div>
-            <Input label="Ingestao de agua" value={planForm.waterIntake} onChange={(e) => setPlanForm((f) => ({ ...f, waterIntake: e.target.value }))} placeholder="Ex: 3L ao dia" />
-            <Textarea label="Suplementacao" value={planForm.supplementation} onChange={(e) => setPlanForm((f) => ({ ...f, supplementation: e.target.value }))} rows={2} />
+            <Input label={t("diet.waterIntakeLabel")} value={planForm.waterIntake} onChange={(e) => setPlanForm((f) => ({ ...f, waterIntake: e.target.value }))} placeholder={t("diet.waterIntakePlaceholder")} />
+            <Textarea label={t("diet.supplementation")} value={planForm.supplementation} onChange={(e) => setPlanForm((f) => ({ ...f, supplementation: e.target.value }))} rows={2} />
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <input type="checkbox" checked={planForm.isActive} onChange={(e) => setPlanForm((f) => ({ ...f, isActive: e.target.checked }))} className="accent-accent" />
-              Plano ativo
+              {t("diet.activePlanLabel")}
             </label>
             <div className="flex gap-3 pt-2">
-              <Button variant="secondary" onClick={() => setShowEditPlan(false)} className="flex-1">Cancelar</Button>
-              <Button onClick={handleSavePlan} loading={savingPlan} className="flex-1">Salvar</Button>
+              <Button variant="secondary" onClick={() => setShowEditPlan(false)} className="flex-1">{t("common.cancel")}</Button>
+              <Button onClick={handleSavePlan} loading={savingPlan} className="flex-1">{t("common.save")}</Button>
             </div>
           </div>
         </Modal>

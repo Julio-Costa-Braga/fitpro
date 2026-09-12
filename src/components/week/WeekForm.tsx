@@ -4,19 +4,30 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, ArrowLeft, CalendarDays, Dumbbell } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { api, type WeekTemplate } from "@/lib/api";
+import { api } from "@/lib/api";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 const LEVELS = [
-  { value: "INICIANTE", label: "Iniciante" },
-  { value: "MODERADO", label: "Moderado" },
-  { value: "AVANCADO", label: "Avancado" },
+  { value: "INICIANTE", labelKey: "common.level.beginner" },
+  { value: "MODERADO", labelKey: "common.level.intermediate" },
+  { value: "AVANCADO", labelKey: "common.level.advanced" },
 ];
 
 const WEEKDAYS = ["Segunda", "Terca", "Quarta", "Quinta", "Sexta", "Sabado", "Domingo"];
+
+const WEEKDAY_KEYS: Record<string, string> = {
+  Segunda: "common.week.monday",
+  Terca: "common.week.tuesday",
+  Quarta: "common.week.wednesday",
+  Quinta: "common.week.thursday",
+  Sexta: "common.week.friday",
+  Sabado: "common.week.saturday",
+  Domingo: "common.week.sunday",
+};
 
 interface WTemplate {
   id: string;
@@ -29,6 +40,7 @@ interface WTemplate {
 export function WeekForm({ weekId }: { weekId?: string }) {
   const { user, token, loading: authLoading } = useAuth();
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [templates, setTemplates] = useState<WTemplate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,7 +80,7 @@ export function WeekForm({ weekId }: { weekId?: string }) {
           setDays(next);
         }
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Erro ao carregar");
+        setError(e instanceof Error ? e.message : t("wk.formErrLoad"));
       } finally {
         setLoading(false);
       }
@@ -89,7 +101,7 @@ export function WeekForm({ weekId }: { weekId?: string }) {
       })),
     };
     if (payload.days.length === 0) {
-      setError("Selecione pelo menos um modelo de treino na semana");
+      setError(t("wk.formNoModel"));
       return;
     }
     setSaving(true);
@@ -102,7 +114,7 @@ export function WeekForm({ weekId }: { weekId?: string }) {
       }
       router.push("/workouts/week");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao salvar");
+      setError(err instanceof Error ? err.message : t("wk.formErrSave"));
       setSaving(false);
     }
   }
@@ -118,14 +130,14 @@ export function WeekForm({ weekId }: { weekId?: string }) {
   if (!user) return null;
 
   return (
-    <AppLayout title={weekId ? "Editar Semana" : "Nova Semana"}>
+    <AppLayout title={weekId ? t("wk.formTitleEdit") : t("wk.formTitleNew")}>
       <div className="max-w-2xl mx-auto space-y-6 animate-fadeIn">
         <a
           href="/workouts/week"
           className="inline-flex items-center gap-2 text-sm text-muted hover:text-white transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Voltar para Semanas
+          {t("wk.formBack")}
         </a>
 
         <Card className="p-6">
@@ -135,10 +147,10 @@ export function WeekForm({ weekId }: { weekId?: string }) {
             </div>
             <div>
               <h1 className="text-xl font-bold">
-                {weekId ? "Editar Semana de Treino" : "Nova Semana de Treino"}
+                {weekId ? t("wk.formHeadingEdit") : t("wk.formHeadingNew")}
               </h1>
               <p className="text-sm text-muted">
-                Monte a semana completa de uma vez combinando seus modelos de treino.
+                {t("wk.formSubtitle")}
               </p>
             </div>
           </div>
@@ -153,14 +165,14 @@ export function WeekForm({ weekId }: { weekId?: string }) {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="sm:col-span-2">
                 <Input
-                  label="Nome da semana *"
-                  placeholder="Ex.: Treino Iniciante - Semana 1"
+                  label={t("wk.formNameLabel")}
+                  placeholder={t("wk.formNamePlaceholder")}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-muted">Nivel</label>
+                <label className="block text-sm font-medium text-muted">{t("wk.level")}</label>
                 <select
                   value={level}
                   onChange={(e) => setLevel(e.target.value)}
@@ -168,7 +180,7 @@ export function WeekForm({ weekId }: { weekId?: string }) {
                 >
                   {LEVELS.map((l) => (
                     <option key={l.value} value={l.value}>
-                      {l.label}
+                      {t(l.labelKey)}
                     </option>
                   ))}
                 </select>
@@ -176,8 +188,8 @@ export function WeekForm({ weekId }: { weekId?: string }) {
             </div>
 
             <Textarea
-              label="Descricao (opcional)"
-              placeholder="Observacoes gerais da semana"
+              label={t("wk.formDescLabel")}
+              placeholder={t("wk.formDescPlaceholder")}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
@@ -185,18 +197,18 @@ export function WeekForm({ weekId }: { weekId?: string }) {
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-muted">Treinos por dia da semana</label>
+                <label className="text-sm font-medium text-muted">{t("wk.formDaysLabel")}</label>
                 <span className="text-xs text-muted">
-                  {WEEKDAYS.filter((d) => days[d]).length} dia(s) preenchido(s)
+                  {t("wk.formDaysFilled", { n: WEEKDAYS.filter((d) => days[d]).length })}
                 </span>
               </div>
 
               {WEEKDAYS.map((d) => {
-                const tpl = templates.find((t) => t.id === days[d]);
+                const tpl = templates.find((tpl) => tpl.id === days[d]);
                 return (
                   <div key={d} className="flex items-center gap-3">
                     <div className="w-24 shrink-0">
-                      <span className="text-sm font-medium text-white">{d}</span>
+                      <span className="text-sm font-medium text-white">{t(WEEKDAY_KEYS[d])}</span>
                     </div>
                     <div className="flex-1 flex items-center gap-2">
                       <select
@@ -204,17 +216,17 @@ export function WeekForm({ weekId }: { weekId?: string }) {
                         onChange={(e) => setDays((prev) => ({ ...prev, [d]: e.target.value }))}
                         className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent/60 transition-all"
                       >
-                        <option value="">— sem treino —</option>
-                        {templates.map((t) => (
-                          <option key={t.id} value={t.id}>
-                            {t.name}
-                            {t.isPreset ? " (padrao)" : ""}
+                        <option value="">{t("wk.formNoTraining")}</option>
+                        {templates.map((tpl) => (
+                          <option key={tpl.id} value={tpl.id}>
+                            {tpl.name}
+                            {tpl.isPreset ? t("wk.formDefaultSuffix") : ""}
                           </option>
                         ))}
                       </select>
                       {tpl && (
                         <span className="text-xs text-muted shrink-0 hidden sm:inline">
-                          {tpl.exercises.length} ex.
+                          {t("wk.formExCount", { n: tpl.exercises.length })}
                         </span>
                       )}
                     </div>
@@ -228,17 +240,17 @@ export function WeekForm({ weekId }: { weekId?: string }) {
                   className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:text-accent-hover transition-colors"
                 >
                   <Dumbbell className="w-3.5 h-3.5" />
-                  Criar novo modelo de treino
+                  {t("wk.formNewModelLink")}
                 </a>
               </div>
             </div>
 
             <div className="flex gap-3 pt-2">
               <Button type="button" variant="secondary" className="flex-1" onClick={() => router.push("/workouts/week")}>
-                Cancelar
+                {t("common.cancel")}
               </Button>
               <Button type="submit" loading={saving} className="flex-1" disabled={templates.length === 0}>
-                {weekId ? "Salvar alteracoes" : "Criar Semana"}
+                {weekId ? t("common.saveChanges") : t("wk.formCreateWeek")}
               </Button>
             </div>
           </form>

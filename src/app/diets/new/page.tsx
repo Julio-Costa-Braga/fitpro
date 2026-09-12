@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import Link from "next/link";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 interface Student {
   id: string;
@@ -22,6 +23,7 @@ interface DietPlan {
 
 export default function NewDietPage() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,7 +35,7 @@ export default function NewDietPage() {
     api
       .get<{ students: Student[] }>("/api/students")
       .then((data) => setStudents(data.students))
-      .catch(() => setError("Erro ao carregar alunos"))
+      .catch(() => setError(t("diet.errLoadStudents")))
       .finally(() => setLoading(false));
   }, []);
 
@@ -50,7 +52,7 @@ export default function NewDietPage() {
       });
       router.push(`/diets/${data.dietPlan.id}`);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao criar plano");
+      setError(err instanceof Error ? err.message : t("diet.errCreate"));
       setCreating(false);
     }
   }
@@ -58,14 +60,14 @@ export default function NewDietPage() {
   if (!user) return null;
 
   return (
-    <AppLayout title="Novo Plano Alimentar">
+    <AppLayout title={t("diet.newTitle")}>
       <div className="max-w-xl mx-auto space-y-6 animate-fadeIn">
         <Link
           href="/diets"
           className="inline-flex items-center gap-2 text-sm text-muted hover:text-white transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Voltar para dietas
+          {t("diet.backList")}
         </Link>
 
         <Card className="p-6">
@@ -74,8 +76,8 @@ export default function NewDietPage() {
               <Apple className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-xl font-bold">Novo Plano Alimentar</h1>
-              <p className="text-sm text-muted">Crie um plano de dieta para um aluno</p>
+              <h1 className="text-xl font-bold">{t("diet.newTitle")}</h1>
+              <p className="text-sm text-muted">{t("diet.newSubtitle")}</p>
             </div>
           </div>
 
@@ -87,20 +89,20 @@ export default function NewDietPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
-              label="Nome do Plano *"
-              placeholder="Ex: Dieta de definicao"
+              label={t("diet.nameLabel")}
+              placeholder={t("diet.namePlaceholder")}
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               required
             />
             <Input
-              label="Descricao"
-              placeholder="Descricao opcional..."
+              label={t("wk.description")}
+              placeholder={t("diet.descPlaceholder")}
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
             />
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-muted">Aluno *</label>
+              <label className="block text-sm font-medium text-muted">{t("diet.studentLabel")}</label>
               <select
                 value={form.studentId}
                 onChange={(e) => setForm((f) => ({ ...f, studentId: e.target.value }))}
@@ -108,7 +110,7 @@ export default function NewDietPage() {
                 disabled={loading}
                 className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent/60 transition-all disabled:opacity-50"
               >
-                <option value="">Selecione o aluno</option>
+                <option value="">{t("diet.selectStudent")}</option>
                 {students.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
@@ -123,10 +125,10 @@ export default function NewDietPage() {
                 onClick={() => router.push("/diets")}
                 className="flex-1"
               >
-                Cancelar
+                {t("common.cancel")}
               </Button>
               <Button type="submit" loading={creating} className="flex-1">
-                Criar Plano
+                {t("diet.create")}
               </Button>
             </div>
           </form>

@@ -253,7 +253,7 @@ export default function WorkoutsPage() {
           <div className="flex gap-3">
             <Link href="/workouts/templates">
               <Button variant="secondary" icon={<Layers className="w-4 h-4" />}>
-                Modelos
+                {t("wk.model")}
               </Button>
             </Link>
             <Button
@@ -359,7 +359,7 @@ export default function WorkoutsPage() {
                         <button
                           type="button"
                           onClick={() => toggleRestDay(day)}
-                          title={restSet.has(day) ? "Remover descanso" : "Marcar como descanso"}
+                          title={restSet.has(day) ? t("wk.restRemove") : t("wk.restSet")}
                           className={`w-5 h-5 rounded-md inline-flex items-center justify-center shrink-0 transition-colors ${
                             restSet.has(day)
                               ? "bg-accent/15 text-accent hover:bg-accent/25"

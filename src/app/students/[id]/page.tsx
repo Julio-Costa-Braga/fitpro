@@ -14,6 +14,7 @@ import { Tabs } from "@/components/ui/Tabs";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import Link from "next/link";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 interface Student {
   id: string;
@@ -69,6 +70,7 @@ export default function StudentDetailPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const params = useParams();
+  const { t } = useLanguage();
   const studentId = params.id as string;
 
   const [student, setStudent] = useState<Student | null>(null);
@@ -103,7 +105,7 @@ export default function StudentDetailPage() {
       setProgress(progressData);
       setStats(statsData);
     } catch {
-      setError("Erro ao carregar dados do aluno");
+      setError(t("stu.errLoadDetail"));
     } finally {
       setLoading(false);
     }
@@ -132,7 +134,7 @@ export default function StudentDetailPage() {
       setShowProgressForm(false);
       await loadAll();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao salvar progresso");
+      setError(err instanceof Error ? err.message : t("stu.errSaveProgress"));
     } finally {
       setSavingProgress(false);
     }
@@ -148,11 +150,11 @@ export default function StudentDetailPage() {
 
   if (!student) {
     return (
-      <AppLayout title="Aluno nao encontrado">
+      <AppLayout title={t("stu.notFound")}>
         <Card className="p-12 text-center">
-          <p className="text-muted">Aluno nao encontrado</p>
+          <p className="text-muted">{t("stu.notFound")}</p>
           <Button variant="secondary" className="mt-4" onClick={() => router.push("/students")}>
-            Voltar
+            {t("stu.back")}
           </Button>
         </Card>
       </AppLayout>
@@ -160,16 +162,16 @@ export default function StudentDetailPage() {
   }
 
   const tabs = [
-    { id: "workouts", label: "Treinos", icon: <Dumbbell className="w-4 h-4" />, count: workouts.length },
-    { id: "diets", label: "Dietas", icon: <Apple className="w-4 h-4" />, count: diets.length },
-    { id: "progress", label: "Progresso", icon: <TrendingUp className="w-4 h-4" />, count: progress.length },
+    { id: "workouts", label: t("nav.workouts"), icon: <Dumbbell className="w-4 h-4" />, count: workouts.length },
+    { id: "diets", label: t("nav.diets"), icon: <Apple className="w-4 h-4" />, count: diets.length },
+    { id: "progress", label: t("nav.progress"), icon: <TrendingUp className="w-4 h-4" />, count: progress.length },
   ];
 
   return (
     <AppLayout title={student.name}>
       <div className="space-y-6 animate-fadeIn">
         <button onClick={() => router.push("/students")} className="flex items-center gap-1 text-sm text-muted hover:text-white transition-colors">
-          <ArrowLeft className="w-4 h-4" /> Voltar para Alunos
+          <ArrowLeft className="w-4 h-4" /> {t("stu.backList")}
         </button>
 
         {error && (
@@ -188,7 +190,7 @@ export default function StudentDetailPage() {
               <div className="flex flex-wrap gap-4 text-sm text-muted mt-1">
                 {student.email && <span className="flex items-center gap-1"><Mail className="w-3.5 h-3.5" />{student.email}</span>}
                 {student.phone && <span className="flex items-center gap-1"><Phone className="w-3.5 h-3.5" />{student.phone}</span>}
-                <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />Desde {new Date(student.createdAt).toLocaleDateString("pt-BR")}</span>
+                <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{t("stu.since", { date: new Date(student.createdAt).toLocaleDateString("pt-BR") })}</span>
               </div>
             </div>
           </div>
@@ -198,19 +200,19 @@ export default function StudentDetailPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <Card className="p-4 text-center">
               <p className="text-2xl font-bold">{stats.totalWorkouts}</p>
-              <p className="text-xs text-muted mt-1">Treinos</p>
+              <p className="text-xs text-muted mt-1">{t("nav.workouts")}</p>
             </Card>
             <Card className="p-4 text-center">
               <p className="text-2xl font-bold">{stats.completionRate}%</p>
-              <p className="text-xs text-muted mt-1">Conclusao</p>
+              <p className="text-xs text-muted mt-1">{t("stu.completion")}</p>
             </Card>
             <Card className="p-4 text-center">
               <p className="text-2xl font-bold">{stats.latestProgress?.weight ? `${stats.latestProgress.weight}kg` : "-"}</p>
-              <p className="text-xs text-muted mt-1">Peso Atual</p>
+              <p className="text-xs text-muted mt-1">{t("stu.currentWeight")}</p>
             </Card>
             <Card className="p-4 text-center">
               <p className="text-2xl font-bold">{stats.completedSessions}/{stats.totalSessions}</p>
-              <p className="text-xs text-muted mt-1">Sessoes</p>
+              <p className="text-xs text-muted mt-1">{t("stu.sessions")}</p>
             </Card>
           </div>
         )}
@@ -221,13 +223,13 @@ export default function StudentDetailPage() {
           <div className="space-y-4">
             <div className="flex justify-end">
               <Link href={`/workouts/new?studentId=${studentId}`}>
-                <Button icon={<Plus className="w-4 h-4" />}>Novo Treino</Button>
+                <Button icon={<Plus className="w-4 h-4" />}>{t("stu.newWorkout")}</Button>
               </Link>
             </div>
             {workouts.length === 0 ? (
               <Card className="p-8 text-center">
                 <Dumbbell className="w-8 h-8 text-muted mx-auto mb-2" />
-                <p className="text-muted text-sm">Nenhum treino cadastrado</p>
+                <p className="text-muted text-sm">{t("stu.noWorkouts")}</p>
               </Card>
             ) : (
               workouts.map((w) => (
@@ -241,7 +243,7 @@ export default function StudentDetailPage() {
                       </div>
                     </div>
                     <Badge variant={w.isActive ? "success" : "default"}>
-                      {w.isActive ? "Ativo" : "Inativo"}
+                      {w.isActive ? t("common.active") : t("common.inactive")}
                     </Badge>
                   </div>
                   <div className="text-xs text-muted">
@@ -257,13 +259,13 @@ export default function StudentDetailPage() {
           <div className="space-y-4">
             <div className="flex justify-end">
               <Link href={`/diets?studentId=${studentId}&create=1`}>
-                <Button icon={<Plus className="w-4 h-4" />}>Nova Dieta</Button>
+                <Button icon={<Plus className="w-4 h-4" />}>{t("stu.newDiet")}</Button>
               </Link>
             </div>
             {diets.length === 0 ? (
               <Card className="p-8 text-center">
                 <Apple className="w-8 h-8 text-muted mx-auto mb-2" />
-                <p className="text-muted text-sm">Nenhuma dieta cadastrada</p>
+                <p className="text-muted text-sm">{t("stu.noDiets")}</p>
               </Card>
             ) : (
               diets.map((d) => (
@@ -282,7 +284,7 @@ export default function StudentDetailPage() {
                       )}
                     </div>
                     <Badge variant={d.isActive ? "success" : "default"}>
-                      {d.isActive ? "Ativa" : "Inativa"}
+                      {d.isActive ? t("stu.activeF") : t("stu.inactiveF")}
                     </Badge>
                   </div>
                 </Card>
@@ -295,13 +297,13 @@ export default function StudentDetailPage() {
           <div className="space-y-4">
             <div className="flex justify-end">
               <Button icon={<Plus className="w-4 h-4" />} onClick={() => setShowProgressForm(true)}>
-                Adicionar Registro
+                {t("stu.addRecord")}
               </Button>
             </div>
 
             {progress.length > 0 && (
               <Card className="p-4">
-                <p className="text-sm font-medium mb-3">Evolucao do Peso</p>
+                <p className="text-sm font-medium mb-3">{t("stu.weightEvolution")}</p>
                 <div className="space-y-2">
                   {progress.slice().reverse().map((p) => {
                     if (!p.weight) return null;
@@ -324,7 +326,7 @@ export default function StudentDetailPage() {
             {progress.length === 0 ? (
               <Card className="p-8 text-center">
                 <TrendingUp className="w-8 h-8 text-muted mx-auto mb-2" />
-                <p className="text-muted text-sm">Nenhum registro de progresso</p>
+                <p className="text-muted text-sm">{t("stu.noProgress")}</p>
               </Card>
             ) : (
               <div className="relative pl-6">
@@ -337,12 +339,12 @@ export default function StudentDetailPage() {
                         <span className="text-xs text-muted">{new Date(p.date).toLocaleDateString("pt-BR")}</span>
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
-                        {p.weight && <div><span className="text-muted">Peso:</span> <span className="font-medium">{p.weight} kg</span></div>}
-                        {p.bodyFat && <div><span className="text-muted">% Gordura:</span> <span className="font-medium">{p.bodyFat}%</span></div>}
-                        {p.chest && <div><span className="text-muted">Peito:</span> <span className="font-medium">{p.chest} cm</span></div>}
-                        {p.waist && <div><span className="text-muted">Cintura:</span> <span className="font-medium">{p.waist} cm</span></div>}
-                        {p.arm && <div><span className="text-muted">Braco:</span> <span className="font-medium">{p.arm} cm</span></div>}
-                        {p.thigh && <div><span className="text-muted">Coxa:</span> <span className="font-medium">{p.thigh} cm</span></div>}
+                        {p.weight && <div><span className="text-muted">{t("stu.rec.weight")}</span> <span className="font-medium">{p.weight} kg</span></div>}
+                        {p.bodyFat && <div><span className="text-muted">{t("stu.rec.bodyFat")}</span> <span className="font-medium">{p.bodyFat}%</span></div>}
+                        {p.chest && <div><span className="text-muted">{t("stu.rec.chest")}</span> <span className="font-medium">{p.chest} cm</span></div>}
+                        {p.waist && <div><span className="text-muted">{t("stu.rec.waist")}</span> <span className="font-medium">{p.waist} cm</span></div>}
+                        {p.arm && <div><span className="text-muted">{t("stu.rec.arm")}</span> <span className="font-medium">{p.arm} cm</span></div>}
+                        {p.thigh && <div><span className="text-muted">{t("stu.rec.thigh")}</span> <span className="font-medium">{p.thigh} cm</span></div>}
                       </div>
                       {p.notes && <p className="text-xs text-muted mt-2 italic">{p.notes}</p>}
                     </Card>
@@ -351,20 +353,20 @@ export default function StudentDetailPage() {
               </div>
             )}
 
-            <Modal open={showProgressForm} onClose={() => setShowProgressForm(false)} title="Novo Registro de Progresso" size="lg">
+            <Modal open={showProgressForm} onClose={() => setShowProgressForm(false)} title={t("stu.newProgressTitle")} size="lg">
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <Input label="Peso (kg)" type="number" step="0.1" placeholder="80.5" value={progressForm.weight} onChange={(e) => setProgressForm((f) => ({ ...f, weight: e.target.value }))} />
-                  <Input label="% Gordura" type="number" step="0.1" placeholder="15.2" value={progressForm.bodyFat} onChange={(e) => setProgressForm((f) => ({ ...f, bodyFat: e.target.value }))} />
-                  <Input label="Peito (cm)" type="number" step="0.1" placeholder="100" value={progressForm.chest} onChange={(e) => setProgressForm((f) => ({ ...f, chest: e.target.value }))} />
-                  <Input label="Cintura (cm)" type="number" step="0.1" placeholder="80" value={progressForm.waist} onChange={(e) => setProgressForm((f) => ({ ...f, waist: e.target.value }))} />
-                  <Input label="Braco (cm)" type="number" step="0.1" placeholder="35" value={progressForm.arm} onChange={(e) => setProgressForm((f) => ({ ...f, arm: e.target.value }))} />
-                  <Input label="Coxa (cm)" type="number" step="0.1" placeholder="55" value={progressForm.thigh} onChange={(e) => setProgressForm((f) => ({ ...f, thigh: e.target.value }))} />
+                  <Input label={t("stu.form.weight")} type="number" step="0.1" placeholder="80.5" value={progressForm.weight} onChange={(e) => setProgressForm((f) => ({ ...f, weight: e.target.value }))} />
+                  <Input label={t("stu.form.bodyFat")} type="number" step="0.1" placeholder="15.2" value={progressForm.bodyFat} onChange={(e) => setProgressForm((f) => ({ ...f, bodyFat: e.target.value }))} />
+                  <Input label={t("stu.form.chest")} type="number" step="0.1" placeholder="100" value={progressForm.chest} onChange={(e) => setProgressForm((f) => ({ ...f, chest: e.target.value }))} />
+                  <Input label={t("stu.form.waist")} type="number" step="0.1" placeholder="80" value={progressForm.waist} onChange={(e) => setProgressForm((f) => ({ ...f, waist: e.target.value }))} />
+                  <Input label={t("stu.form.arm")} type="number" step="0.1" placeholder="35" value={progressForm.arm} onChange={(e) => setProgressForm((f) => ({ ...f, arm: e.target.value }))} />
+                  <Input label={t("stu.form.thigh")} type="number" step="0.1" placeholder="55" value={progressForm.thigh} onChange={(e) => setProgressForm((f) => ({ ...f, thigh: e.target.value }))} />
                 </div>
-                <Textarea label="Observacoes" placeholder="Notas sobre o progresso..." value={progressForm.notes} onChange={(e) => setProgressForm((f) => ({ ...f, notes: e.target.value }))} rows={3} />
+                <Textarea label={t("stu.form.notes")} placeholder={t("stu.form.notesPlaceholder")} value={progressForm.notes} onChange={(e) => setProgressForm((f) => ({ ...f, notes: e.target.value }))} rows={3} />
                 <div className="flex gap-3 pt-2">
-                  <Button variant="secondary" onClick={() => setShowProgressForm(false)} className="flex-1">Cancelar</Button>
-                  <Button onClick={handleAddProgress} loading={savingProgress} className="flex-1">Salvar</Button>
+                  <Button variant="secondary" onClick={() => setShowProgressForm(false)} className="flex-1">{t("common.cancel")}</Button>
+                  <Button onClick={handleAddProgress} loading={savingProgress} className="flex-1">{t("common.save")}</Button>
                 </div>
               </div>
             </Modal>

@@ -35,6 +35,18 @@ const MUSCLE_GROUPS = [
   "Outros",
 ];
 
+const MUSCLE_GROUP_KEYS: Record<string, string> = {
+  Peito: "exlib.muscle.chest",
+  Costas: "exlib.muscle.back",
+  Ombros: "exlib.muscle.shoulders",
+  Bracos: "exlib.muscle.arms",
+  Pernas: "exlib.muscle.legs",
+  Abdomen: "exlib.muscle.abs",
+  Cardio: "exlib.muscle.cardio",
+  Mobilidade: "exlib.muscle.mobility",
+  Outros: "exlib.muscle.others",
+};
+
 const muscleGroupColors: Record<string, string> = {
   Peito: "bg-red-500/10 border-red-500/30 text-red-400",
   Costas: "bg-blue-500/10 border-blue-500/30 text-blue-400",
@@ -49,8 +61,13 @@ const muscleGroupColors: Record<string, string> = {
 
 export default function ExercisesPage() {
   const { user, token, loading: authLoading } = useAuth();
-  const { tExerciseName } = useLanguage();
+  const { t, tExerciseName } = useLanguage();
   const router = useRouter();
+
+  function muscleLabel(v: string) {
+    const key = MUSCLE_GROUP_KEYS[v];
+    return key ? t(key) : v;
+  }
 
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [loading, setLoading] = useState(true);
@@ -103,10 +120,10 @@ export default function ExercisesPage() {
   });
 
   const tabs = [
-    { id: "all", label: "Todos", count: exercises.length },
+    { id: "all", label: t("common.all"), count: exercises.length },
     ...MUSCLE_GROUPS.filter((mg) => exercises.some((e) => e.muscleGroup === mg)).map((mg) => ({
       id: mg,
-      label: mg,
+      label: muscleLabel(mg),
       count: exercises.filter((e) => e.muscleGroup === mg).length,
     })),
   ];
@@ -162,7 +179,7 @@ export default function ExercisesPage() {
   }
 
   async function handleDelete(ex: Exercise) {
-    if (!confirm(`Remover "${ex.name}"?`)) return;
+    if (!confirm(t("exlib.confirmDelete", { name: ex.name }))) return;
     try {
       await api.delete(`/api/exercises/${ex.id}`);
       await loadExercises();
@@ -182,7 +199,7 @@ export default function ExercisesPage() {
   if (!user) return null;
 
   return (
-    <AppLayout title="Biblioteca de Exercicios">
+    <AppLayout title={t("exlib.title")}>
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-lg px-4 py-3 mb-6">
           {error}
@@ -192,19 +209,19 @@ export default function ExercisesPage() {
       <div className="space-y-6 animate-fadeIn">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold mb-1">Biblioteca de Exercicios</h1>
-            <p className="text-muted text-sm">{exercises.length} exercicios cadastrados</p>
+            <h1 className="text-2xl font-bold mb-1">{t("exlib.title")}</h1>
+            <p className="text-muted text-sm">{t("exlib.count", { n: exercises.length })}</p>
           </div>
           {user.role === "PERSONAL" && (
             <Button icon={<Plus className="w-4 h-4" />} onClick={() => setShowCreateModal(true)}>
-              Novo Exercicio
+              {t("exlib.new")}
             </Button>
           )}
         </div>
 
         <div className="flex items-center gap-3">
           <Input
-            placeholder="Buscar exercicio..."
+            placeholder={t("exlib.search")}
             icon={<Search className="w-4 h-4" />}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -217,7 +234,7 @@ export default function ExercisesPage() {
         {filtered.length === 0 ? (
           <Card className="p-12 text-center">
             <Dumbbell className="w-10 h-10 text-muted mx-auto mb-3" />
-            <p className="text-muted">Nenhum exercicio encontrado</p>
+            <p className="text-muted">{t("exlib.noResults")}</p>
           </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -243,7 +260,7 @@ export default function ExercisesPage() {
                         variant="default"
                         className={`mt-1 ${muscleGroupColors[ex.muscleGroup] ?? ""}`}
                       >
-                        {ex.muscleGroup}
+                        {muscleLabel(ex.muscleGroup)}
                       </Badge>
                       {ex.description && (
                         <p className="text-xs text-muted mt-1.5 line-clamp-2">{ex.description}</p>
@@ -282,18 +299,18 @@ export default function ExercisesPage() {
       <Modal
         open={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        title="Novo Exercicio"
+        title={t("exlib.new")}
       >
         <form onSubmit={handleCreate} className="space-y-4">
           <Input
-            label="Nome"
-            placeholder="Ex: Supino Reto"
+            label={t("exlib.formName")}
+            placeholder={t("exlib.namePlaceholder")}
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             required
           />
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-muted">Grupo Muscular</label>
+            <label className="block text-sm font-medium text-muted">{t("exlib.muscleGroup")}</label>
             <select
               value={form.muscleGroup}
               onChange={(e) => setForm({ ...form, muscleGroup: e.target.value })}
@@ -301,29 +318,29 @@ export default function ExercisesPage() {
             >
               {MUSCLE_GROUPS.map((mg) => (
                 <option key={mg} value={mg}>
-                  {mg}
+                  {muscleLabel(mg)}
                 </option>
               ))}
             </select>
           </div>
           <Input
-            label="URL do GIF/Imagem"
+            label={t("exlib.gifUrl")}
             placeholder="https://..."
             value={form.gifUrl}
             onChange={(e) => setForm({ ...form, gifUrl: e.target.value })}
           />
           <Input
-            label="Descricao"
-            placeholder="Descricao opcional..."
+            label={t("exlib.descLabel")}
+            placeholder={t("exlib.descPlaceholder")}
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="secondary" onClick={() => setShowCreateModal(false)} className="flex-1">
-              Cancelar
+              {t("common.cancel")}
             </Button>
             <Button type="submit" loading={creating} className="flex-1">
-              Criar
+              {t("common.create")}
             </Button>
           </div>
         </form>
@@ -332,17 +349,17 @@ export default function ExercisesPage() {
       <Modal
         open={!!editingExercise}
         onClose={() => setEditingExercise(null)}
-        title="Editar Exercicio"
+        title={t("exlib.edit")}
       >
         {editingExercise && (
           <div className="space-y-4">
             <Input
-              label="Nome"
+              label={t("exlib.formName")}
               value={editForm.name}
               onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
             />
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-muted">Grupo Muscular</label>
+              <label className="block text-sm font-medium text-muted">{t("exlib.muscleGroup")}</label>
               <select
                 value={editForm.muscleGroup}
                 onChange={(e) => setEditForm({ ...editForm, muscleGroup: e.target.value })}
@@ -356,21 +373,21 @@ export default function ExercisesPage() {
               </select>
             </div>
             <Input
-              label="URL do GIF/Imagem"
+              label={t("exlib.gifUrl")}
               value={editForm.gifUrl}
               onChange={(e) => setEditForm({ ...editForm, gifUrl: e.target.value })}
             />
             <Input
-              label="Descricao"
+              label={t("exlib.descLabel")}
               value={editForm.description}
               onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
             />
             <div className="flex gap-3 pt-2">
               <Button variant="secondary" onClick={() => setEditingExercise(null)} className="flex-1">
-                Cancelar
+                {t("common.cancel")}
               </Button>
               <Button onClick={handleSaveEdit} loading={savingEdit} className="flex-1">
-                Salvar
+                {t("common.save")}
               </Button>
             </div>
           </div>

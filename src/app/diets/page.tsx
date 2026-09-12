@@ -13,6 +13,7 @@ import { Input, Textarea } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Modal } from "@/components/ui/Modal";
 import Link from "next/link";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 interface Student {
   id: string;
@@ -45,6 +46,7 @@ function MacroPill({ label, value, unit, color }: { label: string; value: number
 
 export default function DietsPage() {
   const { user, loading: authLoading } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
 
   const [diets, setDiets] = useState<DietPlan[]>([]);
@@ -73,7 +75,7 @@ export default function DietsPage() {
       }
       setDiets(allDiets.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
     } catch {
-      setError("Erro ao carregar dietas");
+      setError(t("diet.errLoad"));
     } finally {
       setLoading(false);
     }
@@ -103,7 +105,7 @@ export default function DietsPage() {
       setShowCreate(false);
       router.push(`/diets/${data.dietPlan.id}`);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao criar plano");
+      setError(err instanceof Error ? err.message : t("diet.errCreate"));
     } finally {
       setCreating(false);
     }
@@ -124,21 +126,21 @@ export default function DietsPage() {
   }
 
   return (
-    <AppLayout title="Dietas">
+    <AppLayout title={t("diet.title")}>
       <div className="space-y-6 animate-fadeIn">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">Planos Alimentares</h1>
-            <p className="text-muted text-sm">{diets.length} plano{diets.length !== 1 ? "s" : ""}</p>
+            <h1 className="text-2xl font-bold">{t("diet.title")}</h1>
+            <p className="text-muted text-sm">{t(diets.length === 1 ? "diet.planCountOne" : "diet.planCountMany", { n: diets.length })}</p>
           </div>
           <div className="flex gap-3">
             <Link href="/diets/templates">
               <Button variant="secondary" icon={<Layers className="w-4 h-4" />}>
-                Modelos
+                {t("diet.models")}
               </Button>
             </Link>
             <Button icon={<Plus className="w-4 h-4" />} onClick={() => setShowCreate(true)}>
-              Novo Plano
+              {t("diet.newPlan")}
             </Button>
           </div>
         </div>
@@ -153,7 +155,7 @@ export default function DietsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
           <input
             type="text"
-            placeholder="Buscar por nome do plano ou aluno..."
+            placeholder={t("diet.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-card border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent/60 transition-all"
@@ -163,7 +165,7 @@ export default function DietsPage() {
         {filtered.length === 0 ? (
           <Card className="p-12 text-center">
             <Apple className="w-10 h-10 text-muted mx-auto mb-3" />
-            <p className="text-muted">{diets.length === 0 ? "Nenhum plano alimentar criado" : "Nenhum plano encontrado"}</p>
+            <p className="text-muted">{t(diets.length === 0 ? "diet.empty" : "diet.noResults")}</p>
           </Card>
         ) : (
           <div className="space-y-3">
@@ -184,7 +186,7 @@ export default function DietsPage() {
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-semibold">{diet.name}</h3>
                         <Badge variant={diet.isActive ? "success" : "default"}>
-                          {diet.isActive ? "Ativa" : "Inativa"}
+                          {t(diet.isActive ? "common.active" : "common.inactive")}
                         </Badge>
                       </div>
                       <p className="text-sm text-muted">{diet.student.name}</p>
@@ -192,10 +194,10 @@ export default function DietsPage() {
                         <p className="text-xs text-muted mt-1 line-clamp-1">{diet.description}</p>
                       )}
                       <div className="flex flex-wrap gap-3 mt-3">
-                        <MacroPill label="Prot" value={diet.dailyProtein || totalProtein} unit="g" color="bg-red-400" />
-                        <MacroPill label="Carb" value={diet.dailyCarbs || totalCarbs} unit="g" color="bg-yellow-400" />
-                        <MacroPill label="Gord" value={diet.dailyFat || totalFat} unit="g" color="bg-blue-400" />
-                        <MacroPill label="Kcal" value={diet.dailyCalories} unit="" color="bg-green-400" />
+                        <MacroPill label={t("diet.protShort")} value={diet.dailyProtein || totalProtein} unit="g" color="bg-red-400" />
+                        <MacroPill label={t("diet.carbShort")} value={diet.dailyCarbs || totalCarbs} unit="g" color="bg-yellow-400" />
+                        <MacroPill label={t("diet.fatShort")} value={diet.dailyFat || totalFat} unit="g" color="bg-blue-400" />
+                        <MacroPill label={t("diet.kcalShort")} value={diet.dailyCalories} unit="" color="bg-green-400" />
                       </div>
                     </div>
                     <ChevronRight className="w-5 h-5 text-muted shrink-0 mt-1" />
@@ -206,34 +208,34 @@ export default function DietsPage() {
           </div>
         )}
 
-        <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Novo Plano Alimentar" size="md">
+        <Modal open={showCreate} onClose={() => setShowCreate(false)} title={t("diet.newTitle")} size="md">
           <div className="space-y-4">
             <Select
-              label="Aluno *"
+              label={t("diet.studentLabel")}
               value={form.studentId}
               onChange={(e) => setForm((f) => ({ ...f, studentId: e.target.value }))}
-              placeholder="Selecione um aluno"
+              placeholder={t("common.selectStudent")}
               options={students.map((s) => ({ value: s.id, label: s.name }))}
             />
             <Input
-              label="Nome do Plano *"
-              placeholder="Ex: Dieta Hipertrofia"
+              label={t("diet.nameLabel")}
+              placeholder={t("diet.createNamePlaceholder")}
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
             />
             <Textarea
-              label="Descricao"
-              placeholder="Descricao do plano..."
+              label={t("wk.description")}
+              placeholder={t("diet.planDescPlaceholder")}
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
               rows={3}
             />
             <div className="flex gap-3 pt-2">
               <Button variant="secondary" onClick={() => setShowCreate(false)} className="flex-1">
-                Cancelar
+                {t("common.cancel")}
               </Button>
               <Button onClick={handleCreate} loading={creating} className="flex-1">
-                Criar Plano
+                {t("diet.create")}
               </Button>
             </div>
           </div>

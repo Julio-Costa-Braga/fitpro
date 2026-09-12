@@ -4,10 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Lock } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { api } from "@/lib/api";
 
 export default function ChangePasswordPage() {
   const { user, loading: authLoading, updateUser } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -31,11 +33,11 @@ export default function ChangePasswordPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!newPassword || newPassword.length < 8) {
-      setError("A nova senha deve ter no minimo 8 caracteres");
+      setError(t("cp.errShort"));
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError("As senhas nao conferem");
+      setError(t("cp.errMismatch"));
       return;
     }
     setSaving(true);
@@ -45,7 +47,7 @@ export default function ChangePasswordPage() {
       updateUser((prev) => (prev ? { ...prev, mustChangePassword: false } : prev));
       router.push("/dashboard");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao alterar senha");
+      setError(err instanceof Error ? err.message : t("cp.errSave"));
     } finally {
       setSaving(false);
     }
@@ -58,9 +60,9 @@ export default function ChangePasswordPage() {
           <div className="w-14 h-14 rounded-full bg-accent/15 flex items-center justify-center mx-auto">
             <Lock className="w-7 h-7 text-accent" />
           </div>
-          <h1 className="text-xl font-bold">Alterar Senha</h1>
+          <h1 className="text-xl font-bold">{t("cp.title")}</h1>
           <p className="text-muted text-sm">
-            Primeiro login — defina uma nova senha segura.
+            {t("cp.subtitle")}
           </p>
         </div>
 
@@ -72,30 +74,30 @@ export default function ChangePasswordPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted">Senha atual</label>
+            <label className="text-xs font-medium text-muted">{t("cp.current")}</label>
             <input
               type="password"
-              placeholder="Deixe em branco se primeiro login"
+              placeholder={t("cp.currentPlaceholder")}
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted">Nova senha *</label>
+            <label className="text-xs font-medium text-muted">{t("cp.new")}</label>
             <input
               type="password"
-              placeholder="Minimo 8 caracteres"
+              placeholder={t("auth.passwordMin")}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted">Confirmar nova senha *</label>
+            <label className="text-xs font-medium text-muted">{t("cp.confirm")}</label>
             <input
               type="password"
-              placeholder="Repita a nova senha"
+              placeholder={t("cp.confirmPlaceholder")}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
@@ -108,7 +110,7 @@ export default function ChangePasswordPage() {
             className="w-full py-2.5 rounded-lg bg-accent text-white font-semibold text-sm hover:bg-accent/80 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-            Alterar e Entrar
+            {t("cp.submit")}
           </button>
         </form>
       </div>

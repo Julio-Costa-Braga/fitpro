@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 export function PixQrCode({ value, size = 260 }: { value: string; size?: number }) {
+  const { t } = useLanguage();
   const [src, setSrc] = useState<string>("");
 
   useEffect(() => {
@@ -29,10 +31,10 @@ export function PixQrCode({ value, size = 260 }: { value: string; size?: number 
         style={{ width: size, height: size }}
         className="bg-white rounded-2xl flex items-center justify-center text-xs text-black/50"
       >
-        Gerando QR...
+        {t("pix.qrLoading")}
       </div>
     );
   }
 
-  return <img src={src} alt="QR Code PIX" width={size} height={size} className="rounded-2xl" />;
+  return <img src={src} alt={t("pix.qrAria")} width={size} height={size} className="rounded-2xl" />;
 }

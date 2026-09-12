@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { dayOfWeekKeys } from "@/lib/i18n/dictionaries";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import Link from "next/link";
 
 interface Exercise {
@@ -45,10 +46,10 @@ interface Student {
   name: string;
 }
 
-const LEVEL_META: Record<string, { label: string; badge: string }> = {
-  INICIANTE: { label: "Iniciante", badge: "bg-green-500/15 text-green-400" },
-  MODERADO: { label: "Moderado", badge: "bg-blue-500/15 text-blue-400" },
-  AVANCADO: { label: "Avancado", badge: "bg-red-500/15 text-red-400" },
+const LEVEL_META: Record<string, { labelKey: string; badge: string }> = {
+  INICIANTE: { labelKey: "common.level.beginner", badge: "bg-green-500/15 text-green-400" },
+  MODERADO: { labelKey: "common.level.intermediate", badge: "bg-blue-500/15 text-blue-400" },
+  AVANCADO: { labelKey: "common.level.advanced", badge: "bg-red-500/15 text-red-400" },
 };
 
 const DAY_LETTERS = ["A", "B", "C", "D", "E", "F"];
@@ -62,19 +63,20 @@ const dayLetterColor: Record<string, string> = {
 };
 
 const WEEKDAY_LABELS: Record<string, string> = {
-  "": "Nao definido",
-  Segunda: "Segunda-feira",
-  Terca: "Terca-feira",
-  Quarta: "Quarta-feira",
-  Quinta: "Quinta-feira",
-  Sexta: "Sexta-feira",
-  Sabado: "Sabado",
-  Domingo: "Domingo",
+  "": "common.none",
+  Segunda: "common.week.monday",
+  Terca: "common.week.tuesday",
+  Quarta: "common.week.wednesday",
+  Quinta: "common.week.thursday",
+  Sexta: "common.week.friday",
+  Sabado: "common.week.saturday",
+  Domingo: "common.week.sunday",
 };
 
 export default function WorkoutTemplatesPage() {
   const { user, token, loading: authLoading } = useAuth();
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [templates, setTemplates] = useState<WTemplate[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
@@ -91,7 +93,7 @@ export default function WorkoutTemplatesPage() {
       const data = await api.get<{ templates: WTemplate[] }>("/api/workout-templates");
       setTemplates(data.templates);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao carregar modelos");
+      setError(e instanceof Error ? e.message : t("wk.errLoadModels"));
     } finally {
       setLoading(false);
     }
@@ -131,20 +133,20 @@ export default function WorkoutTemplatesPage() {
       setApplyForm({ studentId: "", dayLetter: "A", dayOfWeek: "" });
       router.push(`/workouts/${data.workout.id}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao aplicar modelo");
+      setError(e instanceof Error ? e.message : t("wk.errApplyTemplate"));
     } finally {
       setApplying(false);
     }
   }
 
-  async function handleDelete(t: WTemplate) {
-    if (!confirm(`Excluir o modelo "${t.name}"?`)) return;
-    setDeletingId(t.id);
+  async function handleDelete(tpl: WTemplate) {
+    if (!confirm(t("wk.confirmDeleteModel", { name: tpl.name }))) return;
+    setDeletingId(tpl.id);
     try {
-      await api.delete(`/api/workout-templates/${t.id}`);
+      await api.delete(`/api/workout-templates/${tpl.id}`);
       await loadTemplates();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao excluir modelo");
+      setError(e instanceof Error ? e.message : t("wk.errDeleteModel"));
     } finally {
       setDeletingId(null);
     }
@@ -165,14 +167,14 @@ export default function WorkoutTemplatesPage() {
     .filter((g) => g.items.length > 0);
 
   return (
-    <AppLayout title="Modelos de Treino">
+    <AppLayout title={t("wk.modelTitle")}>
       <div className="space-y-6 animate-fadeIn">
         <Link
           href="/workouts"
           className="inline-flex items-center gap-2 text-sm text-muted hover:text-white transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Voltar para Treinos
+          {t("wk.backList")}
         </Link>
 
         {error && (
@@ -183,9 +185,9 @@ export default function WorkoutTemplatesPage() {
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">Modelos de Treino</h1>
+            <h1 className="text-2xl font-bold">{t("wk.modelTitle")}</h1>
             <p className="text-muted text-sm">
-              Crie modelos e compartilhe com os alunos sem criar do zero. Modelos padrao podem ser editados.
+              {t("wk.modelSubtitle")}
             </p>
           </div>
           <div className="flex gap-2">
@@ -194,10 +196,10 @@ export default function WorkoutTemplatesPage() {
               icon={<CalendarDays className="w-4 h-4" />}
               onClick={() => router.push("/workouts/week")}
             >
-              Semana
+              {t("wk.weekChip")}
             </Button>
             <Button icon={<Plus className="w-4 h-4" />} onClick={() => router.push("/workouts/templates/new")}>
-              Novo Modelo
+              {t("wk.newModel")}
             </Button>
           </div>
         </div>
@@ -205,22 +207,22 @@ export default function WorkoutTemplatesPage() {
         {grouped.length === 0 ? (
           <Card className="p-12 text-center">
             <Layers className="w-10 h-10 text-muted mx-auto mb-3" />
-            <p className="text-muted">Nenhum modelo de treino criado</p>
+            <p className="text-muted">{t("wk.noModels")}</p>
           </Card>
         ) : (
           grouped.map(({ level, items }) => (
             <div key={level} className="space-y-3">
               <div className="flex items-center gap-2">
                 <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${LEVEL_META[level].badge}`}>
-                  {LEVEL_META[level].label}
+                  {t(LEVEL_META[level].labelKey)}
                 </span>
                 <span className="text-xs text-muted">({items.length})</span>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {items.map((t) => {
-                  const levelMeta = LEVEL_META[t.level];
+                {items.map((tpl) => {
+                  const levelMeta = LEVEL_META[tpl.level];
                   return (
-                    <Card key={t.id} className="flex flex-col h-full">
+                    <Card key={tpl.id} className="flex flex-col h-full">
                       <CardContent className="flex flex-col h-full">
                         <div className="flex items-start justify-between gap-2 mb-2">
                           <div className="flex items-center gap-2 min-w-0">
@@ -228,20 +230,20 @@ export default function WorkoutTemplatesPage() {
                               <Dumbbell className="w-4 h-4" />
                             </div>
                             <div className="min-w-0">
-                              <h3 className="font-semibold text-sm leading-tight truncate">{t.name}</h3>
+                              <h3 className="font-semibold text-sm leading-tight truncate">{tpl.name}</h3>
                               <p className="text-xs text-muted">
-                                {t.exercises.length} exercicio{t.exercises.length !== 1 ? "s" : ""}
+                                {t("wk.modelExercises", { n: tpl.exercises.length, s: tpl.exercises.length !== 1 ? "s" : "" })}
                               </p>
                             </div>
                           </div>
-                          {t.isPreset && <Badge variant="default">Padrao</Badge>}
+                          {tpl.isPreset && <Badge variant="default">{t("wk.isDefault")}</Badge>}
                         </div>
-                        {t.description && (
-                          <p className="text-xs text-muted/80 mb-3 line-clamp-2">{t.description}</p>
+                        {tpl.description && (
+                          <p className="text-xs text-muted/80 mb-3 line-clamp-2">{tpl.description}</p>
                         )}
                         <div className="flex flex-wrap gap-1.5 mb-3">
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${levelMeta.badge}`}>
-                            {levelMeta.label}
+                            {t(levelMeta.labelKey)}
                           </span>
                         </div>
                         <div className="flex gap-2 mt-auto pt-3 border-t border-border">
@@ -250,22 +252,22 @@ export default function WorkoutTemplatesPage() {
                             variant="secondary"
                             className="flex-1"
                             icon={<Send className="w-3.5 h-3.5" />}
-                            onClick={() => setApplyTarget(t)}
+                            onClick={() => setApplyTarget(tpl)}
                           >
-                            Aplicar p/ aluno
+                            {t("wk.applyToStudent")}
                           </Button>
                           <Button
                             size="sm"
                             variant="ghost"
                             icon={<Pencil className="w-3.5 h-3.5" />}
-                            onClick={() => router.push(`/workouts/templates/${t.id}`)}
+                            onClick={() => router.push(`/workouts/templates/${tpl.id}`)}
                           />
                           <Button
                             size="sm"
                             variant="danger"
                             icon={<Trash2 className="w-3.5 h-3.5" />}
-                            loading={deletingId === t.id}
-                            onClick={() => handleDelete(t)}
+                            loading={deletingId === tpl.id}
+                            onClick={() => handleDelete(tpl)}
                           />
                         </div>
                       </CardContent>
@@ -281,7 +283,7 @@ export default function WorkoutTemplatesPage() {
       <Modal
         open={!!applyTarget}
         onClose={() => setApplyTarget(null)}
-        title="Aplicar modelo para o aluno"
+        title={t("wk.applyModalTitle")}
       >
         <div className="space-y-4">
           {applyTarget && (
@@ -289,18 +291,18 @@ export default function WorkoutTemplatesPage() {
               <Dumbbell className="w-4 h-4 text-accent shrink-0" />
               <span className="font-medium">{applyTarget.name}</span>
               <span className="text-muted text-xs">
-                ({applyTarget.exercises.length} exercicios)
+                {t("wk.applyCount", { n: applyTarget.exercises.length })}
               </span>
             </div>
           )}
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-muted">Aluno *</label>
+            <label className="block text-sm font-medium text-muted">{t("wk.studentLabel")}</label>
             <select
               value={applyForm.studentId}
               onChange={(e) => setApplyForm((f) => ({ ...f, studentId: e.target.value }))}
               className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent/60 transition-all"
             >
-              <option value="">Selecione o aluno</option>
+              <option value="">{t("wk.selectStudent")}</option>
               {students.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
@@ -309,7 +311,7 @@ export default function WorkoutTemplatesPage() {
             </select>
           </div>
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-muted">Letra do dia</label>
+            <label className="block text-sm font-medium text-muted">{t("wk.dayLetter")}</label>
             <div className="flex gap-2">
               {DAY_LETTERS.map((letter) => (
                 <button
@@ -328,7 +330,7 @@ export default function WorkoutTemplatesPage() {
             </div>
           </div>
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-muted">Dia da semana</label>
+            <label className="block text-sm font-medium text-muted">{t("wk.dayOfWeek")}</label>
             <select
               value={applyForm.dayOfWeek}
               onChange={(e) => setApplyForm((f) => ({ ...f, dayOfWeek: e.target.value }))}
@@ -336,14 +338,14 @@ export default function WorkoutTemplatesPage() {
             >
               {dayOfWeekKeys.map((opt) => (
                 <option key={opt.value} value={opt.value}>
-                  {WEEKDAY_LABELS[opt.value] ?? opt.value}
+                  {t(WEEKDAY_LABELS[opt.value] ?? opt.value)}
                 </option>
               ))}
             </select>
           </div>
           <div className="flex gap-3 pt-2">
             <Button variant="secondary" className="flex-1" onClick={() => setApplyTarget(null)}>
-              Cancelar
+              {t("common.cancel")}
             </Button>
             <Button
               className="flex-1"
@@ -351,7 +353,7 @@ export default function WorkoutTemplatesPage() {
               disabled={!applyForm.studentId}
               onClick={handleApply}
             >
-              Criar Treino p/ o Aluno
+              {t("wk.createForStudent")}
             </Button>
           </div>
         </div>

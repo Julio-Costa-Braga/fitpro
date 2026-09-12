@@ -49,7 +49,7 @@ export default function NewWorkoutPage() {
     api
       .get<{ students: Student[] }>("/api/students")
       .then((data) => setStudents(data.students))
-      .catch(() => setError("Erro ao carregar alunos"))
+      .catch(() => setError(t("wk.errLoadStudents")))
       .finally(() => setLoading(false));
   }, []);
 
@@ -68,7 +68,7 @@ export default function NewWorkoutPage() {
       });
       router.push(`/workouts/${workout.id}`);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao criar treino");
+      setError(err instanceof Error ? err.message : t("wk.errCreate"));
       setCreating(false);
     }
   }
@@ -83,7 +83,7 @@ export default function NewWorkoutPage() {
           className="inline-flex items-center gap-2 text-sm text-muted hover:text-white transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Voltar para treinos
+          {t("wk.backList")}
         </Link>
 
         <Card className="p-6">

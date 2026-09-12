@@ -42,12 +42,12 @@ interface AppNotification {
   createdAt: string;
 }
 
-function formatRelative(iso: string, lang: string): string {
+function formatRelative(iso: string, lang: string, t: (key: string) => string): string {
   const date = new Date(iso);
   const diffMs = Date.now() - date.getTime();
   const mins = Math.floor(diffMs / 60000);
-  if (mins < 1) return lang === "pt" ? "agora" : lang === "es" ? "ahora" : "now";
-  if (mins < 60) return `${mins}${lang === "pt" ? " min" : lang === "es" ? " min" : "m"}`;
+  if (mins < 1) return t("header.justNow");
+  if (mins < 60) return `${mins}${t("header.minAgo")}`;
   const hours = Math.floor(mins / 60);
   if (hours < 24) return `${hours}h`;
   return date.toLocaleDateString(lang === "pt" ? "pt-BR" : lang === "es" ? "es-ES" : "en-US", {
@@ -241,7 +241,7 @@ const isWorkout = n.type === "WORKOUT_COMPLETED";
                           </span>
                           <span className="flex-1 min-w-0">
                             <span className="block text-sm text-white leading-snug">{titleText}</span>
-                            <span className="block text-xs text-muted mt-1">{formatRelative(n.createdAt, lang)}</span>
+                            <span className="block text-xs text-muted mt-1">{formatRelative(n.createdAt, lang, t)}</span>
                           </span>
                           {!n.read && <span className="w-2 h-2 rounded-full bg-red-500 shrink-0 mt-1.5" />}
                         </button>
