@@ -96,9 +96,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(updater);
   }, []);
 
+  const token = user ? "session" : null;
+
   return (
     <AuthContext.Provider
-      value={{ user, token: null, loading, login, register, logout, updateUser }}
+      value={{ user, token, loading, login, register, logout, updateUser }}
     >
       {children}
     </AuthContext.Provider>
