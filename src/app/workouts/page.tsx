@@ -95,21 +95,12 @@ export default function WorkoutsPage() {
     try {
       setLoading(true);
       if (user.role === "PERSONAL") {
-        const studentsData = await api.get<{ students: Student[] }>("/api/students");
+        const [studentsData, ws] = await Promise.all([
+          api.get<{ students: Student[] }>("/api/students"),
+          api.get<Workout[]>("/api/workouts"),
+        ]);
         setStudents(studentsData.students);
-
-        const allWorkouts: Workout[] = [];
-        for (const student of studentsData.students) {
-          try {
-            const ws = await api.get<Workout[]>(`/api/workouts?studentId=${student.id}`);
-            allWorkouts.push(
-              ...ws.map((w) => ({ ...w, student: { id: student.id, name: student.name, email: student.email } }))
-            );
-          } catch {
-            // skip
-          }
-        }
-        setWorkouts(allWorkouts);
+        setWorkouts(ws);
       } else {
         const studentsData = await api.get<{ students: Student[] }>(`/api/students?studentId=${user.id}`);
         setStudents(studentsData?.students ?? []);

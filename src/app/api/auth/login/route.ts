@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { comparePassword, generateToken } from "@/lib/auth";
+import { checkRateLimit, clientIp } from "@/lib/rateLimit";
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,6 +12,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Email e senha sao obrigatorios" },
         { status: 400 }
+      );
+    }
+
+    const ip = clientIp(request);
+    const ipLimit = checkRateLimit(`login:ip:${ip}`);
+    const emailLimit = checkRateLimit(`login:email:${String(email).toLowerCase()}`);
+    if (!ipLimit.allowed || !emailLimit.allowed) {
+      const retryAfterSec = Math.max(ipLimit.retryAfterSec, emailLimit.retryAfterSec);
+      return NextResponse.json(
+        { error: `Muitas tentativas de login. Tente novamente em ${Math.ceil(retryAfterSec / 60)} minuto(s).` },
+        { status: 429 }
       );
     }
 

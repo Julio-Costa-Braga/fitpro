@@ -2,7 +2,11 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { NextRequest } from "next/server";
 
-const JWT_SECRET = process.env.JWT_SECRET || "fitpro-jwt-secret";
+const JWT_SECRET = process.env.JWT_SECRET || "dev-only-insecure-secret";
+
+if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable is required in production");
+}
 
 export type UserRole = "ADMIN" | "PERSONAL" | "STUDENT";
 

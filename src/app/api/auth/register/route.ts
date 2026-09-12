@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword, generateToken } from "@/lib/auth";
 import { generateReferralCode } from "@/lib/referral";
 import { REFERRAL_DISCOUNT_MONTHS, trialUntil } from "@/lib/billing";
+import { checkRateLimit, clientIp } from "@/lib/rateLimit";
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,6 +14,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Nome, email e senha sao obrigatorios" },
         { status: 400 }
+      );
+    }
+
+    const ipLimit = checkRateLimit(`register:ip:${clientIp(request)}`);
+    if (!ipLimit.allowed) {
+      return NextResponse.json(
+        { error: "Muitas tentativas de cadastro. Tente novamente mais tarde." },
+        { status: 429 }
       );
     }
 

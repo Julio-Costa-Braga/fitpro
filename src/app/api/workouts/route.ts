@@ -11,31 +11,46 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const studentId = searchParams.get("studentId");
 
-  if (!studentId) {
-    return NextResponse.json({ error: "studentId is required" }, { status: 400 });
-  }
-
-  if (user.role === "PERSONAL") {
-    const student = await prisma.student.findFirst({
-      where: { id: studentId, personalId: user.userId },
-    });
-    if (!student) {
-      return NextResponse.json({ error: "Student not found" }, { status: 404 });
+  let where: { studentId?: string; trainerId?: string } = {};
+  if (studentId) {
+    if (user.role === "PERSONAL") {
+      const student = await prisma.student.findFirst({
+        where: { id: studentId, personalId: user.userId },
+      });
+      if (!student) {
+        return NextResponse.json({ error: "Student not found" }, { status: 404 });
+      }
+    } else if (user.role === "STUDENT") {
+      const student = await prisma.student.findFirst({
+        where: { id: studentId, userId: user.userId },
+      });
+      if (!student) {
+        return NextResponse.json({ error: "Student not found" }, { status: 404 });
+      }
+    } else if (user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
     }
-  } else if (user.role === "STUDENT") {
-    const student = await prisma.student.findFirst({
-      where: { id: studentId, userId: user.userId },
-    });
-    if (!student) {
-      return NextResponse.json({ error: "Student not found" }, { status: 404 });
+    where = { studentId };
+  } else {
+    if (user.role === "PERSONAL") {
+      where = { trainerId: user.userId };
+    } else if (user.role === "STUDENT") {
+      const student = await prisma.student.findFirst({
+        where: { userId: user.userId },
+      });
+      if (!student) {
+        return NextResponse.json([], { status: 200 });
+      }
+      where = { studentId: student.id };
+    } else if (user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
     }
-  } else if (user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
   }
 
   const workouts = await prisma.workout.findMany({
-    where: { studentId },
+    where,
     include: {
+      student: true,
       exercises: {
         include: { exercise: true },
         orderBy: { order: "asc" },
