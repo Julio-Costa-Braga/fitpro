@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { Loader2, ArrowLeft, Plus, GripVertical, Pencil, Trash2, Play, Save, X, Search, Rocket } from "lucide-react";
+import { Loader2, ArrowLeft, Plus, GripVertical, Pencil, Trash2, Play, Save, X, Search, Rocket, Repeat } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { api } from "@/lib/api";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -30,6 +30,7 @@ interface WorkoutExercise {
   initialLoad?: string | null;
   restTime: number;
   notes?: string | null;
+  alternative?: string | null;
   exercise: Exercise;
 }
 
@@ -81,7 +82,7 @@ export default function WorkoutDetailPage() {
   const [addingExercise, setAddingExercise] = useState<string | null>(null);
 
   const [editingExercise, setEditingExercise] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ sets: 3, reps: "10", initialLoad: "", restTime: 60 });
+  const [editForm, setEditForm] = useState({ sets: 3, reps: "10", initialLoad: "", restTime: 60, alternative: "" });
   const [savingExercise, setSavingExercise] = useState(false);
 
   const [autoAdvance, setAutoAdvance] = useState(false);
@@ -153,6 +154,7 @@ export default function WorkoutDetailPage() {
             initialLoad: we.initialLoad,
             restTime: we.restTime,
             notes: we.notes,
+            alternative: we.alternative,
             exerciseId: we.exercise.id,
           })) ?? []),
           {
@@ -187,6 +189,7 @@ export default function WorkoutDetailPage() {
           initialLoad: e.initialLoad,
           restTime: e.restTime,
           notes: e.notes,
+          alternative: e.alternative,
           exerciseId: e.exercise.id,
         })) ?? [];
       await api.put(`/api/workouts/${workoutId}`, { exercises: remaining });
@@ -208,6 +211,7 @@ export default function WorkoutDetailPage() {
             initialLoad: editForm.initialLoad || undefined,
             restTime: editForm.restTime,
             notes: e.notes,
+            alternative: editForm.alternative.trim() || undefined,
             exerciseId: e.exercise.id,
           };
         }
@@ -218,6 +222,7 @@ export default function WorkoutDetailPage() {
           initialLoad: e.initialLoad,
           restTime: e.restTime,
           notes: e.notes,
+          alternative: e.alternative,
           exerciseId: e.exercise.id,
         };
       }) ?? [];
@@ -528,6 +533,17 @@ export default function WorkoutDetailPage() {
                             className="w-16 bg-bg border border-border rounded px-2 py-1 text-xs text-white text-center"
                           />
                         </div>
+                        <div className="w-full flex-1 min-w-[220px]">
+                          <label className="block text-xs text-muted mb-1">
+                            Exercicio semelhante (caso nao tenha essa maquina)
+                          </label>
+                          <input
+                            value={editForm.alternative}
+                            onChange={(e) => setEditForm({ ...editForm, alternative: e.target.value })}
+                            placeholder="Ex: Leg Press no lugar do Agachamento"
+                            className="w-full bg-bg border border-border rounded px-2 py-1 text-xs text-white focus:outline-none focus:ring-1 focus:ring-accent/40"
+                          />
+                        </div>
                         <Button
                           size="sm"
                           icon={<Save className="w-3 h-3" />}
@@ -548,6 +564,12 @@ export default function WorkoutDetailPage() {
                         {` \u00B7 ${we.restTime}s descanso`}
                       </p>
                     )}
+                    {we.alternative && (
+                      <p className="text-xs text-accent/90 mt-1 flex items-start gap-1">
+                        <Repeat className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                        <span>Sem essa maquina? Use: {we.alternative}</span>
+                      </p>
+                    )}
                   </div>
 
                   {user.role === "PERSONAL" && editingExercise !== we.id && (
@@ -560,6 +582,7 @@ export default function WorkoutDetailPage() {
                             reps: we.reps,
                             initialLoad: we.initialLoad ?? "",
                             restTime: we.restTime,
+                            alternative: we.alternative ?? "",
                           });
                         }}
                         className="p-1.5 rounded-lg text-muted hover:text-white hover:bg-card transition-colors"

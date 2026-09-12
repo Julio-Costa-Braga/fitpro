@@ -26,7 +26,7 @@ import {
   Star,
   ListChecks,
 } from "lucide-react";
-import { MONTHLY_FEE, REFERRAL_DISCOUNT, REFERRAL_DISCOUNT_MONTHS, PIX_KEY } from "@/lib/billing";
+import { MONTHLY_FEE, EXTRA_STUDENT_PRICE, PACK5_PRICE, PACK10_PRICE, REFERRAL_DISCOUNT, REFERRAL_DISCOUNT_MONTHS, PIX_KEY } from "@/lib/billing";
 
 function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) {
   return (
@@ -171,9 +171,9 @@ function BillingBanner({ studentsCount = 0 }: { studentsCount?: number }) {
           <div className="text-[11px] text-muted bg-bg rounded-lg p-3 space-y-1">
             <p className="font-semibold text-muted">Tabela do plano (mensal)</p>
             <p>Até 10 alunos &middot; R$ {MONTHLY_FEE.toFixed(2).replace(".", ",")}</p>
-            <p>+1 aluno &middot; +R$ {REFERRAL_DISCOUNT.toFixed(2).replace(".", ",")}</p>
-            <p>+5 alunos &middot; +R$ 6,00</p>
-            <p>+10 alunos &middot; +R$ 14,00</p>
+            <p>+1 aluno &middot; +R$ {EXTRA_STUDENT_PRICE.toFixed(2).replace(".", ",")}</p>
+            <p>+5 alunos &middot; +R$ {PACK5_PRICE.toFixed(2).replace(".", ",")}</p>
+            <p>+10 alunos &middot; +R$ {PACK10_PRICE.toFixed(2).replace(".", ",")}</p>
             <p className="text-muted/70 pt-1">Seu aluno acessa de graça. A mensalidade é do seu plano.</p>
           </div>
         </div>

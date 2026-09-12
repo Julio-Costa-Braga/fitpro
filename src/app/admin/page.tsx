@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Loader2, Shield, Users, UserPlus, Mail, X, Power, Star, CalendarPlus,
+  Loader2, Shield, Users, UserPlus, User, Mail, X, Power, Star, CalendarPlus,
   Trash2, Infinity as InfinityIcon, Ban, CheckCircle2, LayoutDashboard, CreditCard, Dumbbell,
 } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -13,7 +13,10 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
-import { MONTHLY_FEE, REFERRAL_DISCOUNT, REFERRAL_DISCOUNT_MONTHS } from "@/lib/billing";
+import {
+  MONTHLY_FEE, EXTRA_STUDENT_PRICE, PACK5_PRICE, PACK10_PRICE,
+  REFERRAL_DISCOUNT, REFERRAL_DISCOUNT_MONTHS,
+} from "@/lib/billing";
 
 interface AdminPersonal {
   id: string;
@@ -263,7 +266,7 @@ export default function AdminPage() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold">Contas e Pagamentos</h2>
             <p className="text-xs text-muted">
-              Plano personal: base R$ {MONTHLY_FEE.toFixed(2).replace(".", ",")} (ate 10 alunos) &middot; +1 aluno +R$ {REFERRAL_DISCOUNT.toFixed(2).replace(".", ",")} &middot; +5 +R$ 6,00 &middot; +10 +R$ 14,00 &middot; aluno acessa gratis
+              Plano personal: base R$ {MONTHLY_FEE.toFixed(2).replace(".", ",")} (ate 10 alunos) &middot; +1 aluno +R$ {EXTRA_STUDENT_PRICE.toFixed(2).replace(".", ",")} &middot; +5 +R$ {PACK5_PRICE.toFixed(2).replace(".", ",")} &middot; +10 +R$ {PACK10_PRICE.toFixed(2).replace(".", ",")} &middot; aluno acessa gratis
             </p>
           </div>
           {accounts.length === 0 ? (
@@ -290,19 +293,25 @@ export default function AdminPage() {
                     </div>
 
                     <div className="flex flex-wrap gap-1.5">
+                      <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1 ${
+                        acc.role === "PERSONAL" ? "bg-accent/15 text-accent" : "bg-green-500/15 text-green-400"
+                      }`}>
+                        {acc.role === "PERSONAL" ? <Dumbbell className="w-3 h-3" /> : <User className="w-3 h-3" />}
+                        {acc.role === "PERSONAL" ? "Personal" : "Aluno"}
+                      </span>
                       <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
-                        acc.isActive ? "bg-green-500/15 text-green-400" : "bg-red-500/15 text-red-400"
+                        acc.isActive ? "bg-blue-500/15 text-blue-400" : "bg-red-500/15 text-red-400"
                       }`}>
                         {acc.isActive ? "Ativo" : "Inativo"}
                       </span>
                       <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
-                        acc.lifetime ? "bg-amber-500/15 text-amber-400" : "bg-accent/15 text-accent"
+                        acc.lifetime ? "bg-amber-500/15 text-amber-400" : "bg-card border border-border text-muted"
                       }`}>
-                        {acc.lifetime ? "Vitalicio" : acc.role === "PERSONAL" ? "Personal" : "Aluno"}
+                        {acc.lifetime ? "Vitalicio" : "Assinatura"}
                       </span>
                       {!acc.lifetime && (
                         <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
-                          paid ? "bg-blue-500/15 text-blue-400" : "bg-red-500/15 text-red-400"
+                          paid ? "bg-teal-500/15 text-teal-300" : "bg-red-500/15 text-red-400"
                         }`}>
                           {paymentLabel(acc)}
                         </span>
@@ -326,7 +335,7 @@ export default function AdminPage() {
                       )}
                       <p>
                         {acc.role === "STUDENT"
-                          ? `${acc._count.students} aluno vinculado`
+                          ? (acc.myTrainer ? `Aluno de: ${acc.myTrainer.name}` : "Sem personal vinculado")
                           : `${acc._count.students} aluno(s)`}
                       </p>
                     </div>
@@ -376,14 +385,14 @@ export default function AdminPage() {
 
                     {acc.role === "PERSONAL" && acc.lifetime === false && (
                       <div className="flex gap-1.5 border-t border-border pt-2">
-                        <Button size="sm" variant="secondary" className="flex-1" onClick={() => upgradePlan(acc, 1, 2)}>
-                          +1 aluno (R$ {REFERRAL_DISCOUNT.toFixed(2).replace(".", ",")})
+                        <Button size="sm" variant="secondary" className="flex-1" onClick={() => upgradePlan(acc, 1, EXTRA_STUDENT_PRICE)}>
+                          +1 aluno (R$ {EXTRA_STUDENT_PRICE.toFixed(2).replace(".", ",")})
                         </Button>
-                        <Button size="sm" variant="secondary" className="flex-1" onClick={() => upgradePlan(acc, 5, 6)}>
-                          +5 (R$ 6,00)
+                        <Button size="sm" variant="secondary" className="flex-1" onClick={() => upgradePlan(acc, 5, PACK5_PRICE)}>
+                          +5 (R$ {PACK5_PRICE.toFixed(2).replace(".", ",")})
                         </Button>
-                        <Button size="sm" variant="secondary" className="flex-1" onClick={() => upgradePlan(acc, 10, 14)}>
-                          +10 (R$ 14,00)
+                        <Button size="sm" variant="secondary" className="flex-1" onClick={() => upgradePlan(acc, 10, PACK10_PRICE)}>
+                          +10 (R$ {PACK10_PRICE.toFixed(2).replace(".", ",")})
                         </Button>
                       </div>
                     )}

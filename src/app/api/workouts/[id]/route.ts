@@ -99,6 +99,7 @@ export async function PUT(
             restTime: ex.restTime ?? 60,
             notes: ex.notes,
             exerciseId: ex.exerciseId,
+            alternative: ex.alternative,
           })),
         },
       }),

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { Loader2, Check, ArrowRight, ArrowLeft, Timer, Dumbbell, Trophy, Maximize2, X, CheckCircle2 } from "lucide-react";
+import { Loader2, Check, ArrowRight, ArrowLeft, Timer, Dumbbell, Trophy, Maximize2, X, CheckCircle2, Repeat } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { api } from "@/lib/api";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -33,7 +33,7 @@ interface Session {
     id: string;
     name: string;
     dayLetter: string;
-    exercises?: { exerciseId: string; restTime: number }[];
+    exercises?: { exerciseId: string; restTime: number; alternative?: string | null }[];
   };
   student: { id: string; name: string };
   completedExercises: CompletedExercise[];
@@ -195,6 +195,9 @@ export default function WorkoutExecutePage() {
   }
 
   const currentGroup = exerciseGroups[currentExerciseIdx];
+  const currentAlternative =
+    session?.workout.exercises?.find((we) => we.exerciseId === currentGroup?.exerciseId)?.alternative ??
+    null;
   const completedExercises = exerciseGroups.filter((g) =>
     g.sets.every((s) => s.completed)
   );
@@ -387,6 +390,12 @@ export default function WorkoutExecutePage() {
               <div>
                 <h2 className="text-xl font-bold">{tExerciseName(currentGroup.exerciseName)}</h2>
                 <p className="text-sm text-muted">{currentGroup.muscleGroup}</p>
+                {currentAlternative && (
+                  <p className="text-xs text-accent/90 mt-1 flex items-start gap-1">
+                    <Repeat className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                    <span>Sem essa maquina? Use: {currentAlternative}</span>
+                  </p>
+                )}
                 <p className="text-xs text-muted mt-1">
                   {t("ex.setOf", { current: currentExerciseIdx + 1, total: totalExercises })}
                 </p>

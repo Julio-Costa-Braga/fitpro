@@ -87,6 +87,7 @@ export interface AdminAccount {
   referralDiscountMonths: number;
   createdAt: string;
   referredByUser: { id: string; name: string } | null;
+  myTrainer: { id: string; name: string } | null;
   _count: { students: number; myReferrals: number };
   studentLimit: number;
   monthlyPrice: number;
