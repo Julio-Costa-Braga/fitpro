@@ -51,15 +51,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     );
 
     const created: { id: string; name: string; dayOfWeek: string | null }[] = [];
+    let letterIndex = 0;
     for (const day of orderedDays) {
       const tpl = day.workoutTemplate;
       if (!tpl) continue;
 
+      const assignedLetter = String.fromCharCode(65 + Math.min(letterIndex, 5));
       const workout = await prisma.workout.create({
         data: {
           name: tpl.name,
           description: tpl.description,
-          dayLetter: "A",
+          dayLetter: assignedLetter,
           dayOfWeek: day.weekday,
           studentId: student.id,
           trainerId,
@@ -78,6 +80,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         select: { id: true, name: true, dayOfWeek: true },
       });
       created.push(workout);
+      letterIndex++;
     }
 
     return NextResponse.json({

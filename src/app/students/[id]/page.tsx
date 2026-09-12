@@ -9,6 +9,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { DayLetterBadge } from "@/components/ui/DayLetterBadge";
 import { Tabs } from "@/components/ui/Tabs";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
@@ -234,7 +235,10 @@ export default function StudentDetailPage() {
                   <div className="flex items-center justify-between mb-2">
                     <div>
                       <h3 className="font-semibold">{w.name}</h3>
-                      <p className="text-xs text-muted">{w.dayLetter} {w.dayOfWeek ? `- ${w.dayOfWeek}` : ""}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <DayLetterBadge letter={w.dayLetter} className="w-5 h-5 rounded-md text-[10px]" />
+                        <span className="text-xs text-muted">{w.dayOfWeek || "—"}</span>
+                      </div>
                     </div>
                     <Badge variant={w.isActive ? "success" : "default"}>
                       {w.isActive ? "Ativo" : "Inativo"}

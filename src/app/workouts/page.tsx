@@ -2,13 +2,14 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Dumbbell, Plus, Filter, Search, Activity, Layers } from "lucide-react";
+import { Loader2, Dumbbell, Plus, Filter, Search, Activity, Layers, CalendarDays, CalendarRange, List, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { api } from "@/lib/api";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { DayLetterBadge, dayLetterColor, WEEKDAY_ORDER, normalizeDay } from "@/components/ui/DayLetterBadge";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Tabs } from "@/components/ui/Tabs";
@@ -57,19 +58,10 @@ interface Workout {
 
 const DAY_LETTERS = ["A", "B", "C", "D", "E", "F"];
 
-const dayLetterColor: Record<string, string> = {
-  A: "bg-accent/15 text-accent",
-  B: "bg-blue-500/15 text-blue-400",
-  C: "bg-green-500/15 text-green-400",
-  D: "bg-yellow-500/15 text-yellow-400",
-  E: "bg-red-500/15 text-red-400",
-  F: "bg-pink-500/15 text-pink-400",
-};
-
 export default function WorkoutsPage() {
   const { user, token, loading: authLoading } = useAuth();
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
 
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
@@ -79,6 +71,12 @@ export default function WorkoutsPage() {
   const [filterStudent, setFilterStudent] = useState<string>("all");
   const [filterDay, setFilterDay] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+
+  const [view, setView] = useState<"week" | "month" | "list">("week");
+  const [monthDate, setMonthDate] = useState<Date>(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -146,6 +144,35 @@ export default function WorkoutsPage() {
     {} as Record<string, Workout[]>
   );
 
+  const weekLabel = (canonical: string): string => {
+    const opt = dayOfWeekKeys.find((o) => o.value === canonical);
+    return opt ? t(opt.key) : canonical;
+  };
+
+  const byDay = WEEKDAY_ORDER.map((day) => ({
+    day,
+    items: filteredWorkouts.filter((w) => normalizeDay(w.dayOfWeek) === day),
+  }));
+  const byDayMap = Object.fromEntries(byDay.map((g) => [g.day, g.items]));
+  const noDayItems = filteredWorkouts.filter((w) => !normalizeDay(w.dayOfWeek));
+  const showStudent = user?.role === "PERSONAL" && filterStudent === "all";
+
+  const year = monthDate.getFullYear();
+  const month = monthDate.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const startIndex = (new Date(year, month, 1).getDay() + 6) % 7;
+  const totalCells = Math.ceil((startIndex + daysInMonth) / 7) * 7;
+  const today = new Date();
+  const isToday = (d: number) =>
+    d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+  const monthRaw = new Date(year, month, 1).toLocaleDateString(
+    lang === "pt" ? "pt-BR" : lang,
+    { month: "long", year: "numeric" }
+  );
+  const monthTitle = monthRaw.charAt(0).toUpperCase() + monthRaw.slice(1);
+  const shiftMonth = (delta: number) =>
+    setMonthDate((m) => new Date(m.getFullYear(), m.getMonth() + delta, 1));
+
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!createForm.name || !createForm.studentId) return;
@@ -207,6 +234,30 @@ export default function WorkoutsPage() {
           </div>
         </div>
 
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Tabs
+            tabs={[
+              {
+                id: "week",
+                label: t("wk.viewWeek"),
+                icon: <CalendarRange className="w-4 h-4" />,
+              },
+              {
+                id: "month",
+                label: t("wk.viewMonth"),
+                icon: <CalendarDays className="w-4 h-4" />,
+              },
+              {
+                id: "list",
+                label: t("wk.viewList"),
+                icon: <List className="w-4 h-4" />,
+              },
+            ]}
+            activeTab={view}
+            onChange={(id) => setView(id as "week" | "month" | "list")}
+          />
+        </div>
+
         <div className="flex flex-col sm:flex-row gap-3">
           <Input
             placeholder={t("wk.searchPlaceholder")}
@@ -229,22 +280,24 @@ export default function WorkoutsPage() {
               ))}
             </select>
           )}
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-muted" />
-            {DAY_LETTERS.map((letter) => (
-              <button
-                key={letter}
-                onClick={() => setFilterDay(filterDay === letter ? "all" : letter)}
-                className={`w-8 h-8 rounded-lg text-sm font-bold transition-all ${
-                  filterDay === letter
-                    ? dayLetterColor[letter]
-                    : "bg-card border border-border text-muted hover:text-white"
-                }`}
-              >
-                {letter}
-              </button>
-            ))}
-          </div>
+          {view === "list" && (
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-muted" />
+              {DAY_LETTERS.map((letter) => (
+                <button
+                  key={letter}
+                  onClick={() => setFilterDay(filterDay === letter ? "all" : letter)}
+                  className={`w-8 h-8 rounded-lg text-sm font-bold transition-all ${
+                    filterDay === letter
+                      ? dayLetterColor[letter]
+                      : "bg-card border border-border text-muted hover:text-white"
+                  }`}
+                >
+                  {letter}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {filteredWorkouts.length === 0 ? (
@@ -255,6 +308,132 @@ export default function WorkoutsPage() {
               {t("wk.noWorkoutsHint")}
             </p>
           </Card>
+        ) : view === "week" ? (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3">
+              {byDay.map(({ day, items }) => (
+                <div key={day} className="flex flex-col gap-2 min-h-[140px]">
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">
+                      {weekLabel(day)}
+                    </span>
+                    {items.length > 0 && <Badge variant="default">{items.length}</Badge>}
+                  </div>
+                  {items.length === 0 ? (
+                    <div className="flex-1 rounded-lg border border-dashed border-border/60 text-xs text-muted/40 flex items-center justify-center py-6">
+                      —
+                    </div>
+                  ) : (
+                    items.map((w) => (
+                      <MiniWorkoutCard key={w.id} w={w} showStudent={showStudent} />
+                    ))
+                  )}
+                </div>
+              ))}
+            </div>
+            {noDayItems.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-semibold text-muted uppercase tracking-wider">
+                    {t("wk.noDay")}
+                  </h2>
+                  <Badge variant="default">{noDayItems.length}</Badge>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {noDayItems.map((workout) => (
+                    <WorkoutCard key={workout.id} workout={workout} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        ) : view === "month" ? (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" onClick={() => shiftMonth(-1)}>
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => shiftMonth(1)}>
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+              <h2 className="font-semibold capitalize">{monthTitle}</h2>
+              <Button variant="secondary" size="sm" onClick={() => shiftMonth(0)}>
+                {t("wk.today")}
+              </Button>
+            </div>
+            <Card className="overflow-hidden">
+              <div className="grid grid-cols-7 border-b border-border">
+                {WEEKDAY_ORDER.map((d) => (
+                  <div
+                    key={d}
+                    className="px-2 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-muted"
+                  >
+                    {weekLabel(d).slice(0, 3)}
+                  </div>
+                ))}
+              </div>
+              {Array.from({ length: totalCells / 7 }).map((_, row) => (
+                <div
+                  key={row}
+                  className="grid grid-cols-7 divide-x divide-border border-b border-border last:border-b-0"
+                >
+                  {Array.from({ length: 7 }).map((_, col) => {
+                    const dayNum = row * 7 + col - startIndex + 1;
+                    if (dayNum < 1 || dayNum > daysInMonth) {
+                      return <div key={col} className="min-h-[72px] bg-bg/40" />;
+                    }
+                    const dow = new Date(year, month, dayNum).getDay();
+                    const canon = WEEKDAY_ORDER[(dow + 6) % 7];
+                    const dayWorkouts = byDayMap[canon] ?? [];
+                    return (
+                      <div key={col} className="min-h-[72px] p-1.5">
+                        <span
+                          className={`inline-flex w-6 h-6 items-center justify-center rounded-full text-[11px] ${
+                            isToday(dayNum)
+                              ? "bg-accent text-white font-bold"
+                              : "text-muted"
+                          }`}
+                        >
+                          {dayNum}
+                        </span>
+                        <div className="mt-1 space-y-1">
+                          {dayWorkouts.slice(0, 2).map((w) => (
+                            <Link
+                              key={w.id}
+                              href={`/workouts/${w.id}`}
+                              className="block rounded-md px-1.5 py-1 bg-bg hover:bg-accent/10 transition-colors"
+                            >
+                              <div className="flex items-center gap-1.5">
+                                <DayLetterBadge
+                                  letter={w.dayLetter}
+                                  className="w-5 h-5 rounded text-[9px]"
+                                />
+                                <span className="text-[10px] font-medium text-white truncate">
+                                  {w.name}
+                                </span>
+                              </div>
+                              {showStudent && w.student && (
+                                <p className="text-[9px] text-muted truncate">
+                                  {w.student.name}
+                                </p>
+                              )}
+                            </Link>
+                          ))}
+                          {dayWorkouts.length > 2 && (
+                            <p className="text-[9px] text-muted px-1">
+                              +{dayWorkouts.length - 2}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </Card>
+          </div>
         ) : filterDay !== "all" ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredWorkouts.map((workout) => (
@@ -267,11 +446,10 @@ export default function WorkoutsPage() {
               groupedByDay[letter].length > 0 && (
                 <div key={letter} className="space-y-3">
                   <div className="flex items-center gap-2">
-                    <span
-                      className={`w-8 h-8 rounded-lg text-sm font-bold flex items-center justify-center ${dayLetterColor[letter]}`}
-                    >
-                      {letter}
-                    </span>
+                    <DayLetterBadge
+                      letter={letter}
+                      className="w-8 h-8 text-sm"
+                    />
                     <h2 className="text-sm font-semibold text-muted uppercase tracking-wider">
                       {t("common.day")} {letter}
                     </h2>
@@ -378,7 +556,6 @@ export default function WorkoutsPage() {
 }
 
 function WorkoutCard({ workout }: { workout: Workout }) {
-  const colorClass = dayLetterColor[workout.dayLetter] || dayLetterColor.A;
   const { t } = useLanguage();
   const openSession = workout.sessions?.[0];
   const totalSets = openSession?._count.completedExercises ?? 0;
@@ -390,9 +567,7 @@ function WorkoutCard({ workout }: { workout: Workout }) {
         <CardContent className="flex flex-col h-full">
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-2">
-              <span className={`w-8 h-8 rounded-lg text-sm font-bold flex items-center justify-center ${colorClass}`}>
-                {workout.dayLetter}
-              </span>
+              <DayLetterBadge letter={workout.dayLetter} className="w-8 h-8 text-sm" />
               <div>
                 <h3 className="font-semibold text-sm leading-tight">{workout.name}</h3>
                 {workout.dayOfWeek && (
@@ -435,6 +610,31 @@ function WorkoutCard({ workout }: { workout: Workout }) {
             </span>
           </div>
         </CardContent>
+      </Card>
+    </Link>
+  );
+}
+
+function MiniWorkoutCard({ w, showStudent }: { w: Workout; showStudent: boolean }) {
+  const { t } = useLanguage();
+  return (
+    <Link href={`/workouts/${w.id}`}>
+      <Card hover className="p-2.5">
+        <div className="flex items-center gap-2">
+          <DayLetterBadge letter={w.dayLetter} className="w-7 h-7 text-xs" />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-medium truncate">{w.name}</p>
+            <p className="text-[10px] text-muted">
+              {t("common.exercisesCount", {
+                count: w.exercises.length,
+                plural: w.exercises.length !== 1 ? "s" : "",
+              })}
+            </p>
+          </div>
+        </div>
+        {showStudent && w.student && (
+          <p className="text-[10px] text-muted truncate mt-1">{w.student.name}</p>
+        )}
       </Card>
     </Link>
   );
