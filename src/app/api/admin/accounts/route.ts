@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
         createdAt: true,
         referredByUser: { select: { id: true, name: true } },
         myTrainer: { select: { id: true, name: true } },
+        studentRecord: { select: { personal: { select: { id: true, name: true } } } },
         _count: { select: { students: true, myReferrals: true } },
       },
       orderBy: { createdAt: "asc" },

@@ -335,7 +335,9 @@ export default function AdminPage() {
                       )}
                       <p>
                         {acc.role === "STUDENT"
-                          ? (acc.myTrainer ? `Aluno de: ${acc.myTrainer.name}` : "Sem personal vinculado")
+                          ? ((acc.studentRecord?.personal?.name ?? acc.myTrainer?.name)
+                              ? `Aluno de: ${acc.studentRecord?.personal?.name ?? acc.myTrainer?.name}`
+                              : "Sem personal vinculado")
                           : `${acc._count.students} aluno(s)`}
                       </p>
                     </div>

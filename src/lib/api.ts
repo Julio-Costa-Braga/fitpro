@@ -88,6 +88,7 @@ export interface AdminAccount {
   createdAt: string;
   referredByUser: { id: string; name: string } | null;
   myTrainer: { id: string; name: string } | null;
+  studentRecord: { personal: { id: string; name: string } | null } | null;
   _count: { students: number; myReferrals: number };
   studentLimit: number;
   monthlyPrice: number;
