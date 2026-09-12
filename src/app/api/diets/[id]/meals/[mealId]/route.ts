@@ -11,6 +11,8 @@ interface FoodInput {
   calories?: number;
 }
 
+const DAYS = ["Segunda", "Terca", "Quarta", "Quinta", "Sexta", "Sabado", "Domingo"];
+
 async function getOwnedDiet(id: string, trainerId: string) {
   return prisma.dietPlan.findFirst({
     where: { id, trainerId },
@@ -55,7 +57,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { time, name, order, foods } = body;
+    const { time, name, order, foods, dayOfWeek } = body;
 
     if (time !== undefined && !time) {
       return NextResponse.json(
@@ -69,6 +71,17 @@ export async function PUT(
         { status: 400 }
       );
     }
+    if (
+      dayOfWeek !== undefined &&
+      dayOfWeek !== null &&
+      dayOfWeek !== "" &&
+      !DAYS.includes(dayOfWeek)
+    ) {
+      return NextResponse.json(
+        { error: "Dia da semana invalido" },
+        { status: 400 }
+      );
+    }
 
     const meal = await prisma.meal.update({
       where: { id: mealId },
@@ -76,6 +89,7 @@ export async function PUT(
         time: time ?? existing.time,
         name: name ?? existing.name,
         order: order ?? existing.order,
+        ...(dayOfWeek !== undefined && { dayOfWeek: dayOfWeek || null }),
         foods: foods
           ? {
               deleteMany: {},

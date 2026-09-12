@@ -20,6 +20,8 @@ interface AdminPersonal {
   name: string;
   email: string;
   createdAt: string;
+  studentLimit: number;
+  monthlyPrice: number;
   _count: { students: number };
 }
 
@@ -125,6 +127,23 @@ export default function AdminPage() {
       await loadOverview();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Erro ao excluir conta");
+    }
+  }
+
+  async function upgradePlan(acc: AdminAccount, slots: number, price: number) {
+    if (
+      !window.confirm(
+        `Aplicar upgrade de +${slots} aluno(s) (+R$ ${price.toFixed(2).replace(".", ",")}/mes) no plano de ${acc.name}?`
+      )
+    ) {
+      return;
+    }
+    setError("");
+    try {
+      await api.admin.updateUser(acc.id, { planUpgrade: { slots, price } });
+      await loadOverview();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erro ao atualizar plano");
     }
   }
 
@@ -244,7 +263,7 @@ export default function AdminPage() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold">Contas e Pagamentos</h2>
             <p className="text-xs text-muted">
-              Mensalidade: R$ {MONTHLY_FEE.toFixed(2).replace(".", ",")} · Indicacao: R$ {REFERRAL_DISCOUNT.toFixed(2).replace(".", ",")} de desconto por {REFERRAL_DISCOUNT_MONTHS} meses
+              Plano personal: base R$ {MONTHLY_FEE.toFixed(2).replace(".", ",")} (ate 10 alunos) &middot; +1 aluno +R$ {REFERRAL_DISCOUNT.toFixed(2).replace(".", ",")} &middot; +5 +R$ 6,00 &middot; +10 +R$ 14,00 &middot; aluno acessa gratis
             </p>
           </div>
           {accounts.length === 0 ? (
@@ -292,19 +311,23 @@ export default function AdminPage() {
 
                     <div className="text-xs text-muted space-y-1 border-t border-border pt-2">
                       <p>Código: <span className="text-white font-mono">{acc.referralCode}</span></p>
-                      {acc.referredByUser ? (
+                      {acc.role === "PERSONAL" && (
                         <p>
-                          Indicado por {acc.referredByUser.name} · desconto
-                          de R$ {REFERRAL_DISCOUNT.toFixed(2).replace(".", ",")} por {REFERRAL_DISCOUNT_MONTHS} meses
+                          Plano: <span className="text-white">{acc.studentLimit} alunos</span> &middot; R$ {acc.monthlyPrice.toFixed(2).replace(".", ",")}/mes
                         </p>
-                      ) : (
-                        <p>Sem indicacao</p>
+                      )}
+                      {acc._count.myReferrals > 0 && (
+                        <p>
+                          Indicou {acc._count.myReferrals} aluno(s) &middot; ganha R$ {REFERRAL_DISCOUNT.toFixed(2).replace(".", ",")}/mes por {REFERRAL_DISCOUNT_MONTHS} meses
+                        </p>
+                      )}
+                      {acc._count.myReferrals === 0 && acc.referredByUser && (
+                        <p>Indicado por {acc.referredByUser.name}</p>
                       )}
                       <p>
                         {acc.role === "STUDENT"
                           ? `${acc._count.students} aluno vinculado`
                           : `${acc._count.students} aluno(s)`}
-                        {acc._count.myReferrals > 0 && ` · ${acc._count.myReferrals} indicado(s)`}
                       </p>
                     </div>
 
@@ -318,25 +341,29 @@ export default function AdminPage() {
                       >
                         {acc.isActive ? "Desativar" : "Ativar"}
                       </Button>
-                      {!acc.lifetime && (
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          icon={<CalendarPlus className="w-3.5 h-3.5" />}
-                          className="flex-1"
-                          onClick={() => addMonth(acc)}
-                        >
-                          +1 mes
-                        </Button>
+                      {acc.role === "PERSONAL" && (
+                        <>
+                          {!acc.lifetime && (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              icon={<CalendarPlus className="w-3.5 h-3.5" />}
+                              className="flex-1"
+                              onClick={() => addMonth(acc)}
+                            >
+                              +1 mes
+                            </Button>
+                          )}
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            icon={acc.lifetime ? <Star className="w-3.5 h-3.5" /> : <InfinityIcon className="w-3.5 h-3.5" />}
+                            onClick={() => toggleLifetime(acc)}
+                          >
+                            {acc.lifetime ? "Sair" : "Vitalicio"}
+                          </Button>
+                        </>
                       )}
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        icon={acc.lifetime ? <Star className="w-3.5 h-3.5" /> : <InfinityIcon className="w-3.5 h-3.5" />}
-                        onClick={() => toggleLifetime(acc)}
-                      >
-                        {acc.lifetime ? "Sair" : "Vitalicio"}
-                      </Button>
                       <Button
                         variant="danger"
                         size="sm"
@@ -346,6 +373,20 @@ export default function AdminPage() {
                         Excluir
                       </Button>
                     </div>
+
+                    {acc.role === "PERSONAL" && acc.lifetime === false && (
+                      <div className="flex gap-1.5 border-t border-border pt-2">
+                        <Button size="sm" variant="secondary" className="flex-1" onClick={() => upgradePlan(acc, 1, 2)}>
+                          +1 aluno (R$ {REFERRAL_DISCOUNT.toFixed(2).replace(".", ",")})
+                        </Button>
+                        <Button size="sm" variant="secondary" className="flex-1" onClick={() => upgradePlan(acc, 5, 6)}>
+                          +5 (R$ 6,00)
+                        </Button>
+                        <Button size="sm" variant="secondary" className="flex-1" onClick={() => upgradePlan(acc, 10, 14)}>
+                          +10 (R$ 14,00)
+                        </Button>
+                      </div>
+                    )}
                   </Card>
                 );
               })}
@@ -371,8 +412,10 @@ export default function AdminPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="text-xs text-muted pt-2 border-t border-border">
-                    {pt._count.students} aluno{pt._count.students !== 1 ? "s" : ""}
+                  <div className="text-xs text-muted pt-2 border-t border-border space-y-0.5">
+                    {pt._count.students} aluno{pt._count.students !== 1 ? "s" : ""} de {pt.studentLimit} do plano
+                    <br />
+                    R$ {pt.monthlyPrice.toFixed(2).replace(".", ",")}/mes
                   </div>
                 </Card>
               ))}

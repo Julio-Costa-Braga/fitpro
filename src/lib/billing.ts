@@ -7,3 +7,7 @@ export const PIX_KEY = "78a0ca48-2d83-42e4-a57c-ef7800a77300";
 export function trialUntil(date = new Date()): Date {
   return new Date(date.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
 }
+
+export function monthlyFeeFor(hasReferralDiscount: boolean): number {
+  return hasReferralDiscount ? MONTHLY_FEE - REFERRAL_DISCOUNT : MONTHLY_FEE;
+}

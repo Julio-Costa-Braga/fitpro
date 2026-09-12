@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Menu, LogOut, User as UserIcon, Globe, Check, Bell, CheckCheck, Dumbbell, Apple, Repeat } from "lucide-react";
+import { Menu, LogOut, User as UserIcon, Globe, Check, Bell, CheckCheck, Dumbbell, Apple, Repeat, TrendingUp } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
@@ -121,6 +121,8 @@ export function Header({ title, onMenuToggle, user, onLogout }: HeaderProps) {
       router.push(`/diets/${n.data.dietId}`);
     } else if (n.type === "WORKOUT_CHANGED" && n.data?.studentId) {
       router.push(`/students/${n.data.studentId}`);
+    } else if (n.type === "PROGRESS_REVIEW") {
+      router.push("/progress");
     }
   }
 
@@ -134,7 +136,7 @@ export function Header({ title, onMenuToggle, user, onLogout }: HeaderProps) {
     }
   }
 
-  const showBell = user && (user.role === "PERSONAL" || user.role === "ADMIN");
+  const showBell = !!user;
 
   return (
     <header className="sticky top-0 z-30 h-14 bg-bg/80 backdrop-blur-md border-b border-border flex items-center justify-between px-4 lg:px-6">
@@ -186,9 +188,12 @@ export function Header({ title, onMenuToggle, user, onLogout }: HeaderProps) {
                     <p className="text-center text-muted text-sm py-8">{t("notif.empty")}</p>
                   ) : (
                     notifications.map((n) => {
-                      const isWorkout = n.type === "WORKOUT_COMPLETED";
-                      const isChanged = n.type === "WORKOUT_CHANGED";
-                      const titleText = isChanged
+const isWorkout = n.type === "WORKOUT_COMPLETED";
+                    const isChanged = n.type === "WORKOUT_CHANGED";
+                    const isProgressReview = n.type === "PROGRESS_REVIEW";
+                    const titleText = isProgressReview
+                      ? t("notif.progressReview", { student: n.data?.studentName ?? "" })
+                      : isChanged
                         ? t("notif.workoutChanged", {
                             student: n.data?.studentName ?? "",
                             workout: n.data?.workoutName ?? "",
@@ -219,13 +224,17 @@ export function Header({ title, onMenuToggle, user, onLogout }: HeaderProps) {
                                 ? "bg-accent/10 text-accent"
                                 : isChanged
                                   ? "bg-yellow-500/10 text-yellow-400"
-                                  : "bg-green-500/10 text-green-400"
+                                  : isProgressReview
+                                    ? "bg-purple-500/10 text-purple-400"
+                                    : "bg-green-500/10 text-green-400"
                             )}
                           >
                             {isChanged ? (
                               <Repeat className="w-4 h-4" />
                             ) : isWorkout ? (
                               <Dumbbell className="w-4 h-4" />
+                            ) : isProgressReview ? (
+                              <TrendingUp className="w-4 h-4" />
                             ) : (
                               <Apple className="w-4 h-4" />
                             )}

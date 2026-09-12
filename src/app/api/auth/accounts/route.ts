@@ -61,6 +61,23 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Limite de alunos do plano do personal.
+  if (targetRole === "STUDENT" && creator.role === "PERSONAL") {
+    const personal = await prisma.user.findUnique({ where: { id: creator.userId } });
+    const studentCount = await prisma.student.count({
+      where: { personalId: creator.userId },
+    });
+    if (personal && studentCount >= personal.studentLimit) {
+      return NextResponse.json(
+        {
+          error: `Limite do seu plano atingido: ${personal.studentLimit} aluno(s) por R$ ${personal.monthlyPrice}/mes. Para adicionar mais: +1 aluno R$2, +5 R$6 ou +10 R$14.`,
+          code: "PLAN_LIMIT",
+        },
+        { status: 403 }
+      );
+    }
+  }
+
   try {
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {

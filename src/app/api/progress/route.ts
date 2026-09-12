@@ -33,7 +33,19 @@ export async function GET(request: NextRequest) {
       orderBy: { date: "desc" },
     });
 
-    return NextResponse.json(progressLogs);
+    // Reavaliacao: proxima data a partir da ultima avaliacao + frequencia (em dias).
+    const base = progressLogs.length > 0 ? progressLogs[0].date : student.createdAt;
+    const nextReviewDate = new Date(
+      base.getTime() + student.reviewFrequencyDays * 24 * 60 * 60 * 1000
+    );
+    const overdue = nextReviewDate.getTime() < Date.now();
+
+    return NextResponse.json({
+      progress: progressLogs,
+      reviewFrequencyDays: student.reviewFrequencyDays,
+      nextReviewDate: nextReviewDate.toISOString(),
+      overdue,
+    });
   } catch (error) {
     console.error("Progress logs error:", error);
     return NextResponse.json(
@@ -91,6 +103,21 @@ export async function POST(request: NextRequest) {
         studentId,
       },
     });
+
+    // Notifica o aluno que uma nova avaliacao foi registrada.
+    if (student.userId) {
+      await prisma.notification.create({
+        data: {
+          type: "PROGRESS_REVIEW",
+          userId: student.userId,
+          data: {
+            studentId,
+            progressId: progressLog.id,
+            date: progressLog.date.toISOString(),
+          },
+        },
+      });
+    }
 
     return NextResponse.json(progressLog, { status: 201 });
   } catch (error) {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { hashPassword, generateToken, type UserRole } from "@/lib/auth";
+import { hashPassword, generateToken } from "@/lib/auth";
 import { generateReferralCode } from "@/lib/referral";
 import { REFERRAL_DISCOUNT_MONTHS, trialUntil } from "@/lib/billing";
 
@@ -16,9 +16,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!["PERSONAL", "STUDENT"].includes(role)) {
+    // Cadastro publico cria apenas PERSONAL. Alunos sao criados pelo personal.
+    if (role && role !== "PERSONAL") {
       return NextResponse.json(
-        { error: "Role invalida. Use PERSONAL ou STUDENT" },
+        { error: "Somente personal trainers podem se cadastrar" },
         { status: 400 }
       );
     }
@@ -53,36 +54,22 @@ export async function POST(request: NextRequest) {
         name,
         email,
         password: hashedPassword,
-        role: role as UserRole,
+        role: "PERSONAL",
         referralCode: generateReferralCode(name),
         referredByUserId,
-        referralDiscountMonths: referredByUserId ? REFERRAL_DISCOUNT_MONTHS : 0,
+        referralDiscountMonths: 0,
         paidUntil: trialUntil(),
+        studentLimit: 10,
+        monthlyPrice: 22,
       },
     });
 
-    if (role === "STUDENT") {
-      // Vincula ao cadastro já criado pelo personal (mesmo email), ou cria um registro sem trainer por enquanto.
-      const existingStudent = await prisma.student.findFirst({
-        where: { email },
-        orderBy: { createdAt: "asc" },
+    // O desconto e de QUEM INDICA (o dono do codigo), nao do indicado.
+    if (referredByUserId) {
+      await prisma.user.update({
+        where: { id: referredByUserId },
+        data: { referralDiscountMonths: { increment: REFERRAL_DISCOUNT_MONTHS } },
       });
-
-      if (existingStudent) {
-        await prisma.student.update({
-          where: { id: existingStudent.id },
-          data: { userId: user.id },
-        });
-      } else {
-        await prisma.student.create({
-          data: {
-            name: user.name,
-            email: user.email,
-            phone: user.phone,
-            userId: user.id,
-          },
-        });
-      }
     }
 
     const token = generateToken({

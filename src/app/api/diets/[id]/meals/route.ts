@@ -18,6 +18,8 @@ async function getOwnedDiet(id: string, trainerId: string) {
   });
 }
 
+const DAYS = ["Segunda", "Terca", "Quarta", "Quinta", "Sexta", "Sabado", "Domingo"];
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -73,11 +75,18 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { time, name, order, foods = [] } = body;
+    const { time, name, order, foods = [], dayOfWeek } = body;
 
     if (!time || !name) {
       return NextResponse.json(
         { error: "Time e name sao obrigatorios" },
+        { status: 400 }
+      );
+    }
+
+    if (dayOfWeek !== undefined && dayOfWeek !== null && dayOfWeek !== "" && !DAYS.includes(dayOfWeek)) {
+      return NextResponse.json(
+        { error: "Dia da semana invalido" },
         { status: 400 }
       );
     }
@@ -87,6 +96,7 @@ export async function POST(
         time,
         name,
         order: order ?? 0,
+        dayOfWeek: dayOfWeek ? dayOfWeek : null,
         dietPlanId: id,
         foods: {
           create: foods.map((food: FoodInput) => ({

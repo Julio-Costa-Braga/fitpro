@@ -26,6 +26,7 @@ export const dictionaries: Record<Lang, Dict> = {
     "notif.workoutCompleted": "{student} concluiu o treino {workout}",
     "notif.workoutChanged": "{student} trocou o treino do dia ({fromWorkout}) por {workout}",
     "notif.mealEaten": "{student} comeu: {meal}",
+    "notif.progressReview": "Sua reavaliação foi registrada. Veja sua evolução!",
 
     "common.back": "Anterior",
     "common.next": "Próximo",
@@ -71,8 +72,9 @@ export const dictionaries: Record<Lang, Dict> = {
     "auth.loginLink": "Entrar",
     "auth.referralCode": "Indicado por (código)",
     "auth.referralCodePlaceholder": "Código de quem te indicou",
-    "auth.referralCodeHint": "Quem for indicado ganha R$5 de desconto na mensalidade de R$22 por 12 meses.",
-    "auth.trialNote": "7 dias de teste grátis. Depois, R$22/mês para continuar.",
+    "auth.referralCodeHint": "Quem indicar ganha R$5 de desconto na mensalidade por 12 meses.",
+    "auth.trialNote": "7 dias de teste gratis. Depois, plano a partir de R$22/mes (ate 10 alunos).",
+    "auth.personalOnlyNote": "Voce cadastra seus proprios alunos no painel",
     "auth.heroTagline1": "Gerencie treinos e dietas",
     "auth.heroTagline2": "como um profissional",
     "auth.heroSubtitle":
@@ -160,6 +162,7 @@ export const dictionaries: Record<Lang, Dict> = {
     "notif.workoutCompleted": "{student} completed the workout {workout}",
     "notif.workoutChanged": "{student} changed today's workout ({fromWorkout}) to {workout}",
     "notif.mealEaten": "{student} ate: {meal}",
+    "notif.progressReview": "Your re-assessment was recorded. See your evolution!",
 
     "common.back": "Back",
     "common.next": "Next",
@@ -205,8 +208,9 @@ export const dictionaries: Record<Lang, Dict> = {
     "auth.loginLink": "Sign in",
     "auth.referralCode": "Referred by (code)",
     "auth.referralCodePlaceholder": "Referrer's code",
-    "auth.referralCodeHint": "Referred users get R$5 off the R$22 monthly fee for 12 months.",
-    "auth.trialNote": "7 free trial days. Then R$22/month to continue.",
+    "auth.referralCodeHint": "The referrer earns R$5 off the monthly fee for 12 months.",
+    "auth.trialNote": "7 free trial days. Then plans from R$22/month (up to 10 students).",
+    "auth.personalOnlyNote": "You create your own students from the panel",
     "auth.heroTagline1": "Manage workouts and diets",
     "auth.heroTagline2": "like a professional",
     "auth.heroSubtitle":
@@ -294,6 +298,7 @@ export const dictionaries: Record<Lang, Dict> = {
     "notif.workoutCompleted": "{student} completó el entrenamiento {workout}",
     "notif.workoutChanged": "{student} cambió el entrenamiento del día ({fromWorkout}) por {workout}",
     "notif.mealEaten": "{student} comió: {meal}",
+    "notif.progressReview": "¡Tu reevaluación fue registrada! Mira tu evolución.",
 
     "common.back": "Atrás",
     "common.next": "Siguiente",
@@ -339,8 +344,9 @@ export const dictionaries: Record<Lang, Dict> = {
     "auth.loginLink": "Iniciar sesión",
     "auth.referralCode": "Indicado por (código)",
     "auth.referralCodePlaceholder": "Código de quien te indicó",
-    "auth.referralCodeHint": "Quien sea indicado gana R$5 de descuento en la mensualidad de R$22 por 12 meses.",
-    "auth.trialNote": "7 días de prueba gratis. Después, R$22/mes para continuar.",
+    "auth.referralCodeHint": "Quien indique gana R$5 de descuento en la mensualidad por 12 meses.",
+    "auth.trialNote": "7 días de prueba gratis. Después, planes desde R$22/mes (hasta 10 alumnos).",
+    "auth.personalOnlyNote": "Tú creas tus propios alumnos desde el panel",
     "auth.heroTagline1": "Gestiona entrenamientos y dietas",
     "auth.heroTagline2": "como un profesional",
     "auth.heroSubtitle":

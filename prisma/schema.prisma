@@ -59,6 +59,10 @@ model User {
   lifetime  Boolean   @default(false)
   paidUntil DateTime?
 
+  // Plano do PERSONAL: limite de alunos + valor mensal (aluno acessa gratis)
+  studentLimit Int @default(10)
+  monthlyPrice Int @default(22)
+
   notifications Notification[]
 }
 
@@ -69,6 +73,9 @@ model Student {
   phone     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Periodo da reavaliacao (ex.: 30 dias).
+  reviewFrequencyDays Int @default(30)
 
   personalId String?
   personal   User?   @relation("PersonalTrainer", fields: [personalId], references: [id])
@@ -298,10 +305,11 @@ model DietPlan {
 }
 
 model Meal {
-  id       String @id @default(cuid())
-  time     String
-  name     String
-  order    Int
+  id     String @id @default(cuid())
+  time   String
+  name   String
+  order  Int
+  dayOfWeek String?
 
   dietPlanId String
   dietPlan   DietPlan @relation(fields: [dietPlanId], references: [id], onDelete: Cascade)

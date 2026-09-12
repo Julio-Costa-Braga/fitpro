@@ -40,6 +40,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
   }
 
+  if (payload.role === "PERSONAL") {
+    const [personal, studentCount] = await Promise.all([
+      prisma.user.findUnique({ where: { id: payload.userId } }),
+      prisma.student.count({ where: { personalId: payload.userId } }),
+    ]);
+    if (personal && studentCount >= personal.studentLimit) {
+      return NextResponse.json(
+        {
+          error: `Limite do seu plano atingido: ${personal.studentLimit} aluno(s) por R$ ${personal.monthlyPrice}/mes. Para adicionar mais, use o plano: +1 aluno R$2, +5 R$6 ou +10 R$14.`,
+          code: "PLAN_LIMIT",
+        },
+        { status: 403 }
+      );
+    }
+  }
+
   try {
     const body = await request.json();
     const { name, email, phone, password } = body;

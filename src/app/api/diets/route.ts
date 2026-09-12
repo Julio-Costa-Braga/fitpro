@@ -15,6 +15,7 @@ interface MealInput {
   time?: string;
   name: string;
   order?: number;
+  dayOfWeek?: string;
   foods?: FoodInput[];
 }
 
@@ -23,6 +24,8 @@ function parseDate(value: string | null | undefined): Date | null {
   const date = new Date(value);
   return isNaN(date.getTime()) ? null : date;
 }
+
+const DAYS = ["Segunda", "Terca", "Quarta", "Quinta", "Sexta", "Sabado", "Domingo"];
 
 export async function GET(request: NextRequest) {
   try {
@@ -157,6 +160,10 @@ export async function POST(request: NextRequest) {
             time: meal.time ?? "",
             name: meal.name,
             order: meal.order ?? 0,
+            dayOfWeek:
+              meal.dayOfWeek && DAYS.includes(meal.dayOfWeek)
+                ? meal.dayOfWeek
+                : null,
             foods: {
               create: (meal.foods ?? []).map((food: FoodInput) => ({
                 name: food.name,

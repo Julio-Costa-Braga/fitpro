@@ -15,7 +15,6 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [role, setRole] = useState<"PERSONAL" | "STUDENT">("STUDENT");
   const [referralCode, setReferralCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,7 +29,7 @@ export default function RegisterPage() {
     setError("");
     setLoading(true);
     try {
-      await register({ name, email, password, role, referralCode: referralCode.trim() || undefined });
+      await register({ name, email, password, role: "PERSONAL", referralCode: referralCode.trim() || undefined });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : t("auth.registerTitle");
       setError(msg);
@@ -161,33 +160,11 @@ export default function RegisterPage() {
               <p className="text-xs text-muted">{t("auth.referralCodeHint")}</p>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1.5 text-muted">
-                {t("auth.accountType")}
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setRole("PERSONAL")}
-                  className={`rounded-lg border px-4 py-3 text-sm font-medium transition-all ${
-                    role === "PERSONAL"
-                      ? "bg-accent/20 border-accent text-white"
-                      : "bg-card border-border text-muted hover:border-muted"
-                  }`}
-                >
-                  {t("auth.personalTrainer")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRole("STUDENT")}
-                  className={`rounded-lg border px-4 py-3 text-sm font-medium transition-all ${
-                    role === "STUDENT"
-                      ? "bg-accent/20 border-accent text-white"
-                      : "bg-card border-border text-muted hover:border-muted"
-                  }`}
-                >
-                  {t("auth.student")}
-                </button>
+            <div className="flex items-center gap-2.5 bg-card border border-border rounded-lg px-4 py-3">
+              <span className="text-sm">&#129469;</span>
+              <div>
+                <p className="text-sm font-medium">{t("auth.personalTrainer")}</p>
+                <p className="text-xs text-muted">{t("auth.personalOnlyNote")}</p>
               </div>
             </div>
 

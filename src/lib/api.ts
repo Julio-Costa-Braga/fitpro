@@ -66,6 +66,8 @@ export interface User {
   isActive?: boolean;
   lifetime?: boolean;
   paidUntil?: string | null;
+  studentLimit?: number;
+  monthlyPrice?: number;
 }
 
 export interface AuthResponse {
@@ -86,6 +88,8 @@ export interface AdminAccount {
   createdAt: string;
   referredByUser: { id: string; name: string } | null;
   _count: { students: number; myReferrals: number };
+  studentLimit: number;
+  monthlyPrice: number;
 }
 
 export interface WeekTemplateDay {
@@ -204,6 +208,7 @@ export const api = {
       lifetime?: boolean;
       addMonth?: boolean;
       role?: "PERSONAL" | "STUDENT";
+      planUpgrade?: { slots: number; price: number };
     }) => request<{ user: AdminAccount }>(`/api/admin/users/${id}`, { method: "PUT", body: data }),
     deleteUser: (id: string) => request<{ ok: boolean }>(`/api/admin/users/${id}`, { method: "DELETE" }),
   },

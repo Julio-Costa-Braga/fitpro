@@ -2,12 +2,13 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Plus, TrendingUp, ChevronDown } from "lucide-react";
+import { Loader2, Plus, TrendingUp, ChevronDown, CalendarDays, AlertTriangle, CheckCircle2, Calculator } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { api } from "@/lib/api";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import { Select } from "@/components/ui/Select";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
@@ -29,6 +30,48 @@ interface ProgressLog {
   notes: string | null;
 }
 
+interface ProgressResponse {
+  progress: ProgressLog[];
+  reviewFrequencyDays: number;
+  nextReviewDate: string;
+  overdue: boolean;
+}
+
+interface ProgressInput {
+  weight?: number | null;
+  bodyFat?: number | null;
+  chest?: number | null;
+  waist?: number | null;
+  arm?: number | null;
+  thigh?: number | null;
+}
+
+const MEASURES: { key: keyof ProgressInput; label: string; unit: string }[] = [
+  { key: "weight", label: "Peso", unit: "kg" },
+  { key: "bodyFat", label: "Gordura", unit: "%" },
+  { key: "chest", label: "Peito", unit: "cm" },
+  { key: "waist", label: "Cintura", unit: "cm" },
+  { key: "arm", label: "Braco", unit: "cm" },
+  { key: "thigh", label: "Coxa", unit: "cm" },
+];
+
+function Delta({ value }: { value: number }) {
+  const str = value > 0 ? `+${value.toFixed(1)}` : value.toFixed(1);
+  return (
+    <span
+      className={
+        value > 0
+          ? "text-red-400"
+          : value < 0
+            ? "text-green-400"
+            : "text-muted"
+      }
+    >
+      {str}
+    </span>
+  );
+}
+
 export default function ProgressPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -36,8 +79,12 @@ export default function ProgressPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [progress, setProgress] = useState<ProgressLog[]>([]);
+  const [reviewFrequencyDays, setReviewFrequencyDays] = useState(30);
+  const [nextReviewDate, setNextReviewDate] = useState<string | null>(null);
+  const [overdue, setOverdue] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(false);
+  const [savingFreq, setSavingFreq] = useState(false);
   const [error, setError] = useState("");
 
   const [showForm, setShowForm] = useState(false);
@@ -70,8 +117,11 @@ export default function ProgressPage() {
     if (!studentId) return;
     setLoadingProgress(true);
     try {
-      const data = await api.get<ProgressLog[]>(`/api/progress?studentId=${studentId}`);
-      setProgress(data);
+      const data = await api.get<ProgressResponse>(`/api/progress?studentId=${studentId}`);
+      setProgress(data.progress);
+      setReviewFrequencyDays(data.reviewFrequencyDays);
+      setNextReviewDate(data.nextReviewDate);
+      setOverdue(data.overdue);
     } catch {
       setError("Erro ao carregar progresso");
     } finally {
@@ -108,6 +158,22 @@ export default function ProgressPage() {
     }
   }
 
+  async function handleSaveFrequency() {
+    if (!selectedStudentId) return;
+    setSavingFreq(true);
+    setError("");
+    try {
+      await api.put(`/api/students/${selectedStudentId}`, {
+        reviewFrequencyDays,
+      });
+      await loadProgress(selectedStudentId);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erro ao salvar periodo");
+    } finally {
+      setSavingFreq(false);
+    }
+  }
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center">
@@ -127,11 +193,11 @@ export default function ProgressPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold">Progresso</h1>
-            <p className="text-muted text-sm">Acompanhe a evolucao dos alunos</p>
+            <p className="text-muted text-sm">Acompanhe a evolucao dos alunos e agende as reavaliacoes</p>
           </div>
-          {selectedStudentId && (
+          {selectedStudentId && user?.role !== "STUDENT" && (
             <Button icon={<Plus className="w-4 h-4" />} onClick={() => setShowForm(true)}>
-              Adicionar Registro
+              Nova Avaliação
             </Button>
           )}
         </div>
@@ -142,7 +208,7 @@ export default function ProgressPage() {
           </div>
         )}
 
-        {students.length > 0 && (
+        {students.length > 0 && user?.role !== "STUDENT" && (
           <Select
             label="Aluno"
             value={selectedStudentId}
@@ -155,6 +221,72 @@ export default function ProgressPage() {
           <Card className="p-12 text-center">
             <TrendingUp className="w-10 h-10 text-muted mx-auto mb-3" />
             <p className="text-muted">Nenhum aluno cadastrado</p>
+          </Card>
+        )}
+
+        {selectedStudentId && !loadingProgress && nextReviewDate && (
+          <Card className={overdue ? "p-5 border-red-500/30" : "p-5 border-accent/20"}>
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div
+                  className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+                    overdue ? "bg-red-500/10 text-red-400" : "bg-accent/10 text-accent"
+                  }`}
+                >
+                  <CalendarDays className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-semibold flex items-center gap-2">
+                    Próxima reavaliação
+                    {overdue ? (
+                      <Badge variant="danger">
+                        <AlertTriangle className="w-3 h-3" /> Em atraso
+                      </Badge>
+                    ) : (
+                      <Badge variant="success">
+                        <CheckCircle2 className="w-3 h-3" /> Em dia
+                      </Badge>
+                    )}
+                  </p>
+                  <p className="text-sm text-muted mt-0.5">
+                    {overdue
+                      ? "Já está na hora de registrar uma nova avaliação do aluno."
+                      : `Agendada para ${new Date(nextReviewDate).toLocaleDateString("pt-BR", {
+                          day: "2-digit",
+                          month: "long",
+                          year: "numeric",
+                        })} — ${Math.max(0, Math.ceil((new Date(nextReviewDate).getTime() - Date.now()) / 86400000))} dia(s).`}
+                  </p>
+                  {user?.role === "STUDENT" && !overdue && (
+                    <p className="text-xs text-muted mt-1">
+                      Quando seu personal registrar uma nova avaliação, você verá aqui a sua evolução.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {user && user.role !== "STUDENT" && (
+                <div className="flex items-end gap-2">
+                  <div>
+                    <label className="block text-xs text-muted mb-1">Reavaliação a cada</label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min={7}
+                        max={365}
+                        className="w-24"
+                        value={reviewFrequencyDays}
+                        onChange={(e) => setReviewFrequencyDays(Number(e.target.value || 30))}
+                      />
+                      <span className="text-sm text-muted">dias</span>
+                      <Button variant="secondary" size="sm" onClick={handleSaveFrequency} loading={savingFreq}>
+                        Salvar
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </Card>
         )}
 
@@ -183,6 +315,33 @@ export default function ProgressPage() {
                   <p className="text-xs text-muted mt-1">Variacao</p>
                 </Card>
               </div>
+            )}
+
+            {progress.length > 1 && (
+              <Card className="p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <Calculator className="w-4 h-4 text-accent" />
+                  <p className="text-sm font-medium">Evolução desde a primeira avaliação</p>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {MEASURES.map((m) => {
+                    const latest = progress.find((x) => x[m.key]);
+                    const first = [...progress].reverse().find((x) => x[m.key]);
+                    if (!latest || !first || latest[m.key] == null || first[m.key] == null) return null;
+                    const value = (latest[m.key] as number) - (first[m.key] as number);
+                    return (
+                      <div key={m.key} className="bg-bg rounded-lg p-3 flex items-center justify-between">
+                        <span className="text-xs text-muted">
+                          {m.label} ({m.unit})
+                        </span>
+                        <span className="text-sm font-semibold">
+                          <Delta value={value} />
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
             )}
 
             {weightEntries.length > 1 && (
@@ -226,11 +385,18 @@ export default function ProgressPage() {
             {progress.length > 0 && (
               <div className="relative pl-6">
                 <div className="absolute left-2 top-0 bottom-0 w-px bg-border" />
-                {progress.map((p) => (
+                {progress.map((p, index) => (
                   <div key={p.id} className="relative mb-4">
                     <div className="absolute -left-4 top-4 w-2.5 h-2.5 rounded-full bg-accent border-2 border-bg" />
                     <Card className="p-4 ml-2">
-                      <p className="text-xs text-muted mb-2">{new Date(p.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}</p>
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <p className="text-xs text-muted">{new Date(p.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}</p>
+                        {index === 0 ? (
+                          <Badge variant="success">Mais recente</Badge>
+                        ) : (
+                          <Badge variant="default">Avaliação</Badge>
+                        )}
+                      </div>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
                         {p.weight && (
                           <div className="bg-bg rounded-lg p-2 text-center">
@@ -269,6 +435,23 @@ export default function ProgressPage() {
                           </div>
                         )}
                       </div>
+                      {index < progress.length - 1 && (
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted mt-2 pt-2 border-t border-border/60">
+                          <span className="text-muted/80">vs anterior:</span>
+                          {MEASURES.map((m) => {
+                            const current = p[m.key];
+                            const prev = progress[index + 1][m.key];
+                            if (current == null || prev == null) return null;
+                            const diff = (current as number) - (prev as number);
+                            return (
+                              <span key={m.key}>
+                                {m.label}: <Delta value={diff} />
+                                {m.unit}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
                       {p.notes && <p className="text-xs text-muted mt-2 italic">{p.notes}</p>}
                     </Card>
                   </div>
@@ -278,7 +461,7 @@ export default function ProgressPage() {
           </>
         )}
 
-        <Modal open={showForm} onClose={() => setShowForm(false)} title="Novo Registro" size="lg">
+        <Modal open={showForm} onClose={() => setShowForm(false)} title="Nova Avaliação" size="lg">
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <Input label="Peso (kg)" type="number" step="0.1" placeholder="80.5" value={form.weight} onChange={(e) => setForm((f) => ({ ...f, weight: e.target.value }))} />

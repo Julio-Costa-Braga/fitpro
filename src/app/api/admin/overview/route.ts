@@ -28,6 +28,8 @@ export async function GET(request: NextRequest) {
         name: true,
         email: true,
         createdAt: true,
+        studentLimit: true,
+        monthlyPrice: true,
         _count: { select: { students: true } },
       },
       orderBy: { createdAt: "asc" },

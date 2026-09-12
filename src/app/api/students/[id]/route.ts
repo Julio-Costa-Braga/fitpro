@@ -55,7 +55,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
     }
 
     const body = await request.json();
-    const { name, email, phone } = body;
+    const { name, email, phone, reviewFrequencyDays } = body;
 
     if (email && email !== existing.email) {
       const duplicate = await prisma.student.findFirst({
@@ -69,12 +69,21 @@ export async function PUT(request: NextRequest, { params }: Params) {
       }
     }
 
+    const format = reviewFrequencyDays !== undefined ? Number(reviewFrequencyDays) : undefined;
+    if (format !== undefined && (!Number.isInteger(format) || format < 7 || format > 365)) {
+      return NextResponse.json(
+        { error: "Periodo de reavaliacao deve ser um numero inteiro entre 7 e 365 dias" },
+        { status: 400 }
+      );
+    }
+
     const student = await prisma.student.update({
       where: { id },
       data: {
         name: name ?? existing.name,
         email: email ?? existing.email,
         phone: phone ?? existing.phone,
+        ...(format !== undefined && { reviewFrequencyDays: format }),
       },
     });
 

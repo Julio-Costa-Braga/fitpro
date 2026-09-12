@@ -28,8 +28,11 @@ interface Meal {
   time: string;
   name: string;
   order: number;
+  dayOfWeek: string | null;
   foods: MealFood[];
 }
+
+const DIET_DAYS = ["Segunda", "Terca", "Quarta", "Quinta", "Sexta", "Sabado", "Domingo"];
 
 interface DietPlan {
   id: string;
@@ -105,7 +108,7 @@ export default function DietDetailPage() {
 
   const [showMealForm, setShowMealForm] = useState(false);
   const [editingMealId, setEditingMealId] = useState<string | null>(null);
-  const [mealForm, setMealForm] = useState({ time: "", name: "" });
+  const [mealForm, setMealForm] = useState({ time: "", name: "", dayOfWeek: "" });
   const [savingMeal, setSavingMeal] = useState(false);
 
   const [expandedMealId, setExpandedMealId] = useState<string | null>(null);
@@ -148,6 +151,7 @@ export default function DietDetailPage() {
         await api.put(`/api/diets/${dietId}/meals/${editingMealId}`, {
           time: mealForm.time.trim(),
           name: mealForm.name.trim(),
+          dayOfWeek: mealForm.dayOfWeek || undefined,
         });
       } else {
         const maxOrder = diet?.meals.length ? Math.max(...diet.meals.map((m) => m.order)) + 1 : 0;
@@ -155,9 +159,10 @@ export default function DietDetailPage() {
           time: mealForm.time.trim(),
           name: mealForm.name.trim(),
           order: maxOrder,
+          dayOfWeek: mealForm.dayOfWeek || undefined,
         });
       }
-      setMealForm({ time: "", name: "" });
+      setMealForm({ time: "", name: "", dayOfWeek: "" });
       setEditingMealId(null);
       setShowMealForm(false);
       await loadDiet();
@@ -206,7 +211,7 @@ export default function DietDetailPage() {
 
   function startEditMeal(meal: Meal) {
     setEditingMealId(meal.id);
-    setMealForm({ time: meal.time, name: meal.name });
+    setMealForm({ time: meal.time, name: meal.name, dayOfWeek: meal.dayOfWeek || "" });
     setShowMealForm(true);
   }
 
@@ -329,6 +334,14 @@ export default function DietDetailPage() {
     { protein: 0, carbs: 0, fat: 0, calories: 0 }
   );
 
+  const dailyMeals = diet.meals.filter((m) => !m.dayOfWeek);
+  const mealSections: { key: string; label: string | null; meals: Meal[] }[] = [];
+  if (dailyMeals.length > 0) mealSections.push({ key: "all", label: "Todos os dias", meals: dailyMeals });
+  for (const day of DIET_DAYS) {
+    const byDay = diet.meals.filter((m) => m.dayOfWeek === day);
+    if (byDay.length > 0) mealSections.push({ key: day, label: day, meals: byDay });
+  }
+
   return (
     <AppLayout title={diet.name}>
       <div className="space-y-6 animate-fadeIn">
@@ -404,7 +417,7 @@ export default function DietDetailPage() {
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Refeicoes</h2>
           {user?.role !== "STUDENT" && (
-            <Button size="sm" icon={<Plus className="w-4 h-4" />} onClick={() => { setEditingMealId(null); setMealForm({ time: "", name: "" }); setShowMealForm(true); }}>
+            <Button size="sm" icon={<Plus className="w-4 h-4" />} onClick={() => { setEditingMealId(null); setMealForm({ time: "", name: "", dayOfWeek: "" }); setShowMealForm(true); }}>
               Adicionar Refeicao
             </Button>
           )}
@@ -416,8 +429,16 @@ export default function DietDetailPage() {
             <p className="text-muted text-sm">Nenhuma refeicao cadastrada</p>
           </Card>
         ) : (
-          <div className="space-y-4">
-            {diet.meals.map((meal) => {
+          <div className="space-y-6">
+            {mealSections.map((section) => (
+              <div key={section.key} className="space-y-3">
+                <div className="flex items-center gap-2 px-1">
+                  <h3 className="font-semibold text-sm">{section.label}</h3>
+                  {section.key === "all" && (
+                    <span className="text-xs text-muted">(vale para todos os dias)</span>
+                  )}
+                </div>
+                {section.meals.map((meal) => {
               const mealTotals = meal.foods.reduce(
                 (acc, f) => ({
                   protein: acc.protein + (f.protein || 0),
@@ -440,7 +461,14 @@ export default function DietDetailPage() {
                         {meal.time || "?"}
                       </div>
                       <div>
-                        <h3 className="font-medium text-sm">{meal.name}</h3>
+                        <h3 className="font-medium text-sm flex items-center gap-2">
+                          {meal.name}
+                          {meal.dayOfWeek && (
+                            <span className="text-[10px] font-semibold text-accent bg-accent/10 rounded px-1.5 py-0.5">
+                              {meal.dayOfWeek}
+                            </span>
+                          )}
+                        </h3>
                         <p className="text-xs text-muted">
                           {meal.foods.length} alimento{meal.foods.length !== 1 ? "s" : ""} &middot; {mealTotals.calories.toFixed(0)} kcal
                         </p>
@@ -550,7 +578,9 @@ export default function DietDetailPage() {
                   )}
                 </Card>
               );
-            })}
+                })}
+              </div>
+            ))}
           </div>
         )}
 
@@ -568,6 +598,19 @@ export default function DietDetailPage() {
               value={mealForm.name}
               onChange={(e) => setMealForm((f) => ({ ...f, name: e.target.value }))}
             />
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-muted">Dia da semana</label>
+              <select
+                value={mealForm.dayOfWeek}
+                onChange={(e) => setMealForm((f) => ({ ...f, dayOfWeek: e.target.value }))}
+                className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent/60 transition-all"
+              >
+                <option value="">Todos os dias (mesma refeicao)</option>
+                {DIET_DAYS.map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+            </div>
             <div className="flex gap-3 pt-2">
               <Button variant="secondary" onClick={() => { setShowMealForm(false); setEditingMealId(null); }} className="flex-1">
                 Cancelar

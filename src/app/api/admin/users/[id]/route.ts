@@ -36,11 +36,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     lifetime,
     addMonth,
     role,
+    planUpgrade,
   } = body as {
     isActive?: boolean;
     lifetime?: boolean;
     addMonth?: boolean;
     role?: "PERSONAL" | "STUDENT";
+    planUpgrade?: { slots: number; price: number };
   };
 
   const data: {
@@ -61,10 +63,33 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   }
   if (role && ["PERSONAL", "STUDENT"].includes(role)) data.role = role;
 
+  // Upgrade do plano do PERSONAL: +slots alunos e +R$price/mes (confirmacao manual de pagamento).
+  let planNotes: { studentLimit: number; monthlyPrice: number } | null = null;
+  if (
+    planUpgrade &&
+    target.role === "PERSONAL" &&
+    Number.isInteger(planUpgrade.slots) &&
+    Number.isInteger(planUpgrade.price) &&
+    planUpgrade.slots > 0 &&
+    planUpgrade.price >= 0
+  ) {
+    planNotes = {
+      studentLimit: target.studentLimit + planUpgrade.slots,
+      monthlyPrice: target.monthlyPrice + planUpgrade.price,
+    };
+  }
+
   try {
+    const updateData = { ...data };
+    if (planNotes) {
+      Object.assign(updateData, {
+        studentLimit: planNotes.studentLimit,
+        monthlyPrice: planNotes.monthlyPrice,
+      });
+    }
     const updated = await prisma.user.update({
       where: { id },
-      data,
+      data: updateData,
       select: {
         id: true,
         name: true,
@@ -73,6 +98,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         isActive: true,
         lifetime: true,
         paidUntil: true,
+        studentLimit: true,
+        monthlyPrice: true,
       },
     });
 

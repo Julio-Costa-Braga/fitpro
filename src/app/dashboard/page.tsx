@@ -58,11 +58,12 @@ function StatusPill({ value, tone }: { value: string; tone: "green" | "red" | "g
   );
 }
 
-function BillingBanner() {
+function BillingBanner({ studentsCount = 0 }: { studentsCount?: number }) {
   const { user } = useAuth();
   const [copied, setCopied] = useState<"pix" | "code" | null>(null);
 
   if (!user) return null;
+  if (user.role !== "PERSONAL") return null;
 
   let pill: { value: string; tone: "green" | "red" | "gold" | "blue" } | null = null;
   if (user.lifetime) {
@@ -76,6 +77,12 @@ function BillingBanner() {
     pill = { value: "Sem pagamento", tone: "red" };
   }
 
+  const hasDiscount = (user.referralDiscountMonths ?? 0) > 0;
+  const planPrice = user.monthlyPrice ?? MONTHLY_FEE;
+  const fee = hasDiscount ? planPrice - REFERRAL_DISCOUNT : planPrice;
+  const limit = user.studentLimit ?? 10;
+  const full = studentsCount >= limit;
+
   async function copy(text: string, key: "pix" | "code") {
     try {
       await navigator.clipboard.writeText(text);
@@ -88,20 +95,27 @@ function BillingBanner() {
 
   return (
     <Card className="p-5 border-accent/20">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center text-accent shrink-0">
             <QrCode className="w-5 h-5" />
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="font-semibold flex items-center gap-2">
-              Mensalidade: R$ {MONTHLY_FEE.toFixed(2).replace(".", ",")}
+              Seu plano: {limit} aluno{limit !== 1 ? "s" : ""} &middot; R$ {fee.toFixed(2).replace(".", ",")}/mês
               {pill && <StatusPill {...pill} />}
             </p>
             <p className="text-xs text-muted mt-1">
-              Pague via PIX para continuar usando o FitPro. Necessário renovar todo mês.
+              {studentsCount} de {limit} aluno{limit !== 1 ? "s" : ""} em uso
+              {full && <span className="text-red-400 font-medium"> &middot; limite atingido</span>}
+              {hasDiscount && (
+                <span className="text-green-400 font-medium"> &middot; inclui R$ {REFERRAL_DISCOUNT.toFixed(2).replace(".", ",")} de desconto da indicação</span>
+              )}
             </p>
-            <div className="mt-2 flex items-center gap-2">
+            <p className="text-xs text-muted mt-1">
+              Pague via PIX para manter o plano ativo.
+            </p>
+            <div className="mt-2 flex items-center gap-2 flex-wrap">
               <code className="text-xs bg-bg border border-border rounded-md px-2 py-1 font-mono break-all">
                 {PIX_KEY}
               </code>
@@ -122,34 +136,45 @@ function BillingBanner() {
           </div>
         </div>
 
-        <div className="flex items-start gap-3 md:border-l md:border-border md:pl-5">
-          <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center text-accent shrink-0">
-            <Gift className="w-5 h-5" />
+        <div className="space-y-3 lg:border-l lg:border-border lg:pl-5">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center text-accent shrink-0">
+              <Gift className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-semibold text-sm flex items-center gap-1.5">
+                <Star className="w-4 h-4 text-amber-400" />
+                Programa de indicação
+              </p>
+              <p className="text-xs text-muted mt-0.5">
+                {hasDiscount
+                  ? `Você ganhou R$ ${REFERRAL_DISCOUNT.toFixed(2).replace(".", ",")} de desconto por ${REFERRAL_DISCOUNT_MONTHS} meses ao indicar aluno.`
+                  : `Indique um aluno e VOCÊ ganha R$ ${REFERRAL_DISCOUNT.toFixed(2).replace(".", ",")} de desconto por ${REFERRAL_DISCOUNT_MONTHS} meses.`}
+              </p>
+              {user.referralCode && (
+                <div className="mt-1.5 flex items-center gap-2">
+                  <code className="text-xs bg-bg border border-border rounded-md px-2 py-1 font-mono">
+                    {user.referralCode}
+                  </code>
+                  <button
+                    onClick={() => copy(user.referralCode!, "code")}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-accent hover:text-accent-hover transition-colors shrink-0"
+                  >
+                    {copied === "code" ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copied === "code" ? "Copiado!" : "Copiar"}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-          <div>
-            <p className="font-semibold text-sm flex items-center gap-1.5">
-              <Star className="w-4 h-4 text-amber-400" />
-              Programa de indicação
-            </p>
-            <p className="text-xs text-muted mt-0.5">
-              {user.referredByUser
-                ? `Indicado por ${user.referredByUser.name} — desconto de R$ ${REFERRAL_DISCOUNT.toFixed(2).replace(".", ",")} por ${REFERRAL_DISCOUNT_MONTHS} meses`
-                : `Indique um aluno e ele ganha R$ ${REFERRAL_DISCOUNT.toFixed(2).replace(".", ",")} de desconto por ${REFERRAL_DISCOUNT_MONTHS} meses`}
-            </p>
-            {user.referralCode && (
-              <div className="mt-1.5 flex items-center gap-2">
-                <code className="text-xs bg-bg border border-border rounded-md px-2 py-1 font-mono">
-                  {user.referralCode}
-                </code>
-                <button
-                  onClick={() => copy(user.referralCode!, "code")}
-                  className="inline-flex items-center gap-1 text-xs font-medium text-accent hover:text-accent-hover transition-colors shrink-0"
-                >
-                  {copied === "code" ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                  {copied === "code" ? "Copiado!" : "Copiar"}
-                </button>
-              </div>
-            )}
+
+          <div className="text-[11px] text-muted bg-bg rounded-lg p-3 space-y-1">
+            <p className="font-semibold text-muted">Tabela do plano (mensal)</p>
+            <p>Até 10 alunos &middot; R$ {MONTHLY_FEE.toFixed(2).replace(".", ",")}</p>
+            <p>+1 aluno &middot; +R$ {REFERRAL_DISCOUNT.toFixed(2).replace(".", ",")}</p>
+            <p>+5 alunos &middot; +R$ 6,00</p>
+            <p>+10 alunos &middot; +R$ 14,00</p>
+            <p className="text-muted/70 pt-1">Seu aluno acessa de graça. A mensalidade é do seu plano.</p>
           </div>
         </div>
       </div>
@@ -490,7 +515,9 @@ export default function DashboardPage() {
       )}
 
       <div className="mb-6">
-        <BillingBanner />
+        {user.role === "PERSONAL" && (
+          <BillingBanner studentsCount={trainerStats?.totalStudents ?? 0} />
+        )}
       </div>
 
       {user.role === "PERSONAL" && trainerStats && (

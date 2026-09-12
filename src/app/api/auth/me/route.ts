@@ -28,6 +28,8 @@ export async function GET(request: NextRequest) {
         isActive: true,
         lifetime: true,
         paidUntil: true,
+        studentLimit: true,
+        monthlyPrice: true,
       },
     });
 

@@ -35,17 +35,20 @@ export async function POST(request: NextRequest) {
 
     if (!user.isActive) {
       return NextResponse.json(
-        { error: "Conta desativada por falta de pagamento. Fale com o seu personal." },
+        { error: "Conta desativada. Fale com a administracao." },
         { status: 403 }
       );
     }
 
-    const paid = user.lifetime || (!!user.paidUntil && user.paidUntil.getTime() > Date.now());
-    if (!paid) {
-      return NextResponse.json(
-        { error: "Periodo de teste/pagamento vencido. Renove sua mensalidade para continuar." },
-        { status: 403 }
-      );
+    // STUDENT acessa de graca (quem paga e o PERSONAL).
+    if (user.role !== "STUDENT") {
+      const paid = user.lifetime || (!!user.paidUntil && user.paidUntil.getTime() > Date.now());
+      if (!paid) {
+        return NextResponse.json(
+          { error: "Periodo de teste/pagamento vencido. Renove sua mensalidade para continuar." },
+          { status: 403 }
+        );
+      }
     }
 
     const token = generateToken({
@@ -74,6 +77,8 @@ export async function POST(request: NextRequest) {
         isActive: user.isActive,
         lifetime: user.lifetime,
         paidUntil: user.paidUntil,
+        studentLimit: user.studentLimit,
+        monthlyPrice: user.monthlyPrice,
       },
     });
   } catch (error) {

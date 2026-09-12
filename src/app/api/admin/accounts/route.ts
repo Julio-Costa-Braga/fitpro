@@ -24,6 +24,8 @@ export async function GET(request: NextRequest) {
         paidUntil: true,
         referralCode: true,
         referralDiscountMonths: true,
+        studentLimit: true,
+        monthlyPrice: true,
         createdAt: true,
         referredByUser: { select: { id: true, name: true } },
         _count: { select: { students: true, myReferrals: true } },
