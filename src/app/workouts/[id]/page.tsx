@@ -88,6 +88,7 @@ export default function WorkoutDetailPage() {
   const [autoAdvance, setAutoAdvance] = useState(false);
   const [deadlineDays, setDeadlineDays] = useState("");
   const [savingSettings, setSavingSettings] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const loadWorkout = useCallback(async () => {
     if (!user || !workoutId) return;
@@ -253,6 +254,19 @@ export default function WorkoutDetailPage() {
     }
   }
 
+  async function handleDeleteWorkout() {
+    if (!workout) return;
+    if (!confirm(`Excluir o treino "${workout.name}"? Esta acao nao pode ser desfeita.`)) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/api/workouts/${workout.id}`);
+      router.push("/workouts");
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
+      setDeleting(false);
+    }
+  }
+
   async function handleStartSession() {
     if (!workout || (user?.role !== "PERSONAL" && user?.role !== "STUDENT")) return;
     try {
@@ -395,6 +409,16 @@ export default function WorkoutDetailPage() {
                 }}
               >
                 Adicionar
+              </Button>
+            )}
+            {(user.role === "PERSONAL" || user.role === "ADMIN") && (
+              <Button
+                variant="danger"
+                icon={<Trash2 className="w-4 h-4" />}
+                onClick={handleDeleteWorkout}
+                loading={deleting}
+              >
+                Excluir
               </Button>
             )}
           </div>

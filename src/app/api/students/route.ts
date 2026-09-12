@@ -16,7 +16,11 @@ export async function GET(request: NextRequest) {
           : payload.role === "PERSONAL"
             ? { personalId: payload.userId }
             : { userId: payload.userId },
-      include: { _count: { select: { workouts: true, dietPlans: true } } },
+      include: {
+        _count: { select: { workouts: true, dietPlans: true } },
+        user: { select: { id: true, isActive: true } },
+        restDays: { select: { weekday: true } },
+      },
       orderBy: { createdAt: "desc" },
     });
 

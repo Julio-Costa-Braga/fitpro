@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Plus, Search, Users, Mail, Phone, Dumbbell, Apple } from "lucide-react";
+import { Loader2, Plus, Search, Users, Mail, Phone, Dumbbell, Apple, Ban, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { api } from "@/lib/api";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
@@ -17,6 +18,7 @@ interface Student {
   email: string | null;
   phone: string | null;
   createdAt: string;
+  user?: { id: string; isActive: boolean } | null;
   _count?: { workouts: number; dietPlans: number };
 }
 
@@ -30,6 +32,7 @@ export default function StudentsPage() {
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", phone: "", password: "" });
   const [error, setError] = useState("");
+  const [accessBusy, setAccessBusy] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -45,6 +48,28 @@ export default function StudentsPage() {
       setError("Erro ao carregar alunos");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function toggleAccess(student: Student) {
+    if (!student.user) return;
+    setAccessBusy(student.id);
+    setError("");
+    try {
+      const next = !student.user.isActive;
+      const data = await api.put<{ user: { id: string; isActive: boolean } }>(
+        `/api/students/${student.id}/access`,
+        { isActive: next }
+      );
+      setStudents((prev) =>
+        prev.map((s) =>
+          s.id === student.id ? { ...s, user: { ...s.user!, isActive: data.user.isActive } } : s
+        )
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao alterar acesso");
+    } finally {
+      setAccessBusy(null);
     }
   }
 
@@ -145,6 +170,38 @@ export default function StudentsPage() {
                         <Phone className="w-3 h-3 shrink-0" />
                         {student.phone}
                       </p>
+                    )}
+                  </div>
+                  <div className="ml-auto flex flex-col items-end gap-2 shrink-0">
+                    {student.user ? (
+                      <Badge variant={student.user.isActive ? "success" : "danger"}>
+                        {student.user.isActive ? "Ativo" : "Inativo"}
+                      </Badge>
+                    ) : (
+                      <Badge variant="default">Sem conta</Badge>
+                    )}
+                    {student.user && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleAccess(student);
+                        }}
+                        disabled={accessBusy === student.id}
+                        title={student.user.isActive ? "Desativar acesso do aluno" : "Ativar acesso do aluno"}
+                        className={`p-1.5 rounded-lg transition-colors ${
+                          student.user.isActive
+                            ? "text-muted hover:text-red-400 hover:bg-red-500/10"
+                            : "text-green-400/80 hover:text-green-400 hover:bg-green-500/10"
+                        }`}
+                      >
+                        {accessBusy === student.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : student.user.isActive ? (
+                          <Ban className="w-4 h-4" />
+                        ) : (
+                          <CheckCircle2 className="w-4 h-4" />
+                        )}
+                      </button>
                     )}
                   </div>
                 </div>

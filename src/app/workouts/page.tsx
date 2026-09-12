@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Dumbbell, Plus, Filter, Search, Activity, Layers, CalendarDays, CalendarRange, List, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, Dumbbell, Plus, Filter, Search, Activity, Layers, CalendarDays, CalendarRange, List, ChevronLeft, ChevronRight, Bed, Moon, CalendarOff } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { api } from "@/lib/api";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -21,6 +21,8 @@ interface Student {
   id: string;
   name: string;
   email?: string | null;
+  user?: { id: string; isActive: boolean } | null;
+  restDays?: { weekday: string }[] | null;
 }
 
 interface WorkoutExercise {
@@ -156,6 +158,35 @@ export default function WorkoutsPage() {
   const byDayMap = Object.fromEntries(byDay.map((g) => [g.day, g.items]));
   const noDayItems = filteredWorkouts.filter((w) => !normalizeDay(w.dayOfWeek));
   const showStudent = user?.role === "PERSONAL" && filterStudent === "all";
+
+  const activeStudentId =
+    user?.role === "PERSONAL"
+      ? filterStudent !== "all"
+        ? filterStudent
+        : null
+      : students[0]?.id ?? null;
+  const activeStudent = students.find((s) => s.id === activeStudentId);
+  const restSet = new Set((activeStudent?.restDays ?? []).map((r) => r.weekday));
+  const canEditRest = user?.role === "PERSONAL" && activeStudentId != null;
+
+  async function toggleRestDay(weekday: string) {
+    if (!canEditRest || !activeStudentId) return;
+    const active = !restSet.has(weekday);
+    try {
+      const data = await api.put<{ restDays: string[] }>(
+        `/api/students/${activeStudentId}/rest-days`,
+        { weekday, active }
+      );
+      const restArray = data.restDays.map((w) => ({ weekday: w }));
+      setStudents((prev) =>
+        prev.map((s) =>
+          s.id === activeStudentId ? { ...s, restDays: restArray } : s
+        )
+      );
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
+    }
+  }
 
   const year = monthDate.getFullYear();
   const month = monthDate.getMonth();
@@ -313,10 +344,36 @@ export default function WorkoutsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3">
               {byDay.map(({ day, items }) => (
                 <div key={day} className="flex flex-col gap-2 min-h-[140px]">
-                  <div className="flex items-center justify-between px-1">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-                      {weekLabel(day)}
-                    </span>
+                  <div className="flex items-center justify-between px-1 gap-1">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-muted truncate">
+                        {weekLabel(day)}
+                      </span>
+                      {restSet.has(day) && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted bg-card border border-border/60 px-1.5 py-0.5 rounded-full shrink-0">
+                          <Bed className="w-3 h-3" />
+                          {t("wk.rest")}
+                        </span>
+                      )}
+                      {canEditRest && (
+                        <button
+                          type="button"
+                          onClick={() => toggleRestDay(day)}
+                          title={restSet.has(day) ? "Remover descanso" : "Marcar como descanso"}
+                          className={`w-5 h-5 rounded-md inline-flex items-center justify-center shrink-0 transition-colors ${
+                            restSet.has(day)
+                              ? "bg-accent/15 text-accent hover:bg-accent/25"
+                              : "text-muted hover:text-white hover:bg-card"
+                          }`}
+                        >
+                          {restSet.has(day) ? (
+                            <CalendarOff className="w-3 h-3" />
+                          ) : (
+                            <Moon className="w-3 h-3" />
+                          )}
+                        </button>
+                      )}
+                    </div>
                     {items.length > 0 && <Badge variant="default">{items.length}</Badge>}
                   </div>
                   {items.length === 0 ? (
@@ -387,6 +444,7 @@ export default function WorkoutsPage() {
                     const dow = new Date(year, month, dayNum).getDay();
                     const canon = WEEKDAY_ORDER[(dow + 6) % 7];
                     const dayWorkouts = byDayMap[canon] ?? [];
+                    const isRest = restSet.has(canon);
                     return (
                       <div key={col} className="min-h-[72px] p-1.5">
                         <span
@@ -398,6 +456,12 @@ export default function WorkoutsPage() {
                         >
                           {dayNum}
                         </span>
+                        {isRest && (
+                          <p className="mt-0.5 text-[9px] font-medium text-muted/70 flex items-center gap-1">
+                            <Bed className="w-2.5 h-2.5" />
+                            {t("wk.rest")}
+                          </p>
+                        )}
                         <div className="mt-1 space-y-1">
                           {dayWorkouts.slice(0, 2).map((w) => (
                             <Link
