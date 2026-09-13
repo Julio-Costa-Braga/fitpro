@@ -6,7 +6,7 @@ import { Menu, LogOut, User as UserIcon, Globe, Check, Bell, CheckCheck, Dumbbel
 import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
-import { LANGS } from "@/lib/i18n/dictionaries";
+import { LANGS, dateLocale, type Lang } from "@/lib/i18n/dictionaries";
 import { api } from "@/lib/api";
 import { usePermissions } from "@/components/providers/PermissionsProvider";
 
@@ -43,7 +43,7 @@ interface AppNotification {
   createdAt: string;
 }
 
-function formatRelative(iso: string, lang: string, t: (key: string) => string): string {
+function formatRelative(iso: string, lang: Lang, t: (key: string) => string): string {
   const date = new Date(iso);
   const diffMs = Date.now() - date.getTime();
   const mins = Math.floor(diffMs / 60000);
@@ -51,7 +51,7 @@ function formatRelative(iso: string, lang: string, t: (key: string) => string): 
   if (mins < 60) return `${mins}${t("header.minAgo")}`;
   const hours = Math.floor(mins / 60);
   if (hours < 24) return `${hours}h`;
-  return date.toLocaleDateString(lang === "pt" ? "pt-BR" : lang === "es" ? "es-ES" : "en-US", {
+  return date.toLocaleDateString(dateLocale(lang), {
     day: "2-digit",
     month: "2-digit",
   });

@@ -13,11 +13,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const [totalPersonals, totalStudents, totalTrainers, totalClients] =
+    const [totalPersonals, totalNutritionists, totalStudents, totalClients] =
       await Promise.all([
         prisma.user.count({ where: { role: "PERSONAL" } }),
+        prisma.user.count({ where: { role: "NUTRITIONIST" } }),
         prisma.student.count(),
-        prisma.user.count({ where: { role: "PERSONAL" } }),
         prisma.student.count({ where: { personalId: { not: null } } }),
       ]);
 
@@ -50,6 +50,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       totals: {
         personals: totalPersonals,
+        nutritionists: totalNutritionists,
         students: totalStudents,
         studentsWithoutTrainer: totalStudents - totalClients,
       },

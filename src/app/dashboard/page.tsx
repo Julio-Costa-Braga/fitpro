@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { DayLetterBadge } from "@/components/ui/DayLetterBadge";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { dateLocale } from "@/lib/i18n/dictionaries";
 import Link from "next/link";
 import {
   Users,
@@ -104,7 +105,7 @@ function TrainerDashboard({ stats }: { stats: StatsResponse }) {
                   <p className="text-sm font-medium truncate">{session.workout.name}</p>
                   <p className="text-xs text-muted">
                     {session.student.name} &middot;{" "}
-                    {new Date(session.date).toLocaleDateString(lang === "pt" ? "pt-BR" : lang === "es" ? "es-ES" : "en-US")}
+                    {new Date(session.date).toLocaleDateString(dateLocale(lang))}
                   </p>
                 </div>
                 <Badge variant={session.completed ? "success" : "warning"}>

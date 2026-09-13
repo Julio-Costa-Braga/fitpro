@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Loader2, QrCode, Copy, Check, Gift, Star } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { dateLocale, type Lang } from "@/lib/i18n/dictionaries";
 import { api, type BillingInfo } from "@/lib/api";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card } from "@/components/ui/Card";
@@ -33,10 +34,8 @@ function StatusPill({ value, tone }: { value: string; tone: "green" | "red" | "g
   );
 }
 
-function localeDate(iso: string, lang: string) {
-  return new Date(iso).toLocaleDateString(
-    lang === "pt" ? "pt-BR" : lang === "en" ? "en-US" : "es-ES"
-  );
+function localeDate(iso: string, lang: Lang) {
+  return new Date(iso).toLocaleDateString(dateLocale(lang));
 }
 
 export default function BillingPage() {

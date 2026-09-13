@@ -15,6 +15,7 @@ import { Input, Textarea } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import Link from "next/link";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { dateLocale } from "@/lib/i18n/dictionaries";
 
 interface Student {
   id: string;
@@ -70,7 +71,7 @@ export default function StudentDetailPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const params = useParams();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const studentId = params.id as string;
 
   const [student, setStudent] = useState<Student | null>(null);
@@ -190,7 +191,7 @@ export default function StudentDetailPage() {
               <div className="flex flex-wrap gap-4 text-sm text-muted mt-1">
                 {student.email && <span className="flex items-center gap-1"><Mail className="w-3.5 h-3.5" />{student.email}</span>}
                 {student.phone && <span className="flex items-center gap-1"><Phone className="w-3.5 h-3.5" />{student.phone}</span>}
-                <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{t("stu.since", { date: new Date(student.createdAt).toLocaleDateString("pt-BR") })}</span>
+                <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{t("stu.since", { date: new Date(student.createdAt).toLocaleDateString(dateLocale(lang)) })}</span>
               </div>
             </div>
           </div>
@@ -311,7 +312,7 @@ export default function StudentDetailPage() {
                     const pct = maxW > 0 ? (p.weight / maxW) * 100 : 0;
                     return (
                       <div key={p.id} className="flex items-center gap-3 text-xs">
-                        <span className="w-16 text-muted shrink-0">{new Date(p.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}</span>
+                        <span className="w-16 text-muted shrink-0">{new Date(p.date).toLocaleDateString(dateLocale(lang), { day: "2-digit", month: "2-digit" })}</span>
                         <div className="flex-1 bg-bg rounded-full h-4 overflow-hidden">
                           <div className="h-full bg-accent/40 rounded-full" style={{ width: `${pct}%` }} />
                         </div>
@@ -336,7 +337,7 @@ export default function StudentDetailPage() {
                     <div className="absolute -left-4 top-4 w-2.5 h-2.5 rounded-full bg-accent border-2 border-bg" />
                     <Card className="p-4 ml-2">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-muted">{new Date(p.date).toLocaleDateString("pt-BR")}</span>
+                        <span className="text-xs text-muted">{new Date(p.date).toLocaleDateString(dateLocale(lang))}</span>
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
                         {p.weight && <div><span className="text-muted">{t("stu.rec.weight")}</span> <span className="font-medium">{p.weight} kg</span></div>}

@@ -63,11 +63,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   }
   if (role && ["PERSONAL", "STUDENT"].includes(role)) data.role = role;
 
-  // Upgrade do plano do PERSONAL: +slots alunos e +R$price/mes (confirmacao manual de pagamento).
+  // Upgrade do plano: +slots alunos e +R$price/mes (confirmacao manual de pagamento).
   let planNotes: { studentLimit: number; monthlyPrice: number } | null = null;
   if (
     planUpgrade &&
-    target.role === "PERSONAL" &&
+    (target.role === "PERSONAL" || target.role === "NUTRITIONIST") &&
     Number.isInteger(planUpgrade.slots) &&
     Number.isInteger(planUpgrade.price) &&
     planUpgrade.slots > 0 &&

@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { dateLocale } from "@/lib/i18n/dictionaries";
 import {
   MONTHLY_FEE, EXTRA_STUDENT_PRICE, PACK5_PRICE, PACK10_PRICE,
   REFERRAL_DISCOUNT, REFERRAL_DISCOUNT_MONTHS,
@@ -49,6 +50,7 @@ export default function AdminPage() {
 
   const [totals, setTotals] = useState<{
     personals: number;
+    nutritionists: number;
     students: number;
     studentsWithoutTrainer: number;
   } | null>(null);
@@ -238,7 +240,7 @@ export default function AdminPage() {
       const time = new Date(acc.paidUntil).getTime();
       if (time >= Date.now())
         return t("admin.paidUntil", {
-          date: new Date(acc.paidUntil).toLocaleDateString(lang === "pt" ? "pt-BR" : lang === "en" ? "en-US" : "es-ES"),
+          date: new Date(acc.paidUntil).toLocaleDateString(dateLocale(lang)),
         });
       return t("admin.pendingPayment");
     }
@@ -325,10 +327,14 @@ export default function AdminPage() {
         </div>
 
         {tab === "overview" && totals && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
             <Card className="p-5">
               <p className="text-muted text-xs uppercase tracking-wider mb-1">{t("admin.tabTrainers")}</p>
               <p className="text-3xl font-bold text-accent">{totals.personals}</p>
+            </Card>
+            <Card className="p-5">
+              <p className="text-muted text-xs uppercase tracking-wider mb-1">{t("admin.roleNutritionist")}</p>
+              <p className="text-3xl font-bold text-purple-400">{totals.nutritionists}</p>
             </Card>
             <Card className="p-5">
               <p className="text-muted text-xs uppercase tracking-wider mb-1">{t("nav.students")}</p>
@@ -349,7 +355,7 @@ export default function AdminPage() {
 
         {tab === "contas" && (
         <div>
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
             <h2 className="text-lg font-semibold">{t("admin.tabAccounts")}</h2>
             <p className="text-xs text-muted">
               {t("admin.planSummary", {
@@ -419,7 +425,7 @@ export default function AdminPage() {
 
                     <div className="text-xs text-muted space-y-1 border-t border-border pt-2">
                       <p>{t("admin.code")} <span className="text-white font-mono">{acc.referralCode}</span></p>
-                      {acc.role === "PERSONAL" && (
+                      {(acc.role === "PERSONAL" || acc.role === "NUTRITIONIST") && (
                         <p>
                           {t("admin.planLine", { n: acc.studentLimit, price: acc.monthlyPrice.toFixed(2).replace(".", ",") })}
                         </p>
@@ -437,16 +443,16 @@ export default function AdminPage() {
                           ? ((acc.studentRecord?.personal?.name ?? acc.myTrainer?.name)
                               ? t("admin.studentOf", { name: acc.studentRecord?.personal?.name ?? acc.myTrainer?.name ?? "" })
                               : t("admin.noTrainerLinked"))
-                          : t("admin.studentsCount", { n: acc._count.students })}
+                          : t("admin.studentsCount", { n: acc.role === "NUTRITIONIST" ? acc._count.nutritionStudents : acc._count.students })}
                       </p>
                     </div>
 
-                    <div className="flex gap-2 border-t border-border pt-2">
+                    <div className="flex flex-wrap gap-2 border-t border-border pt-2">
                       <Button
                         variant="secondary"
                         size="sm"
                         icon={acc.isActive ? <Ban className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                        className="flex-1"
+                        className="flex-1 min-w-[110px]"
                         onClick={() => toggleActive(acc)}
                       >
                         {acc.isActive ? t("admin.deactivate") : t("admin.activate")}
@@ -492,8 +498,8 @@ export default function AdminPage() {
                       </Button>
                     </div>
 
-                    {acc.role === "PERSONAL" && acc.lifetime === false && (
-                      <div className="flex gap-1.5 border-t border-border pt-2">
+                    {(acc.role === "PERSONAL" || acc.role === "NUTRITIONIST") && acc.lifetime === false && (
+                      <div className="flex gap-1.5 border-t border-border pt-2 flex-wrap">
                         <Button size="sm" variant="secondary" className="flex-1" onClick={() => upgradePlan(acc, 1, EXTRA_STUDENT_PRICE)}>
                           {t("admin.upgradeSlots1", { fee: EXTRA_STUDENT_PRICE.toFixed(2).replace(".", ",") })}
                         </Button>
@@ -506,7 +512,7 @@ export default function AdminPage() {
                       </div>
                     )}
 
-                    {acc.role === "PERSONAL" && (
+                    {(acc.role === "PERSONAL" || acc.role === "NUTRITIONIST") && (
                       <div className="border-t border-border pt-2">
                         <Button
                           size="sm"
