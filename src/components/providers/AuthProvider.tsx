@@ -20,7 +20,7 @@ interface AuthContextType {
     name: string;
     email: string;
     password: string;
-    role: "PERSONAL" | "STUDENT";
+    role: "PERSONAL" | "NUTRITIONIST" | "STUDENT";
     referralCode?: string;
   }) => Promise<void>;
   logout: () => void;
@@ -75,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       name: string;
       email: string;
       password: string;
-      role: "PERSONAL" | "STUDENT";
+      role: "PERSONAL" | "NUTRITIONIST" | "STUDENT";
     }) => {
       const res = await api.auth.register(data);
       setUser(res.user);

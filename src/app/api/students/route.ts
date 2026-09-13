@@ -15,7 +15,9 @@ export async function GET(request: NextRequest) {
           ? undefined
           : payload.role === "PERSONAL"
             ? { personalId: payload.userId }
-            : { userId: payload.userId },
+            : payload.role === "NUTRITIONIST"
+              ? { nutritionistId: payload.userId }
+              : { userId: payload.userId },
       include: {
         _count: { select: { workouts: true, dietPlans: true } },
         user: { select: { id: true, isActive: true } },
@@ -44,21 +46,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
   }
 
-  if (payload.role === "PERSONAL") {
-    const [personal, studentCount] = await Promise.all([
-      prisma.user.findUnique({ where: { id: payload.userId } }),
-      prisma.student.count({ where: { personalId: payload.userId } }),
-    ]);
-    if (personal && studentCount >= personal.studentLimit) {
-      return NextResponse.json(
-        {
-          error: `Limite do seu plano atingido: ${personal.studentLimit} aluno(s) por R$ ${personal.monthlyPrice}/mes. Para adicionar mais, use o plano: +1 aluno R$2, +5 R$6 ou +10 R$14.`,
-          code: "PLAN_LIMIT",
-        },
-        { status: 403 }
-      );
-    }
-  }
+  // Limite removido: fatura cobra automaticamente +R$2 por aluno excedente.
 
   try {
     const body = await request.json();
@@ -73,7 +61,13 @@ export async function POST(request: NextRequest) {
 
     if (email) {
       const existing = await prisma.student.findFirst({
-        where: { email, personalId: payload.userId },
+        where: {
+          email,
+          OR: [
+            ...(payload.role === "PERSONAL" ? [{ personalId: payload.userId }] : []),
+            ...(payload.role === "NUTRITIONIST" ? [{ nutritionistId: payload.userId }] : []),
+          ],
+        },
       });
       if (existing) {
         return NextResponse.json(
@@ -113,7 +107,8 @@ export async function POST(request: NextRequest) {
         name,
         email: email ?? null,
         phone: phone ?? null,
-        personalId: payload.userId,
+        personalId: payload.role === "PERSONAL" ? payload.userId : null,
+        nutritionistId: payload.role === "NUTRITIONIST" ? payload.userId : null,
         ...(userId ? { userId } : {}),
       },
     });

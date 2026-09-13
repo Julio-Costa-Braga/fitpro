@@ -331,7 +331,7 @@ export default function DashboardPage() {
 
     async function loadStats() {
       try {
-        if (user!.role === "PERSONAL") {
+        if (user!.role === "PERSONAL" || user!.role === "NUTRITIONIST") {
           const data = await api.stats.get();
           setTrainerStats(data);
         } else {
@@ -377,6 +377,9 @@ export default function DashboardPage() {
       {user.role === "PERSONAL" && trainerStats && (
         <TrainerDashboard stats={trainerStats} />
       )}
+      {user.role === "NUTRITIONIST" && trainerStats && (
+        <TrainerDashboard stats={trainerStats} />
+      )}
 
       {user.role === "STUDENT" && studentStats && (
         <StudentDashboard stats={studentStats} studentId={studentId} />
@@ -395,7 +398,7 @@ export default function DashboardPage() {
         />
       )}
 
-      {user.role === "PERSONAL" && !trainerStats && !error && (
+      {(user.role === "PERSONAL" || user.role === "NUTRITIONIST") && !trainerStats && !error && (
         <TrainerDashboard
           stats={{
             totalStudents: 0,

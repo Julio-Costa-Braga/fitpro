@@ -1,15 +1,30 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Camera, Trash2, KeyRound } from "lucide-react";
+import {
+  Loader2,
+  Camera,
+  Trash2,
+  KeyRound,
+  Link2,
+  Unlink,
+  Bell,
+  BellOff,
+  Copy,
+  Check,
+  Gift,
+} from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { api } from "@/lib/api";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { Avatar } from "@/components/ui/Avatar";
+import { VAPID_PUBLIC_KEY, urlBase64ToUint8Array } from "@/lib/vapid";
 
 function compressImage(file: File, maxSize = 400): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -39,6 +54,17 @@ function compressImage(file: File, maxSize = 400): Promise<string> {
   });
 }
 
+interface LinkedProfessional {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface ProfileLinks {
+  personal: LinkedProfessional | null;
+  nutritionist: LinkedProfessional | null;
+}
+
 export default function ProfilePage() {
   const { user, loading: authLoading, updateUser } = useAuth();
   const { t } = useLanguage();
@@ -47,6 +73,38 @@ export default function ProfilePage() {
   const [savingPhoto, setSavingPhoto] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  const isProfessional = user?.role === "PERSONAL" || user?.role === "NUTRITIONIST";
+  const isStudent = user?.role === "STUDENT";
+
+  // Vinculo do aluno
+  const [links, setLinks] = useState<ProfileLinks | null>(null);
+  const [linkCode, setLinkCode] = useState("");
+  const [linkType, setLinkType] = useState<"personal" | "nutritionist">("personal");
+  const [linking, setLinking] = useState(false);
+
+  // Push
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!isStudent || !user) return;
+    api
+      .get<{ links: ProfileLinks }>("/api/profile/link")
+      .then((res) => setLinks(res.links))
+      .catch(() => {});
+  }, [isStudent, user]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+      return;
+    }
+    navigator.serviceWorker.ready
+      .then((reg) => reg.pushManager.getSubscription())
+      .then((sub) => setPushEnabled(!!sub))
+      .catch(() => {});
+  }, []);
 
   if (authLoading) {
     return (
@@ -97,6 +155,93 @@ export default function ProfilePage() {
       setError(err instanceof Error ? err.message : t("profile.error"));
     } finally {
       setSavingPhoto(false);
+    }
+  }
+
+  async function handleLink() {
+    if (!linkCode.trim()) return;
+    setLinking(true);
+    setError("");
+    setMessage("");
+    try {
+      const res = await api.put<{ links: ProfileLinks }>("/api/profile/link", {
+        code: linkCode.trim(),
+        type: linkType,
+      });
+      setLinks(res.links);
+      setLinkCode("");
+      setMessage(t("profile.linkSuccess"));
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t("profile.linkErrorNonProf"));
+    } finally {
+      setLinking(false);
+    }
+  }
+
+  async function handleUnlink(type: "personal" | "nutritionist") {
+    setError("");
+    setMessage("");
+    try {
+      const res = await api.delete<{ links: ProfileLinks }>(`/api/profile/link?type=${type}`);
+      setLinks(res.links);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t("profile.error"));
+    }
+  }
+
+  async function handlePushToggle() {
+    if (pushBusy) return;
+    setPushBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      if (!pushEnabled) {
+        if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+          setError(t("profile.pushIosNote"));
+          return;
+        }
+        const reg = await navigator.serviceWorker.register("/sw.js");
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY).buffer as ArrayBuffer,
+        });
+        const p256 = sub.getKey("p256dh");
+        const authRaw = sub.getKey("auth");
+        if (!p256 || !authRaw) {
+          setError(t("profile.pushIosNote"));
+          return;
+        }
+        await api.post("/api/push/subscribe", {
+          endpoint: sub.endpoint,
+          p256dh: btoa(String.fromCharCode(...new Uint8Array(p256))),
+          auth: btoa(String.fromCharCode(...new Uint8Array(authRaw))),
+        });
+        setPushEnabled(true);
+        setMessage(t("profile.pushEnabled"));
+      } else {
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) {
+          await api.delete(`/api/push/subscribe?endpoint=${encodeURIComponent(sub.endpoint)}`);
+          await sub.unsubscribe();
+        }
+        setPushEnabled(false);
+      }
+    } catch (err: unknown) {
+      setError(t("profile.pushIosNote"));
+    } finally {
+      setPushBusy(false);
+    }
+  }
+
+  async function copyCode() {
+    if (!user || !user.referralCode) return;
+    try {
+      await navigator.clipboard.writeText(user.referralCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* ignore */
     }
   }
 
@@ -157,6 +302,124 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
+        </Card>
+
+        {isProfessional && user.referralCode && (
+          <Card className="p-6">
+            <div className="flex items-start gap-3 mb-3">
+              <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center text-accent shrink-0">
+                <Gift className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold">{t("profile.referralCodeTitle")}</p>
+                <p className="text-xs text-muted mt-0.5">{t("profile.referralCodeInfo")}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <code className="text-sm bg-bg border border-border rounded-md px-3 py-2 font-mono flex-1">
+                {user.referralCode}
+              </code>
+              <Button size="sm" variant="secondary" icon={copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />} onClick={copyCode}>
+                {copied ? t("common.copied") : t("common.copy")}
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {isStudent && (
+          <Card className="p-6">
+            <div className="flex items-start gap-3 mb-3">
+              <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center text-accent shrink-0">
+                <Link2 className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold">{t("profile.linked")}</p>
+                <p className="text-xs text-muted mt-0.5">{t("profile.linkedSubtitle")}</p>
+              </div>
+            </div>
+
+            <div className="space-y-3 mb-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg bg-bg border border-border p-3">
+                  <p className="text-xs text-muted">{t("profile.myPersonal")}</p>
+                  {links?.personal ? (
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium truncate">{links.personal.name}</p>
+                      <button
+                        onClick={() => handleUnlink("personal")}
+                        className="text-muted hover:text-red-400 transition-colors"
+                        title={t("profile.unlinkBtn")}
+                      >
+                        <Unlink className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted mt-1">{t("profile.noneLinked")}</p>
+                  )}
+                </div>
+                <div className="rounded-lg bg-bg border border-border p-3">
+                  <p className="text-xs text-muted">{t("profile.myNutritionist")}</p>
+                  {links?.nutritionist ? (
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium truncate">{links.nutritionist.name}</p>
+                      <button
+                        onClick={() => handleUnlink("nutritionist")}
+                        className="text-muted hover:text-red-400 transition-colors"
+                        title={t("profile.unlinkBtn")}
+                      >
+                        <Unlink className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted mt-1">{t("profile.noneLinked")}</p>
+                  )}
+                </div>
+              </div>
+              <p className="text-xs text-muted">{t("profile.linkAll")}</p>
+            </div>
+
+            <div className="space-y-3">
+              <Input
+                label={t("auth.referralCode")}
+                placeholder={t("profile.linkPlaceholder")}
+                value={linkCode}
+                onChange={(e) => setLinkCode(e.target.value)}
+              />
+              <Select
+                label={t("profile.linkAs")}
+                value={linkType}
+                onChange={(e) => setLinkType(e.target.value as "personal" | "nutritionist")}
+                options={[
+                  { value: "personal", label: t("profile.myPersonal") },
+                  { value: "nutritionist", label: t("profile.myNutritionist") },
+                ]}
+              />
+              <Button icon={<Link2 className="w-4 h-4" />} onClick={handleLink} loading={linking} disabled={!linkCode.trim()}>
+                {t("profile.linkBtn")}
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        <Card className="p-6">
+          <div className="flex items-start gap-3 mb-3">
+            <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center text-accent shrink-0">
+              {pushEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+            </div>
+            <div>
+              <p className="text-sm font-semibold">{t("profile.pushTitle")}</p>
+              <p className="text-xs text-muted mt-0.5">{t("profile.pushSubtitle")}</p>
+            </div>
+          </div>
+          <Button
+            variant={pushEnabled ? "secondary" : "primary"}
+            icon={pushEnabled ? <BellOff className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
+            onClick={handlePushToggle}
+            loading={pushBusy}
+          >
+            {pushEnabled ? t("profile.pushDisable") : t("profile.pushEnable")}
+          </Button>
+          <p className="text-xs text-muted mt-3">{t("profile.pushIosNote")}</p>
         </Card>
 
         <Card className="p-6">

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromRequest } from "@/lib/auth";
+import { sendPushToUser } from "@/lib/push";
 
 function startOfToday(): Date {
   const now = new Date();
@@ -88,6 +89,12 @@ export async function POST(
               },
             },
           });
+          await sendPushToUser(
+            dietPlan.trainerId,
+            "FitPro",
+            `Refeicao marcada: ${dietPlan.student.name} consumiu ${meal.name}`,
+            "/dashboard"
+          );
         }
       }
 

@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { LANGS } from "@/lib/i18n/dictionaries";
 import { api } from "@/lib/api";
+import { usePermissions } from "@/components/providers/PermissionsProvider";
 
 interface HeaderProps {
   title: string;
@@ -67,6 +68,8 @@ export function Header({ title, onMenuToggle, user, onLogout }: HeaderProps) {
   const notifRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const { lang, setLang, t } = useLanguage();
+  const { can } = usePermissions();
+  const isProfessional = user?.role === "PERSONAL" || user?.role === "NUTRITIONIST";
 
   const loadNotifications = useCallback(async () => {
     if (!user) return;
@@ -310,7 +313,7 @@ const isWorkout = n.type === "WORKOUT_COMPLETED";
                   <UserIcon className="w-4 h-4" />
                   {t("header.profile")}
                 </button>
-                {user.role === "PERSONAL" && (
+                {isProfessional && can("billing") && (
                   <button
                     onClick={() => {
                       setDropdownOpen(false);

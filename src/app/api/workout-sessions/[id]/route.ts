@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromRequest } from "@/lib/auth";
+import { sendPushToUser } from "@/lib/push";
 
 export async function GET(
   request: NextRequest,
@@ -157,6 +158,12 @@ export async function PUT(
           },
         },
       });
+      await sendPushToUser(
+        workout.trainerId,
+        "FitPro",
+        `Treino concluido: ${student.name} terminou ${workout.name}`,
+        "/dashboard"
+      );
     }
   }
 

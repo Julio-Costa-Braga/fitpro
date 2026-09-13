@@ -18,7 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
-type UserRole = "ADMIN" | "PERSONAL" | "STUDENT" | undefined;
+type UserRole = "ADMIN" | "PERSONAL" | "NUTRITIONIST" | "STUDENT" | undefined;
 
 interface NavItem {
   href: string;
@@ -27,7 +27,7 @@ interface NavItem {
   icon: React.ReactNode;
 }
 
-const allNavItems: { items: NavItem[]; roles?: UserRole[] }[] = [
+const allNavItems: { items: NavItem[]; roles?: UserRole[]; module?: string }[] = [
   {
     items: [{ href: "/dashboard", label: "Dashboard", labelKey: "nav.dashboard", icon: <LayoutDashboard className="w-5 h-5" /> }],
   },
@@ -37,7 +37,8 @@ const allNavItems: { items: NavItem[]; roles?: UserRole[] }[] = [
   },
   {
     items: [{ href: "/students", label: "Alunos", labelKey: "nav.students", icon: <Users className="w-5 h-5" /> }],
-    roles: ["ADMIN", "PERSONAL"],
+    roles: ["ADMIN", "PERSONAL", "NUTRITIONIST"],
+    module: "students",
   },
   {
     items: [
@@ -46,6 +47,7 @@ const allNavItems: { items: NavItem[]; roles?: UserRole[] }[] = [
       { href: "/progress", label: "Progresso", labelKey: "nav.progress", icon: <TrendingUp className="w-5 h-5" /> },
       { href: "/exercises", label: "Exercicios", labelKey: "nav.exercises", icon: <Library className="w-5 h-5" /> },
     ],
+    module: "workouts",
   },
 ];
 
@@ -53,9 +55,10 @@ interface SidebarProps {
   open: boolean;
   onClose: () => void;
   role?: UserRole;
+  permissions?: string[];
 }
 
-export function Sidebar({ open, onClose, role }: SidebarProps) {
+export function Sidebar({ open, onClose, role, permissions = [] }: SidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const { t } = useLanguage();
@@ -64,6 +67,18 @@ export function Sidebar({ open, onClose, role }: SidebarProps) {
     .flatMap((section) => section.items)
     .filter((item) => {
       const section = allNavItems.find((s) => s.items.includes(item));
+      if (section?.module === "workouts") {
+        const moduleByHref: Record<string, string> = {
+          "/workouts": "workouts",
+          "/diets": "diets",
+          "/progress": "progress",
+          "/exercises": "exercises",
+        };
+        return permissions.includes(moduleByHref[item.href]);
+      }
+      if (section?.module) {
+        return permissions.includes(section.module);
+      }
       return !section?.roles || (role && section.roles.includes(role));
     });
 

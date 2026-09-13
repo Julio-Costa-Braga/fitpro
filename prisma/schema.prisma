@@ -10,6 +10,7 @@ datasource db {
 enum UserRole {
   ADMIN
   PERSONAL
+  NUTRITIONIST
   STUDENT
 }
 
@@ -38,11 +39,18 @@ model User {
 
   // Personal trainer -> students
   students      Student[] @relation("PersonalTrainer")
+  nutritionStudents Student[] @relation("StudentNutritionist")
   managedWorkouts Workout[]
   managedDiets    DietPlan[]
   workoutTemplates WorkoutTemplate[]
   dietTemplates    DietTemplate[]
   weekTemplates    WeekTemplate[]
+
+  // Profissional que registrou o progresso
+  progressBy    ProgressLog[] @relation("ProgressBy")
+
+  // Web Push
+  pushSubscriptions PushSubscription[]
 
   // Student -> trainer (self-referential)
   trainerId     String?
@@ -85,6 +93,10 @@ model Student {
 
   personalId String?
   personal   User?   @relation("PersonalTrainer", fields: [personalId], references: [id])
+
+  // Nutricionista do aluno (aluno pode ter personal E nutricionista)
+  nutritionistId String?
+  nutritionist   User?   @relation("StudentNutritionist", fields: [nutritionistId], references: [id])
 
   // Vínculo com a conta de login do aluno
   userId String? @unique
@@ -365,6 +377,10 @@ model ProgressLog {
 
   studentId String
   student   Student @relation(fields: [studentId], references: [id])
+
+  // Profissional que registrou (personal ou nutricionista)
+  professionalId String?
+  professional   User? @relation("ProgressBy", fields: [professionalId], references: [id], onDelete: SetNull)
 }
 
 model Notification {
@@ -407,4 +423,28 @@ model MealLog {
   dietPlan   DietPlan @relation(fields: [dietPlanId], references: [id], onDelete: Cascade)
 
   @@index([studentId, date])
+}
+
+// Web Push: aparelhos registrados para receber notificacoes em segundo plano
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// Permissoes por modulo e perfil (configuradas no admin)
+model ModulePermission {
+  id        String   @id @default(cuid())
+  role      UserRole
+  module    String
+  enabled   Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+
+  @@unique([role, module])
 }

@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (user.role !== "PERSONAL") {
+    if (user.role !== "PERSONAL" && user.role !== "NUTRITIONIST") {
       return NextResponse.json(
         { error: "Only trainers can view stats" },
         { status: 403 }
@@ -18,6 +18,10 @@ export async function GET(request: NextRequest) {
 
     const trainerId = user.userId;
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const studentScope =
+      user.role === "NUTRITIONIST"
+        ? { nutritionistId: trainerId }
+        : { personalId: trainerId };
 
     const [
       totalStudents,
@@ -26,11 +30,11 @@ export async function GET(request: NextRequest) {
       recentSessions,
       studentsWithRecentActivity,
     ] = await Promise.all([
-      prisma.student.count({ where: { personalId: trainerId } }),
+      prisma.student.count({ where: studentScope }),
       prisma.workout.count({ where: { trainerId, isActive: true } }),
       prisma.dietPlan.count({ where: { trainerId, isActive: true } }),
       prisma.workoutSession.findMany({
-        where: { student: { personalId: trainerId } },
+        where: { student: studentScope },
         include: {
           workout: true,
           student: true,
@@ -40,7 +44,7 @@ export async function GET(request: NextRequest) {
       }),
       prisma.student.findMany({
         where: {
-          personalId: trainerId,
+          ...studentScope,
           sessions: { some: { date: { gte: sevenDaysAgo } } },
         },
         select: {

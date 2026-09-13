@@ -51,7 +51,7 @@ export default function BillingPage() {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user || user.role !== "PERSONAL") {
+    if (!user || (user.role !== "PERSONAL" && user.role !== "NUTRITIONIST")) {
       router.replace("/dashboard");
       setLoading(false);
       return;
@@ -98,16 +98,19 @@ export default function BillingPage() {
     );
   }
 
-  if (!user || user.role !== "PERSONAL") return null;
+  if (!user || (user.role !== "PERSONAL" && user.role !== "NUTRITIONIST")) return null;
 
   const plan = data?.plan;
 
   const hasDiscount = (plan?.referralDiscountMonths ?? 0) > 0;
   const planPrice = plan?.monthlyPrice ?? MONTHLY_FEE;
-  const fee = hasDiscount ? planPrice - REFERRAL_DISCOUNT : planPrice;
+  const fee = plan?.totalFee ?? (hasDiscount ? planPrice - REFERRAL_DISCOUNT : planPrice);
+  const baseFee = plan?.lifetime ? 0 : plan?.baseFee ?? planPrice;
+  const extraStudents = plan?.extraStudents ?? 0;
+  const extraFee = plan?.extraFee ?? 0;
   const limit = plan?.studentLimit ?? 10;
   const studentsCount = data?.studentsCount ?? 0;
-  const full = studentsCount >= limit;
+  const full = !plan?.lifetime && studentsCount >= limit;
 
   return (
     <AppLayout title={t("bill.title")}>
@@ -138,13 +141,39 @@ export default function BillingPage() {
             </p>
             <p className="text-xs text-muted mt-1">
               {t("dash.studentsUsed", { studentsCount, limit, s: limit !== 1 ? "s" : "" })}
-              {full && <span className="text-red-400 font-medium">{t("dash.limitReached")}</span>}
+              {full && extraStudents === 0 && <span className="text-red-400 font-medium">{t("dash.limitReached")}</span>}
               {hasDiscount && (
                 <span className="text-green-400 font-medium">
                   {t("dash.referralDiscount", { amount: REFERRAL_DISCOUNT.toFixed(2).replace(".", ",") })}
                 </span>
               )}
             </p>
+
+            <div className="mt-2 rounded-lg bg-bg border border-border text-xs p-3 space-y-1">
+              <div className="flex justify-between text-muted">
+                <span>{t("bill.baseFee")}</span>
+                <span>R$ {baseFee.toFixed(2).replace(".", ",")}</span>
+              </div>
+              {hasDiscount && !plan?.lifetime && (
+                <div className="flex justify-between text-green-400">
+                  <span>{t("bill.referralDiscountLine")}</span>
+                  <span>- R$ {REFERRAL_DISCOUNT.toFixed(2).replace(".", ",")}</span>
+                </div>
+              )}
+              {extraStudents > 0 && !plan?.lifetime && (
+                <div className="flex justify-between text-amber-400">
+                  <span>
+                    {t("bill.extraStudents", { n: extraStudents, fee: EXTRA_STUDENT_PRICE.toFixed(2).replace(".", ",") })}
+                  </span>
+                  <span>+ R$ {extraFee.toFixed(2).replace(".", ",")}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-semibold text-white pt-1 border-t border-border">
+                <span>{t("bill.total")}</span>
+                <span>R$ {fee.toFixed(2).replace(".", ",")}</span>
+              </div>
+            </div>
+
             <p className="text-xs text-muted mt-2">{t("dash.payPix")}</p>
 
             <div className="mt-3 flex items-center gap-2 flex-wrap">

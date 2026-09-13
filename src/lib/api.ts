@@ -49,7 +49,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: "ADMIN" | "PERSONAL" | "STUDENT";
+  role: "ADMIN" | "PERSONAL" | "NUTRITIONIST" | "STUDENT";
   avatarUrl?: string;
   phone?: string;
   mustChangePassword?: boolean;
@@ -73,7 +73,7 @@ export interface AdminAccount {
   id: string;
   name: string;
   email: string;
-  role: "PERSONAL" | "STUDENT";
+  role: "PERSONAL" | "NUTRITIONIST" | "STUDENT";
   isActive: boolean;
   lifetime: boolean;
   paidUntil: string | null;
@@ -107,6 +107,11 @@ export interface BillingInfo {
     monthlyPrice: number;
     referralCode: string | null;
     referralDiscountMonths: number;
+    role?: "PERSONAL" | "NUTRITIONIST";
+    extraStudents: number;
+    baseFee: number;
+    extraFee: number;
+    totalFee: number;
   };
   studentsCount: number;
   payments: PaymentRecord[];
@@ -191,7 +196,7 @@ export const api = {
       name: string;
       email: string;
       password: string;
-      role: "PERSONAL" | "STUDENT";
+      role: "PERSONAL" | "NUTRITIONIST" | "STUDENT";
       referralCode?: string;
     }) =>
       request<AuthResponse>("/api/auth/register", {
@@ -204,7 +209,7 @@ export const api = {
       email: string;
       password: string;
       phone?: string;
-      role: "PERSONAL" | "STUDENT";
+      role: "PERSONAL" | "NUTRITIONIST" | "STUDENT";
       trainerId?: string;
     }) =>
       request<{ user: User }>("/api/auth/accounts", {
@@ -229,7 +234,7 @@ export const api = {
       isActive?: boolean;
       lifetime?: boolean;
       addMonth?: boolean;
-      role?: "PERSONAL" | "STUDENT";
+      role?: "PERSONAL" | "NUTRITIONIST" | "STUDENT";
       planUpgrade?: { slots: number; price: number };
     }) => request<{ user: AdminAccount }>(`/api/admin/users/${id}`, { method: "PUT", body: data }),
     deleteUser: (id: string) => request<{ ok: boolean }>(`/api/admin/users/${id}`, { method: "DELETE" }),

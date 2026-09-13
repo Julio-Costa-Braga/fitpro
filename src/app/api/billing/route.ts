@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromRequest } from "@/lib/auth";
+import { REFERRAL_DISCOUNT, EXTRA_STUDENT_PRICE } from "@/lib/billing";
 
 export async function GET(request: NextRequest) {
   const payload = getUserFromRequest(request);
   if (!payload) {
     return NextResponse.json({ error: "Nao autenticado" }, { status: 401 });
   }
-  if (payload.role !== "PERSONAL") {
+  if (!payload || (payload.role !== "PERSONAL" && payload.role !== "NUTRITIONIST")) {
     return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
   }
 
@@ -28,8 +29,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Usuario nao encontrado" }, { status: 404 });
     }
 
+    const isProfessional = payload.role === "PERSONAL" || payload.role === "NUTRITIONIST";
     const [studentsCount, payments] = await Promise.all([
-      prisma.student.count({ where: { personalId: payload.userId } }),
+      prisma.student.count({
+        where: isProfessional
+          ? {
+              OR: [
+                { personalId: payload.userId },
+                { nutritionistId: payload.userId },
+              ],
+            }
+          : { userId: payload.userId },
+      }),
       prisma.payment.findMany({
         where: { userId: payload.userId },
         orderBy: { createdAt: "desc" },
@@ -37,7 +48,24 @@ export async function GET(request: NextRequest) {
       }),
     ]);
 
-    return NextResponse.json({ plan: user, studentsCount, payments });
+    const extraStudents = Math.max(0, studentsCount - user.studentLimit);
+    const hasDiscount = user.referralDiscountMonths > 0;
+    const baseFee = user.lifetime ? 0 : hasDiscount ? user.monthlyPrice - REFERRAL_DISCOUNT : user.monthlyPrice;
+    const extraFee = user.lifetime ? 0 : extraStudents * EXTRA_STUDENT_PRICE;
+    const totalFee = user.lifetime ? 0 : baseFee + extraFee;
+
+    return NextResponse.json({
+      plan: {
+        ...user,
+        extraStudents,
+        baseFee,
+        extraFee,
+        totalFee,
+        role: payload.role,
+      },
+      studentsCount,
+      payments,
+    });
   } catch (error) {
     console.error("Billing error:", error);
     return NextResponse.json(

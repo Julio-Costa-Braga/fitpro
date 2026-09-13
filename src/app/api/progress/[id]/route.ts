@@ -21,8 +21,14 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
       return NextResponse.json({ error: "Progress log not found" }, { status: 404 });
     }
 
-    if (user.role === "PERSONAL") {
-      if (progressLog.student.personalId !== user.userId) {
+    if (user.role === "PERSONAL" || user.role === "NUTRITIONIST") {
+      const owned =
+        user.role === "NUTRITIONIST"
+          ? progressLog.student.nutritionistId === user.userId
+          : progressLog.student.personalId === user.userId;
+      const ownsLog =
+        !progressLog.professionalId || progressLog.professionalId === user.userId;
+      if (!owned || !ownsLog) {
         return NextResponse.json({ error: "Progress log not found" }, { status: 404 });
       }
     } else if (user.role === "STUDENT") {
@@ -59,8 +65,14 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
       return NextResponse.json({ error: "Progress log not found" }, { status: 404 });
     }
 
-    if (user.role === "PERSONAL") {
-      if (progressLog.student.personalId !== user.userId) {
+    if (user.role === "PERSONAL" || user.role === "NUTRITIONIST") {
+      const owned =
+        user.role === "NUTRITIONIST"
+          ? progressLog.student.nutritionistId === user.userId
+          : progressLog.student.personalId === user.userId;
+      const ownsLog =
+        !progressLog.professionalId || progressLog.professionalId === user.userId;
+      if (!owned || !ownsLog) {
         return NextResponse.json({ error: "Progress log not found" }, { status: 404 });
       }
     } else if (user.role === "STUDENT") {
@@ -113,8 +125,14 @@ export async function DELETE(request: NextRequest, { params }: RouteContext) {
       return NextResponse.json({ error: "Progress log not found" }, { status: 404 });
     }
 
-    if (user.role === "PERSONAL") {
-      if (progressLog.student.personalId !== user.userId) {
+    if (user.role === "PERSONAL" || user.role === "NUTRITIONIST") {
+      const owned =
+        user.role === "NUTRITIONIST"
+          ? progressLog.student.nutritionistId === user.userId
+          : progressLog.student.personalId === user.userId;
+      const ownsLog =
+        !progressLog.professionalId || progressLog.professionalId === user.userId;
+      if (!owned || !ownsLog) {
         return NextResponse.json({ error: "Progress log not found" }, { status: 404 });
       }
     } else if (user.role === "STUDENT") {

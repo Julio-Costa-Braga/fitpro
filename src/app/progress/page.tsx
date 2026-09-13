@@ -29,6 +29,7 @@ interface ProgressLog {
   arm: number | null;
   thigh: number | null;
   notes: string | null;
+  professional?: { id: string; name: string; role: "PERSONAL" | "NUTRITIONIST" } | null;
 }
 
 interface ProgressResponse {
@@ -103,6 +104,7 @@ export default function ProgressPage() {
     weight: "", bodyFat: "", chest: "", waist: "", arm: "", thigh: "", notes: "",
   });
   const [saving, setSaving] = useState(false);
+  const [progressTab, setProgressTab] = useState<"personal" | "nutritionist">("personal");
 
   useEffect(() => {
     if (authLoading) return;
@@ -193,7 +195,22 @@ export default function ProgressPage() {
     );
   }
 
-  const weightEntries = progress.filter((p) => p.weight);
+  const personalLogs = progress.filter(
+    (p) => !p.professional || p.professional.role === "PERSONAL"
+  );
+  const nutritionLogs = progress.filter(
+    (p) => p.professional?.role === "NUTRITIONIST"
+  );
+  const isStudentBoth =
+    user?.role === "STUDENT" &&
+    personalLogs.length > 0 &&
+    nutritionLogs.length > 0;
+  const viewProgress: ProgressLog[] = isStudentBoth
+    ? progressTab === "personal"
+      ? personalLogs
+      : nutritionLogs
+    : progress;
+  const weightEntries = viewProgress.filter((p) => p.weight);
   const latestWeight = weightEntries.length > 0 ? weightEntries[0].weight : null;
   const firstWeight = weightEntries.length > 0 ? weightEntries[weightEntries.length - 1].weight : null;
   const weightDiff = latestWeight && firstWeight ? latestWeight - firstWeight : null;
@@ -315,14 +332,29 @@ export default function ProgressPage() {
 
         {selectedStudentId && !loadingProgress && (
           <>
-            {latestWeight && (
+            {isStudentBoth && (
+              <div className="flex flex-wrap gap-2">
+                <Button variant={progressTab === "personal" ? "primary" : "secondary"} size="sm" onClick={() => setProgressTab("personal")}>
+                  {t("prog.tabPersonal")}
+                </Button>
+                <Button variant={progressTab === "nutritionist" ? "primary" : "secondary"} size="sm" onClick={() => setProgressTab("nutritionist")}>
+                  {t("prog.tabNutritionist")}
+                </Button>
+              </div>
+            )}
+            {isStudentBoth && viewProgress.length === 0 && (
+              <Card className="p-5">
+                <p className="text-sm text-muted">{t("prog.nothingByProfessional")}</p>
+              </Card>
+            )}
+            {!isStudentBoth && latestWeight && (
               <div className="grid grid-cols-3 gap-3">
                 <Card className="p-4 text-center">
                   <p className="text-2xl font-bold">{latestWeight}kg</p>
                   <p className="text-xs text-muted mt-1">{t("prog.currentWeight")}</p>
                 </Card>
                 <Card className="p-4 text-center">
-                  <p className="text-2xl font-bold">{progress[0]?.bodyFat ? `${progress[0].bodyFat}%` : "-"}</p>
+                  <p className="text-2xl font-bold">{viewProgress[0]?.bodyFat ? `${viewProgress[0].bodyFat}%` : "-"}</p>
                   <p className="text-xs text-muted mt-1">{t("prog.measure.bodyFat")}</p>
                 </Card>
                 <Card className="p-4 text-center">
@@ -334,7 +366,7 @@ export default function ProgressPage() {
               </div>
             )}
 
-            {progress.length > 1 && (
+            {viewProgress.length > 1 && (
               <Card className="p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <Calculator className="w-4 h-4 text-accent" />
@@ -342,8 +374,8 @@ export default function ProgressPage() {
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {MEASURES.map((m) => {
-                    const latest = progress.find((x) => x[m.key]);
-                    const first = [...progress].reverse().find((x) => x[m.key]);
+                    const latest = viewProgress.find((x) => x[m.key]);
+                    const first = [...viewProgress].reverse().find((x) => x[m.key]);
                     if (!latest || !first || latest[m.key] == null || first[m.key] == null) return null;
                     const value = (latest[m.key] as number) - (first[m.key] as number);
                     return (
@@ -392,17 +424,17 @@ export default function ProgressPage() {
               </Card>
             )}
 
-            {progress.length === 0 && !loadingProgress && (
+            {viewProgress.length === 0 && !loadingProgress && (
               <Card className="p-8 text-center">
                 <TrendingUp className="w-8 h-8 text-muted mx-auto mb-2" />
                 <p className="text-muted text-sm">{t("prog.noRecords")}</p>
               </Card>
             )}
 
-            {progress.length > 0 && (
+            {viewProgress.length > 0 && (
               <div className="relative pl-6">
                 <div className="absolute left-2 top-0 bottom-0 w-px bg-border" />
-                {progress.map((p, index) => (
+                {viewProgress.map((p, index) => (
                   <div key={p.id} className="relative mb-4">
                     <div className="absolute -left-4 top-4 w-2.5 h-2.5 rounded-full bg-accent border-2 border-bg" />
                     <Card className="p-4 ml-2">
@@ -452,12 +484,12 @@ export default function ProgressPage() {
                           </div>
                         )}
                       </div>
-                      {index < progress.length - 1 && (
+                      {index < viewProgress.length - 1 && (
                         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted mt-2 pt-2 border-t border-border/60">
                           <span className="text-muted/80">{t("prog.vsPrevious")}</span>
                           {MEASURES.map((m) => {
                             const current = p[m.key];
-                            const prev = progress[index + 1][m.key];
+                            const prev = viewProgress[index + 1][m.key];
                             if (current == null || prev == null) return null;
                             const diff = (current as number) - (prev as number);
                             return (

@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromRequest } from "@/lib/auth";
+import { sendPushToUser } from "@/lib/push";
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,14 +23,27 @@ export async function GET(request: NextRequest) {
           ? { id: studentId }
           : user.role === "PERSONAL"
             ? { id: studentId, personalId: user.userId }
-            : { id: studentId, userId: user.userId },
+            : user.role === "NUTRITIONIST"
+              ? { id: studentId, nutritionistId: user.userId }
+              : { id: studentId, userId: user.userId },
     });
     if (!student) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
+    // Cada profissional ve SOMENTE o que ele registrou. Registros legados (professionalId null) sao do personal.
+    const professionalFilter =
+      user.role === "PERSONAL"
+        ? { OR: [{ professionalId: user.userId }, { professionalId: null }] }
+        : user.role === "NUTRITIONIST"
+          ? { professionalId: user.userId }
+          : undefined;
+
     const progressLogs = await prisma.progressLog.findMany({
-      where: { studentId },
+      where: { studentId, ...professionalFilter },
+      include: {
+        professional: { select: { id: true, name: true, role: true } },
+      },
       orderBy: { date: "desc" },
     });
 
@@ -72,7 +86,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (user.role !== "PERSONAL" && user.role !== "ADMIN") {
+    if (user.role !== "PERSONAL" && user.role !== "NUTRITIONIST" && user.role !== "ADMIN") {
       return NextResponse.json(
         { error: "Acesso negado" },
         { status: 403 }
@@ -83,7 +97,9 @@ export async function POST(request: NextRequest) {
       where:
         user.role === "ADMIN"
           ? { id: studentId }
-          : { id: studentId, personalId: user.userId },
+          : user.role === "PERSONAL"
+            ? { id: studentId, personalId: user.userId }
+            : { id: studentId, nutritionistId: user.userId },
     });
     if (!student) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
@@ -101,6 +117,7 @@ export async function POST(request: NextRequest) {
         notes,
         photoUrl,
         studentId,
+        professionalId: user.role === "ADMIN" ? null : user.userId,
       },
     });
 
@@ -117,6 +134,14 @@ export async function POST(request: NextRequest) {
           },
         },
       });
+      await sendPushToUser(
+        student.userId,
+        "FitPro",
+        user.role === "NUTRITIONIST"
+          ? "Sua nutricionista registrou novo progresso."
+          : "Seu personal registrou novo progresso.",
+        "/progress"
+      );
     }
 
     return NextResponse.json(progressLog, { status: 201 });

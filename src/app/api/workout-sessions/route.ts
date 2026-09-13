@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromRequest } from "@/lib/auth";
+import { sendPushToUser } from "@/lib/push";
 import { getDayLetter, getDayName } from "@/lib/utils";
 
 export async function GET(request: NextRequest) {
@@ -163,6 +164,12 @@ export async function POST(request: NextRequest) {
             },
           },
         });
+        await sendPushToUser(
+          workout.trainerId,
+          "FitPro",
+          `Mudanca de treino: ${student.name} iniciou ${workout.name}`,
+          "/dashboard"
+        );
       }
     }
   }

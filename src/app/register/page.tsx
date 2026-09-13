@@ -16,6 +16,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [referralCode, setReferralCode] = useState("");
+  const [role, setRole] = useState<"PERSONAL" | "NUTRITIONIST">("PERSONAL");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -29,7 +30,7 @@ export default function RegisterPage() {
     setError("");
     setLoading(true);
     try {
-      await register({ name, email, password, role: "PERSONAL", referralCode: referralCode.trim() || undefined });
+      await register({ name, email, password, role, referralCode: referralCode.trim() || undefined });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : t("auth.registerTitle");
       setError(msg);
@@ -159,11 +160,37 @@ export default function RegisterPage() {
               <p className="text-xs text-muted">{t("auth.referralCodeHint")}</p>
             </div>
 
-            <div className="flex items-center gap-2.5 bg-card border border-border rounded-lg px-4 py-3">
-              <span className="text-sm">&#129469;</span>
-              <div>
-                <p className="text-sm font-medium">{t("auth.personalTrainer")}</p>
-                <p className="text-xs text-muted">{t("auth.personalOnlyNote")}</p>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-muted">
+                {t("auth.chooseRole")}
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRole("PERSONAL")}
+                  className={`flex items-center gap-2.5 bg-card border rounded-lg px-3 py-3 text-left transition-colors ${
+                    role === "PERSONAL" ? "border-accent bg-accent/10" : "border-border"
+                  }`}
+                >
+                  <span className="text-sm">&#129469;</span>
+                  <div>
+                    <p className="text-sm font-medium">{t("auth.personalTrainer")}</p>
+                    <p className="text-xs text-muted">{t("auth.personalOnlyNote")}</p>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRole("NUTRITIONIST")}
+                  className={`flex items-center gap-2.5 bg-card border rounded-lg px-3 py-3 text-left transition-colors ${
+                    role === "NUTRITIONIST" ? "border-accent bg-accent/10" : "border-border"
+                  }`}
+                >
+                  <span className="text-sm">&#129367;</span>
+                  <div>
+                    <p className="text-sm font-medium">{t("auth.nutritionist")}</p>
+                    <p className="text-xs text-muted">{t("auth.nutritionOnlyNote")}</p>
+                  </div>
+                </button>
               </div>
             </div>
 

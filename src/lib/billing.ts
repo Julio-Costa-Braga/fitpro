@@ -14,3 +14,25 @@ export function trialUntil(date = new Date()): Date {
 export function monthlyFeeFor(hasReferralDiscount: boolean): number {
   return hasReferralDiscount ? MONTHLY_FEE - REFERRAL_DISCOUNT : MONTHLY_FEE;
 }
+
+// Fatura automatica: acima do limite, cada aluno excedente soma R$2/mes (nao vale para vitalicio).
+export function extraStudentsFee(
+  studentsCount: number,
+  studentLimit: number,
+  lifetime: boolean
+): number {
+  if (lifetime) return 0;
+  const extra = Math.max(0, studentsCount - studentLimit);
+  return extra * EXTRA_STUDENT_PRICE;
+}
+
+export function totalMonthlyFee(
+  studentsCount: number,
+  studentLimit: number,
+  monthlyPrice: number,
+  hasReferralDiscount: boolean,
+  lifetime: boolean
+): number {
+  if (lifetime) return extraStudentsFee(studentsCount, studentLimit, true);
+  return monthlyPrice - (hasReferralDiscount ? REFERRAL_DISCOUNT : 0) + extraStudentsFee(studentsCount, studentLimit, false);
+}

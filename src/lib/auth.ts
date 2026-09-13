@@ -8,7 +8,7 @@ if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
   throw new Error("JWT_SECRET environment variable is required in production");
 }
 
-export type UserRole = "ADMIN" | "PERSONAL" | "STUDENT";
+export type UserRole = "ADMIN" | "PERSONAL" | "NUTRITIONIST" | "STUDENT";
 
 export interface TokenPayload {
   userId: string;

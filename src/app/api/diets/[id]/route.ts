@@ -30,7 +30,8 @@ async function canAccessDiet(
   diet: { trainerId: string; student?: { userId?: string | null; personalId?: string | null } | null }
 ): Promise<boolean> {
   if (user.role === "ADMIN") return true;
-  if (user.role === "PERSONAL") return diet.trainerId === user.userId;
+  if (user.role === "PERSONAL" || user.role === "NUTRITIONIST")
+    return diet.trainerId === user.userId;
   if (user.role === "STUDENT") {
     if (diet.trainerId === user.userId) return false;
     const student = diet.student;

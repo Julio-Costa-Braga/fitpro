@@ -48,7 +48,9 @@ export async function GET(request: NextRequest) {
           ? { id: studentId }
           : user.role === "PERSONAL"
             ? { id: studentId, personalId: user.userId }
-            : { id: studentId, userId: user.userId },
+            : user.role === "NUTRITIONIST"
+              ? { id: studentId, nutritionistId: user.userId }
+              : { id: studentId, userId: user.userId },
     });
     if (!student) {
       return NextResponse.json(
@@ -129,7 +131,9 @@ export async function POST(request: NextRequest) {
           ? { id: studentId }
           : user.role === "PERSONAL"
             ? { id: studentId, personalId: user.userId }
-            : { id: studentId, userId: user.userId },
+            : user.role === "NUTRITIONIST"
+              ? { id: studentId, nutritionistId: user.userId }
+              : { id: studentId, userId: user.userId },
     });
     if (!student) {
       return NextResponse.json(

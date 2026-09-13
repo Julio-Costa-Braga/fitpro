@@ -6,7 +6,7 @@ export default async function BillingLayout({ children }: { children: React.Reac
   const cookieStore = await cookies();
   const token = cookieStore.get(TOKEN_COOKIE_NAME)?.value;
   const payload = token ? verifyToken(token) : null;
-  if (!payload || payload.role !== "PERSONAL") {
+  if (!payload || (payload.role !== "PERSONAL" && payload.role !== "NUTRITIONIST")) {
     redirect("/dashboard");
   }
   return <>{children}</>;

@@ -32,13 +32,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Cadastro publico cria apenas PERSONAL. Alunos sao criados pelo personal.
-    if (role && role !== "PERSONAL") {
+    // Cadastro publico cria PERSONAL ou NUTRITIONIST. Alunos sao criados pelos profissionais.
+    if (role && role !== "PERSONAL" && role !== "NUTRITIONIST") {
       return NextResponse.json(
-        { error: "Somente personal trainers podem se cadastrar" },
+        { error: "Somente Personal Trainers e Nutricionistas podem se cadastrar" },
         { status: 400 }
       );
     }
+    const registeredRole = role === "NUTRITIONIST" ? "NUTRITIONIST" : "PERSONAL";
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
@@ -70,7 +71,7 @@ export async function POST(request: NextRequest) {
         name,
         email,
         password: hashedPassword,
-        role: "PERSONAL",
+        role: registeredRole,
         referralCode: generateReferralCode(name),
         referredByUserId,
         referralDiscountMonths: 0,

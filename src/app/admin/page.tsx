@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import {
   Loader2, Shield, Users, UserPlus, User, Mail, X, Power, Star, CalendarPlus,
   Trash2, Infinity as InfinityIcon, Ban, CheckCircle2, LayoutDashboard, CreditCard, Dumbbell,
+  Apple,
 } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { api, type AdminAccount } from "@/lib/api";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { MODULES, DEFAULT_PERMISSIONS, MODULE_LABEL_KEYS, type ModuleName } from "@/lib/permissions";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -61,10 +63,12 @@ export default function AdminPage() {
     email: "",
     password: "",
     phone: "",
-    role: "STUDENT" as "PERSONAL" | "STUDENT",
+    role: "STUDENT" as "PERSONAL" | "NUTRITIONIST" | "STUDENT",
     trainerId: "",
   });
-  const [tab, setTab] = useState<"overview" | "contas" | "personais" | "alunos">("contas");
+  const [tab, setTab] = useState<"overview" | "contas" | "personais" | "alunos" | "permissoes">("contas");
+  const [perms, setPerms] = useState<Record<string, Record<string, boolean>>>({});
+  const [permsLoading, setPermsLoading] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -73,7 +77,29 @@ export default function AdminPage() {
       return;
     }
     loadOverview();
+    loadPermissions();
   }, [user, authLoading, router]);
+
+  async function loadPermissions() {
+    try {
+      const data = await api.get<{ roles: Record<string, Record<string, boolean>> }>("/api/admin/permissions");
+      setPerms(data.roles);
+    } catch {
+      setError(t("admin.errLoad"));
+    }
+  }
+
+  async function togglePermission(role: string, module: ModuleName, enabled: boolean) {
+    setPermsLoading(true);
+    try {
+      await api.put("/api/admin/permissions", { role, module, enabled });
+      setPerms((p) => ({ ...p, [role]: { ...p[role], [module]: enabled } }));
+    } catch {
+      setError(t("admin.errLoad"));
+    } finally {
+      setPermsLoading(false);
+    }
+  }
 
   async function loadOverview() {
     try {
@@ -233,6 +259,7 @@ export default function AdminPage() {
             { id: "contas", label: t("admin.tabAccounts"), icon: CreditCard },
             { id: "personais", label: t("admin.tabTrainers"), icon: Dumbbell },
             { id: "alunos", label: t("nav.students"), icon: Users },
+            { id: "permissoes", label: t("admin.tabPermissions"), icon: Shield },
           ] as const).map((tb) => {
             const active = tab === tb.id;
             return (
@@ -298,7 +325,7 @@ export default function AdminPage() {
                 return (
                   <Card key={acc.id} className="p-4 flex flex-col gap-3">
                     <div className="flex items-start gap-3">
-                      <div className={`w-9 h-9 rounded-full flex items-center justify-center font-semibold text-sm shrink-0 ${acc.role === "PERSONAL" ? "bg-accent/15 text-accent" : "bg-green-500/15 text-green-400"}`}>
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center font-semibold text-sm shrink-0 ${acc.role === "PERSONAL" ? "bg-accent/15 text-accent" : acc.role === "NUTRITIONIST" ? "bg-purple-500/15 text-purple-400" : "bg-green-500/15 text-green-400"}`}>
                         {acc.name.charAt(0).toUpperCase()}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -311,10 +338,18 @@ export default function AdminPage() {
 
                     <div className="flex flex-wrap gap-1.5">
                       <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1 ${
-                        acc.role === "PERSONAL" ? "bg-accent/15 text-accent" : "bg-green-500/15 text-green-400"
+                        acc.role === "PERSONAL" ? "bg-accent/15 text-accent" : acc.role === "NUTRITIONIST" ? "bg-purple-500/15 text-purple-400" : "bg-green-500/15 text-green-400"
                       }`}>
-                        {acc.role === "PERSONAL" ? <Dumbbell className="w-3 h-3" /> : <User className="w-3 h-3" />}
-                        {acc.role === "PERSONAL" ? t("admin.rolePersonal") : t("admin.roleStudent")}
+                        {acc.role === "PERSONAL"
+                          ? <Dumbbell className="w-3 h-3" />
+                          : acc.role === "NUTRITIONIST"
+                            ? <Apple className="w-3 h-3" />
+                            : <User className="w-3 h-3" />}
+                        {acc.role === "PERSONAL"
+                          ? t("admin.rolePersonal")
+                          : acc.role === "NUTRITIONIST"
+                            ? t("admin.roleNutritionist")
+                            : t("admin.roleStudent")}
                       </span>
                       <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
                         acc.isActive ? "bg-blue-500/15 text-blue-400" : "bg-red-500/15 text-red-400"
@@ -500,6 +535,43 @@ export default function AdminPage() {
         </div>
         )}
 
+        {tab === "permissoes" && (
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Shield className="w-4 h-4 text-accent" />
+              <h2 className="text-lg font-semibold">{t("perm.title")}</h2>
+            </div>
+            <p className="text-sm text-muted mb-4">{t("perm.subtitle")}</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {(["NUTRITIONIST", "PERSONAL", "STUDENT"] as const).map((role) => (
+                <Card key={role} className="p-5">
+                  <p className="font-semibold mb-3">{t(`perm.role${role}`)}</p>
+                  <div className="space-y-2">
+                    {MODULES.map((m) => {
+                      const enabled = perms[role]?.[m] ?? DEFAULT_PERMISSIONS[role][m];
+                      return (
+                        <button
+                          key={m}
+                          disabled={permsLoading}
+                          onClick={() => togglePermission(role, m, !enabled)}
+                          className="w-full flex items-center justify-between gap-2 py-2 px-3 rounded-lg border border-border hover:border-muted transition-all"
+                        >
+                          <span className="text-sm font-medium">{t(MODULE_LABEL_KEYS[m])}</span>
+                          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${
+                            enabled ? "bg-green-500/15 text-green-400" : "bg-card border border-border text-muted"
+                          }`}>
+                            {enabled ? t("perm.enabled") : t("perm.disabled")}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
         <Modal
           open={showModal}
           onClose={() => setShowModal(false)}
@@ -510,7 +582,7 @@ export default function AdminPage() {
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted">{t("auth.accountType")}</label>
               <div className="flex gap-2">
-                {(["STUDENT", "PERSONAL"] as const).map((r) => (
+                {(["STUDENT", "PERSONAL", "NUTRITIONIST"] as const).map((r) => (
                   <button
                     key={r}
                     onClick={() => setForm((f) => ({ ...f, role: r, trainerId: "" }))}
@@ -520,7 +592,7 @@ export default function AdminPage() {
                         : "bg-card border-border text-muted hover:border-muted"
                     }`}
                   >
-                    {r === "STUDENT" ? t("admin.roleStudent") : t("admin.rolePersonal")}
+                    {r === "STUDENT" ? t("admin.roleStudent") : r === "PERSONAL" ? t("admin.rolePersonal") : t("admin.roleNutritionist")}
                   </button>
                 ))}
               </div>
