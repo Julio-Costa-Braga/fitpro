@@ -14,7 +14,7 @@ interface LanguageCtx {
 }
 
 const LanguageContext = createContext<LanguageCtx>({
-  lang: "pt",
+  lang: "pt-br",
   setLang: () => {},
   t: (k) => k,
   tExerciseName: (name) => name,
@@ -23,13 +23,18 @@ const LanguageContext = createContext<LanguageCtx>({
 const STORAGE_KEY = "fitpro-lang";
 
 function getInitialLang(): Lang {
-  if (typeof window === "undefined") return "pt";
+  if (typeof window === "undefined") return "pt-br";
   const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored === "en" || stored === "es" || stored === "pt") return stored;
+  if (stored === "en" || stored === "es" || stored === "pt-br" || stored === "pt-pt") return stored;
+  if (stored === "pt") return "pt-br";
   const nav = navigator.language.toLowerCase();
   if (nav.startsWith("en")) return "en";
   if (nav.startsWith("es")) return "es";
-  return "pt";
+  if (nav.startsWith("pt")) {
+    if (nav.includes("pt-pt")) return "pt-pt";
+    return "pt-br";
+  }
+  return "pt-br";
 }
 
 let dictionariesPromise: Promise<typeof import("./dictionaries").dictionaries> | null = null;
@@ -41,16 +46,13 @@ function loadDicts() {
 }
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLangState] = useState<Lang>("pt");
-  const [ready, setReady] = useState(false);
+  const [lang, setLangState] = useState<Lang>("pt-br");
   const [dicts, setDicts] = useState<Record<Lang, Dict> | null>(null);
 
   useEffect(() => {
-    setLangState(getInitialLang());
-    loadDicts().then((d) => {
-      setDicts(d);
-      setReady(true);
-    });
+    const id = setTimeout(() => setLangState(getInitialLang()), 0);
+    loadDicts().then((d) => setDicts(d));
+    return () => clearTimeout(id);
   }, []);
 
   const setLang = useCallback((l: Lang) => {
@@ -61,7 +63,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const t: T = useCallback(
     (key, args) => {
       if (!dicts) return key;
-      let val = dicts[lang][key] ?? dicts.pt[key] ?? key;
+      let val = dicts[lang][key] ?? dicts["pt-br"][key] ?? key;
       if (args) {
         for (const [k, v] of Object.entries(args)) {
           val = val.replace(new RegExp(`\\{${k}\\}`, "g"), String(v));
@@ -74,7 +76,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   const tExerciseName = useCallback(
     (name: string) => {
-      if (lang === "pt") return name;
+      if (lang === "pt-br" || lang === "pt-pt") return name;
       return EXERCISE_NAMES[name]?.[lang] ?? name;
     },
     [lang]

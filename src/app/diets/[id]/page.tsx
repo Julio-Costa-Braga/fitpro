@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { dateLocale } from "@/lib/i18n/dictionaries";
 
 interface MealFood {
   id: string;
@@ -97,7 +98,7 @@ function todayEatenIds(logs: { mealId: string; date: string }[]): Set<string> {
 
 export default function DietDetailPage() {
   const { user, loading: authLoading } = useAuth();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const router = useRouter();
   const params = useParams();
   const dietId = params.id as string;
@@ -372,8 +373,8 @@ export default function DietDetailPage() {
               </div>
               <p className="text-sm text-muted">{t("diet.studentPrefix", { name: diet.student.name })}</p>
               <div className="flex gap-4 text-xs text-muted mt-2">
-                {diet.startDate && <span>{t("diet.startLabel")} {new Date(diet.startDate).toLocaleDateString("pt-BR")}</span>}
-                {diet.endDate && <span>{t("diet.endLabel")} {new Date(diet.endDate).toLocaleDateString("pt-BR")}</span>}
+                {diet.startDate && <span>{t("diet.startLabel")} {new Date(diet.startDate).toLocaleDateString(dateLocale(lang))}</span>}
+                {diet.endDate && <span>{t("diet.endLabel")} {new Date(diet.endDate).toLocaleDateString(dateLocale(lang))}</span>}
               </div>
             </div>
             {user?.role !== "STUDENT" && (

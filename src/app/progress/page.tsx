@@ -13,6 +13,7 @@ import { Select } from "@/components/ui/Select";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { dateLocale } from "@/lib/i18n/dictionaries";
 
 interface Student {
   id: string;
@@ -281,7 +282,7 @@ export default function ProgressPage() {
                       ? t("prog.dueNow")
                       : t("prog.scheduled", {
                           date: new Date(nextReviewDate).toLocaleDateString(
-                            lang === "pt" ? "pt-BR" : lang === "en" ? "en-US" : "es-ES",
+                            dateLocale(lang),
                             {
                               day: "2-digit",
                               month: "long",
@@ -406,7 +407,7 @@ export default function ProgressPage() {
                     return (
                       <div key={p.id} className="flex items-center gap-3 text-xs">
                         <span className="w-20 text-muted shrink-0">
-                          {new Date(p.date).toLocaleDateString(lang === "pt" ? "pt-BR" : lang === "en" ? "en-US" : "es-ES", { day: "2-digit", month: "2-digit", year: "2-digit" })}
+                          {new Date(p.date).toLocaleDateString(dateLocale(lang), { day: "2-digit", month: "2-digit", year: "2-digit" })}
                         </span>
                         <div className="flex-1 bg-bg rounded-full h-5 overflow-hidden relative">
                           <div
@@ -439,7 +440,7 @@ export default function ProgressPage() {
                     <div className="absolute -left-4 top-4 w-2.5 h-2.5 rounded-full bg-accent border-2 border-bg" />
                     <Card className="p-4 ml-2">
                       <div className="flex items-center justify-between gap-2 mb-2">
-                        <p className="text-xs text-muted">{new Date(p.date).toLocaleDateString(lang === "pt" ? "pt-BR" : lang === "en" ? "en-US" : "es-ES", { day: "2-digit", month: "long", year: "numeric" })}</p>
+                        <p className="text-xs text-muted">{new Date(p.date).toLocaleDateString(dateLocale(lang), { day: "2-digit", month: "long", year: "numeric" })}</p>
                         {index === 0 ? (
                           <Badge variant="success">{t("prog.sortRecent")}</Badge>
                         ) : (

@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Tabs } from "@/components/ui/Tabs";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
-import { dayOfWeekKeys } from "@/lib/i18n/dictionaries";
+import { dayOfWeekKeys, dateLocale } from "@/lib/i18n/dictionaries";
 import Link from "next/link";
 
 interface Student {
@@ -197,7 +197,7 @@ export default function WorkoutsPage() {
   const isToday = (d: number) =>
     d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
   const monthRaw = new Date(year, month, 1).toLocaleDateString(
-    lang === "pt" ? "pt-BR" : lang,
+    dateLocale(lang),
     { month: "long", year: "numeric" }
   );
   const monthTitle = monthRaw.charAt(0).toUpperCase() + monthRaw.slice(1);

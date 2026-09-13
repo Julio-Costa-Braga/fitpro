@@ -1,15 +1,28 @@
-export type Lang = "pt" | "en" | "es";
+export type Lang = "pt-br" | "pt-pt" | "en" | "es";
 
 export const LANGS: { code: Lang; label: string }[] = [
-  { code: "pt", label: "Português" },
+  { code: "pt-br", label: "Português (Brasil)" },
+  { code: "pt-pt", label: "Português (Portugal)" },
   { code: "en", label: "English" },
   { code: "es", label: "Español" },
 ];
 
 export type Dict = Record<string, string>;
 
-export const dictionaries: Record<Lang, Dict> = {
-  pt: {
+export function dateLocale(lang: Lang): string {
+  switch (lang) {
+    case "pt-br":
+      return "pt-BR";
+    case "pt-pt":
+      return "pt-PT";
+    case "en":
+      return "en-US";
+    case "es":
+      return "es-ES";
+  }
+}
+
+const ptBr: Dict = {
     "nav.dashboard": "Dashboard",
     "nav.admin": "Administração",
     "nav.students": "Alunos",
@@ -666,8 +679,52 @@ export const dictionaries: Record<Lang, Dict> = {
     "stu.form.thigh": "Coxa (cm)",
     "stu.form.notes": "Observacoes",
     "stu.form.notesPlaceholder": "Notas sobre o progresso...",
-  },
+  };
 
+const ptPtOverrides: Dict = {
+  // Portugal: adaptacoes de vocabulario (palavra-passe, ecra, pesquisa, fatura...)
+  "header.logout": "Terminar sessão",
+  "header.changePassword": "Alterar palavra-passe",
+  "header.billing": "Fatura",
+  "common.back": "Voltar",
+  "common.next": "Seguinte",
+  "common.cancel": "Cancelar",
+  "common.delete": "Eliminar",
+  "common.search": "Pesquisar",
+  "common.save": "Guardar",
+  "common.optional": "opcional",
+  "common.active": "Ativo",
+  "common.inactive": "Inativo",
+  "auth.login": "Iniciar sessão",
+  "auth.passwordLabel": "Palavra-passe",
+  "auth.passwordPlaceholder": "A sua palavra-passe",
+  "auth.passwordMin": "Mínimo de 8 caracteres",
+  "auth.emailLabel": "Email",
+  "auth.signup": "Registar",
+  "auth.register": "Criar conta",
+  "auth.accountType": "Tipo de conta",
+  "auth.referralCode": "Indicado por (código)",
+  "auth.referralCodePlaceholder": "Código de quem o indicou",
+  "profile.billingSection": "Fatura",
+  "nav.students": "Alunos",
+  "diet.title": "Planos Alimentares",
+  "diet.newPlan": "Novo Plano",
+  "diet.empty": "Nenhum plano alimentar criado",
+  "admin.panelTitle": "Painel de Administração",
+  "admin.subtitle": "Gestão de contas, planos e permissões",
+  "admin.createAccount": "Criar conta",
+  "admin.deactivate": "Desativar",
+  "admin.activate": "Ativar",
+  "admin.recordPayment": "Registar pagamento",
+  "common.lifetime": "Vitalício",
+  "admin.subscription": "Assinatura",
+};
+
+const ptPt: Dict = { ...ptBr, ...ptPtOverrides };
+
+export const dictionaries: Record<Lang, Dict> = {
+  "pt-br": ptBr,
+  "pt-pt": ptPt,
   en: {
     "nav.dashboard": "Dashboard",
     "nav.admin": "Administration",
