@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Menu, LogOut, User as UserIcon, Globe, Check, Bell, CheckCheck, Dumbbell, Apple, Repeat, TrendingUp } from "lucide-react";
+import { Menu, LogOut, User as UserIcon, Globe, Check, Bell, CheckCheck, Dumbbell, Apple, Repeat, TrendingUp, Receipt, KeyRound } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
@@ -300,6 +300,40 @@ const isWorkout = n.type === "WORKOUT_COMPLETED";
                 <p className="text-xs text-muted truncate">{user.email}</p>
               </div>
               <div className="py-1">
+                <button
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    router.push("/profile");
+                  }}
+                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-muted hover:text-white hover:bg-[#222] transition-colors"
+                >
+                  <UserIcon className="w-4 h-4" />
+                  {t("header.profile")}
+                </button>
+                {user.role === "PERSONAL" && (
+                  <button
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      router.push("/billing");
+                    }}
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-muted hover:text-white hover:bg-[#222] transition-colors"
+                  >
+                    <Receipt className="w-4 h-4" />
+                    {t("header.billing")}
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    router.push("/change-password");
+                  }}
+                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-muted hover:text-white hover:bg-[#222] transition-colors"
+                >
+                  <KeyRound className="w-4 h-4" />
+                  {t("header.changePassword")}
+                </button>
+              </div>
+              <div className="border-t border-border py-1">
                 <button
                   onClick={() => {
                     setDropdownOpen(false);

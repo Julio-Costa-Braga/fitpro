@@ -123,6 +123,15 @@ export default function AdminPage() {
   async function addMonth(acc: AdminAccount) {
     await updateAccount(acc.id, { addMonth: true, isActive: true });
   }
+  async function recordPayment(acc: AdminAccount) {
+    setError("");
+    try {
+      await api.billing.recordPayment(acc.id, { status: "PAID" });
+      await loadOverview();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t("admin.errUpdate"));
+    }
+  }
 
   async function removeAccount(acc: AdminAccount) {
     if (!window.confirm(t("admin.confirmDelete", { name: acc.name }))) return;
@@ -403,6 +412,20 @@ export default function AdminPage() {
                         </Button>
                         <Button size="sm" variant="secondary" className="flex-1" onClick={() => upgradePlan(acc, 10, PACK10_PRICE)}>
                           {t("admin.upgradeSlots10", { fee: PACK10_PRICE.toFixed(2).replace(".", ",") })}
+                        </Button>
+                      </div>
+                    )}
+
+                    {acc.role === "PERSONAL" && (
+                      <div className="border-t border-border pt-2">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          icon={<CreditCard className="w-3.5 h-3.5" />}
+                          className="w-full"
+                          onClick={() => recordPayment(acc)}
+                        >
+                          {t("admin.recordPayment")}
                         </Button>
                       </div>
                     )}

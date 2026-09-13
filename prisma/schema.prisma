@@ -19,6 +19,11 @@ enum StudentLevel {
   AVANCADO
 }
 
+enum PaymentStatus {
+  PAID
+  PENDING
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String
@@ -64,6 +69,7 @@ model User {
   monthlyPrice Int @default(22)
 
   notifications Notification[]
+  payments     Payment[] @relation("UserPayments")
 }
 
 model Student {
@@ -370,6 +376,19 @@ model Notification {
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model Payment {
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation("UserPayments", fields: [userId], references: [id], onDelete: Cascade)
+  amount    Int           @default(22)
+  status    PaymentStatus @default(PENDING)
+  reference String?
+  paidAt    DateTime?
+  createdAt DateTime      @default(now())
 
   @@index([userId, createdAt])
 }

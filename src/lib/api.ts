@@ -88,6 +88,30 @@ export interface AdminAccount {
   monthlyPrice: number;
 }
 
+export type PaymentStatus = "PAID" | "PENDING";
+
+export interface PaymentRecord {
+  id: string;
+  amount: number;
+  status: PaymentStatus;
+  reference: string | null;
+  paidAt: string | null;
+  createdAt: string;
+}
+
+export interface BillingInfo {
+  plan: {
+    lifetime: boolean;
+    paidUntil: string | null;
+    studentLimit: number;
+    monthlyPrice: number;
+    referralCode: string | null;
+    referralDiscountMonths: number;
+  };
+  studentsCount: number;
+  payments: PaymentRecord[];
+}
+
 export interface WeekTemplateDay {
   id: string;
   weekday: string;
@@ -215,6 +239,24 @@ export const api = {
     get: () => request<StatsResponse>("/api/stats"),
     getStudent: (studentId: string) =>
       request<StudentStatsResponse>(`/api/stats/student?studentId=${studentId}`),
+  },
+
+  billing: {
+    get: () => request<BillingInfo>("/api/billing"),
+    recordPayment: (userId: string, data: {
+      status?: "PAID" | "PENDING";
+      reference?: string;
+      amount?: number;
+    }) =>
+      request<{ payment: PaymentRecord }>("/api/billing/payments", {
+        method: "POST",
+        body: { userId, ...data },
+      }),
+  },
+
+  profile: {
+    update: (data: { avatarUrl?: string | null; name?: string }) =>
+      request<{ user: User }>("/api/profile", { method: "PUT", body: data }),
   },
 
   weekTemplates: {

@@ -20,14 +20,8 @@ import {
   Calendar,
   TrendingUp,
   ChevronRight,
-  QrCode,
-  Copy,
-  Check,
-  Gift,
-  Star,
   ListChecks,
 } from "lucide-react";
-import { MONTHLY_FEE, EXTRA_STUDENT_PRICE, PACK5_PRICE, PACK10_PRICE, REFERRAL_DISCOUNT, REFERRAL_DISCOUNT_MONTHS, PIX_KEY } from "@/lib/billing";
 
 function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) {
   return (
@@ -39,150 +33,6 @@ function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string
         <div>
           <p className="text-sm text-muted">{label}</p>
           <p className="text-xl font-bold">{value}</p>
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-function StatusPill({ value, tone }: { value: string; tone: "green" | "red" | "gold" | "blue" }) {
-  const tones = {
-    green: "bg-green-500/15 text-green-400",
-    red: "bg-red-500/15 text-red-400",
-    gold: "bg-amber-500/15 text-amber-400",
-    blue: "bg-blue-500/15 text-blue-400",
-  };
-  return (
-    <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full shrink-0 ${tones[tone]}`}>
-      {value}
-    </span>
-  );
-}
-
-function BillingBanner({ studentsCount = 0 }: { studentsCount?: number }) {
-  const { user } = useAuth();
-  const { t, lang } = useLanguage();
-  const [copied, setCopied] = useState<"pix" | "code" | null>(null);
-
-  if (!user) return null;
-  if (user.role !== "PERSONAL") return null;
-
-  let pill: { value: string; tone: "green" | "red" | "gold" | "blue" } | null = null;
-  if (user.lifetime) {
-    pill = { value: t("common.lifetime"), tone: "gold" };
-  } else if (user.paidUntil) {
-    const paid = new Date(user.paidUntil).getTime() >= Date.now();
-    pill = paid
-      ? {
-          value: t("dash.paidUntil", {
-            date: new Date(user.paidUntil).toLocaleDateString(lang === "pt" ? "pt-BR" : lang === "en" ? "en-US" : "es-ES"),
-          }),
-          tone: "green",
-        }
-      : { value: t("dash.latePayment"), tone: "red" };
-  } else {
-    pill = { value: t("dash.noPayment"), tone: "red" };
-  }
-
-  const hasDiscount = (user.referralDiscountMonths ?? 0) > 0;
-  const planPrice = user.monthlyPrice ?? MONTHLY_FEE;
-  const fee = hasDiscount ? planPrice - REFERRAL_DISCOUNT : planPrice;
-  const limit = user.studentLimit ?? 10;
-  const full = studentsCount >= limit;
-
-  async function copy(text: string, key: "pix" | "code") {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(key);
-      setTimeout(() => setCopied(null), 1500);
-    } catch {
-      /* ignore */
-    }
-  }
-
-  return (
-    <Card className="p-5 border-accent/20">
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center text-accent shrink-0">
-            <QrCode className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <p className="font-semibold flex items-center gap-2">
-              {t("dash.planLine", { limit, s: limit !== 1 ? "s" : "", fee: fee.toFixed(2).replace(".", ",") })}
-              {pill && <StatusPill {...pill} />}
-            </p>
-            <p className="text-xs text-muted mt-1">
-              {t("dash.studentsUsed", { studentsCount, limit, s: limit !== 1 ? "s" : "" })}
-              {full && <span className="text-red-400 font-medium">{t("dash.limitReached")}</span>}
-              {hasDiscount && (
-                <span className="text-green-400 font-medium">{t("dash.referralDiscount", { amount: REFERRAL_DISCOUNT.toFixed(2).replace(".", ",") })}</span>
-              )}
-            </p>
-            <p className="text-xs text-muted mt-1">
-              {t("dash.payPix")}
-            </p>
-            <div className="mt-2 flex items-center gap-2 flex-wrap">
-              <code className="text-xs bg-bg border border-border rounded-md px-2 py-1 font-mono break-all">
-                {PIX_KEY}
-              </code>
-              <button
-                onClick={() => copy(PIX_KEY, "pix")}
-                className="inline-flex items-center gap-1 text-xs font-medium text-accent hover:text-accent-hover transition-colors shrink-0"
-              >
-                {copied === "pix" ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                {copied === "pix" ? t("common.copied") : t("common.copy")}
-              </button>
-              <Link
-                href="/pix"
-                className="inline-flex items-center gap-1 text-xs font-medium text-muted hover:text-white transition-colors shrink-0"
-              >
-                {t("dash.seeCard")} &#8599;
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-3 lg:border-l lg:border-border lg:pl-5">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center text-accent shrink-0">
-              <Gift className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="font-semibold text-sm flex items-center gap-1.5">
-                <Star className="w-4 h-4 text-amber-400" />
-                {t("dash.referralProgram")}
-              </p>
-              <p className="text-xs text-muted mt-0.5">
-                {hasDiscount
-                  ? t("dash.referralGot", { amount: REFERRAL_DISCOUNT.toFixed(2).replace(".", ","), months: REFERRAL_DISCOUNT_MONTHS })
-                  : t("dash.referralInvite", { amount: REFERRAL_DISCOUNT.toFixed(2).replace(".", ","), months: REFERRAL_DISCOUNT_MONTHS })}
-              </p>
-              {user.referralCode && (
-                <div className="mt-1.5 flex items-center gap-2">
-                  <code className="text-xs bg-bg border border-border rounded-md px-2 py-1 font-mono">
-                    {user.referralCode}
-                  </code>
-                  <button
-                    onClick={() => copy(user.referralCode!, "code")}
-                    className="inline-flex items-center gap-1 text-xs font-medium text-accent hover:text-accent-hover transition-colors shrink-0"
-                  >
-                    {copied === "code" ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    {copied === "code" ? t("common.copied") : t("common.copy")}
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="text-[11px] text-muted bg-bg rounded-lg p-3 space-y-1">
-            <p className="font-semibold text-muted">{t("dash.planTable")}</p>
-            <p>{t("dash.tableRow1", { fee: MONTHLY_FEE.toFixed(2).replace(".", ",") })}</p>
-            <p>{t("dash.tableRow2", { fee: EXTRA_STUDENT_PRICE.toFixed(2).replace(".", ",") })}</p>
-            <p>{t("dash.tableRow3", { fee: PACK5_PRICE.toFixed(2).replace(".", ",") })}</p>
-            <p>{t("dash.tableRow4", { fee: PACK10_PRICE.toFixed(2).replace(".", ",") })}</p>
-            <p className="text-muted/70 pt-1">{t("dash.tableNote")}</p>
-          </div>
         </div>
       </div>
     </Card>
@@ -522,11 +372,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="mb-6">
-        {user.role === "PERSONAL" && (
-          <BillingBanner studentsCount={trainerStats?.totalStudents ?? 0} />
-        )}
-      </div>
+      <div className="mb-6"></div>
 
       {user.role === "PERSONAL" && trainerStats && (
         <TrainerDashboard stats={trainerStats} />
