@@ -53,6 +53,7 @@ export default function BillingPage() {
     if (authLoading) return;
     if (!user || user.role !== "PERSONAL") {
       router.replace("/dashboard");
+      setLoading(false);
       return;
     }
     api.billing
