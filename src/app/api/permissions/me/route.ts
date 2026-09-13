@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromRequest } from "@/lib/auth";
-import { MODULES, MODULE_ROLES, DEFAULT_PERMISSIONS, mergePermissions } from "@/lib/permissions";
+import { MODULES, buildEffectiveModules } from "@/lib/permissions";
 
 export async function GET(request: NextRequest) {
   const payload = getUserFromRequest(request);
@@ -14,12 +14,17 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const stored = await prisma.modulePermission.findMany({
-      where: { role: payload.role },
-      select: { module: true, enabled: true },
-    });
-    const perms = mergePermissions(DEFAULT_PERMISSIONS[payload.role] ?? {}, stored);
-    const modules = MODULES.filter((m) => perms[m]);
+    const [byRole, byUser] = await Promise.all([
+      prisma.modulePermission.findMany({
+        where: { role: payload.role },
+        select: { module: true, enabled: true },
+      }),
+      prisma.userPermission.findMany({
+        where: { userId: payload.userId },
+        select: { module: true, enabled: true },
+      }),
+    ]);
+    const modules = buildEffectiveModules(payload.role, byRole, byUser);
     return NextResponse.json({ modules });
   } catch (error) {
     console.error("Permissions me error:", error);

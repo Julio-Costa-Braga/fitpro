@@ -66,6 +66,7 @@ export async function GET(request: NextRequest) {
           orderBy: { order: "asc" },
           include: { foods: true },
         },
+        trainer: { select: { id: true, name: true, role: true } },
       },
       orderBy: { createdAt: "desc" },
     });

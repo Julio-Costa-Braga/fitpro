@@ -69,6 +69,14 @@ export default function AdminPage() {
   const [tab, setTab] = useState<"overview" | "contas" | "personais" | "alunos" | "permissoes">("contas");
   const [perms, setPerms] = useState<Record<string, Record<string, boolean>>>({});
   const [permsLoading, setPermsLoading] = useState(false);
+  const [permUser, setPermUser] = useState<AdminAccount | null>(null);
+  const [userPermData, setUserPermData] = useState<{
+    role: string;
+    rolePerms: Record<string, boolean>;
+    overrides: Record<string, boolean>;
+    effective: Record<string, boolean>;
+  } | null>(null);
+  const [userPermBusy, setUserPermBusy] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -98,6 +106,45 @@ export default function AdminPage() {
       setError(t("admin.errLoad"));
     } finally {
       setPermsLoading(false);
+    }
+  }
+
+  async function openUserPerms(acc: AdminAccount) {
+    setPermUser(acc);
+    setUserPermData(null);
+    try {
+      const data = await api.get<{
+        role: string;
+        rolePerms: Record<string, boolean>;
+        overrides: Record<string, boolean>;
+        effective: Record<string, boolean>;
+      }>(`/api/admin/users/${acc.id}/permissions`);
+      setUserPermData(data);
+    } catch {
+      setError(t("admin.errLoad"));
+    }
+  }
+
+  async function saveUserPerm(module: ModuleName, value: boolean | "default") {
+    if (!permUser) return;
+    setUserPermBusy(true);
+    try {
+      if (value === "default") {
+        await api.delete(`/api/admin/users/${permUser.id}/permissions?module=${module}`);
+      } else {
+        await api.put(`/api/admin/users/${permUser.id}/permissions`, { module, value });
+      }
+      const data = await api.get<{
+        role: string;
+        rolePerms: Record<string, boolean>;
+        overrides: Record<string, boolean>;
+        effective: Record<string, boolean>;
+      }>(`/api/admin/users/${permUser.id}/permissions`);
+      setUserPermData(data);
+    } catch {
+      setError(t("admin.errLoad"));
+    } finally {
+      setUserPermBusy(false);
     }
   }
 
@@ -428,6 +475,14 @@ export default function AdminPage() {
                         </>
                       )}
                       <Button
+                        variant="secondary"
+                        size="sm"
+                        icon={<Shield className="w-3.5 h-3.5" />}
+                        onClick={() => openUserPerms(acc)}
+                      >
+                        {t("admin.permsUser")}
+                      </Button>
+                      <Button
                         variant="danger"
                         size="sm"
                         icon={<Trash2 className="w-3.5 h-3.5" />}
@@ -571,6 +626,67 @@ export default function AdminPage() {
             </div>
           </div>
         )}
+
+        <Modal
+          open={!!permUser}
+          onClose={() => setPermUser(null)}
+          title={permUser ? t("perm.userTitle", { name: permUser.name }) : ""}
+          size="md"
+        >
+          {userPermData ? (
+            <div className="space-y-2">
+              <p className="text-xs text-muted mb-3">
+                {t("perm.userSubtitle", { role: t(`perm.role${userPermData.role}`) })}
+              </p>
+              {MODULES.map((m) => {
+                const choice = m in userPermData.overrides ? (userPermData.overrides[m] ? true : false) : "default";
+                const custom = choice !== "default";
+                const roleDefault = userPermData.rolePerms[m];
+                return (
+                  <div key={m} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border border-border rounded-lg p-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">{t(MODULE_LABEL_KEYS[m])}</span>
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                        roleDefault ? "bg-accent/15 text-accent" : "bg-card border border-border text-muted"
+                      }`}>
+                        {roleDefault ? t("perm.profileVisible") : t("perm.profileHidden")}
+                      </span>
+                      {custom && (
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-purple-500/15 text-purple-400">
+                          {t("perm.custom")}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex gap-1.5">
+                      {([["default", t("perm.default")], [true, t("perm.enabled")], [false, t("perm.disabled")]] as const).map(([v, label]) => (
+                        <button
+                          key={String(v)}
+                          disabled={userPermBusy}
+                          onClick={() => saveUserPerm(m, v)}
+                          className={`px-2.5 py-1.5 rounded-md text-[11px] font-semibold border transition-all ${
+                            choice === v
+                              ? v === true
+                                ? "bg-green-500/15 border-green-500/40 text-green-400"
+                                : v === false
+                                  ? "bg-red-500/15 border-red-500/40 text-red-400"
+                                  : "bg-accent/15 border-accent text-accent"
+                              : "bg-card border-border text-muted hover:border-muted"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-6 h-6 text-accent animate-spin" />
+            </div>
+          )}
+        </Modal>
 
         <Modal
           open={showModal}
