@@ -57,3 +57,15 @@ export function mergePermissions(
   }
   return result;
 }
+
+// Camadas:  DEFAULT_PERMISSIONS[role]  →  ModulePermission(role)  →  UserPermission(userId)
+export function buildEffectiveModules(
+  role: UserRole,
+  roleOverrides: Array<{ module: string; enabled: boolean }>,
+  userOverrides: Array<{ module: string; enabled: boolean }>
+): ModuleName[] {
+  const base = DEFAULT_PERMISSIONS[role] ?? DEFAULT_PERMISSIONS.STUDENT;
+  const byRole = mergePermissions(base, roleOverrides);
+  const byUser = mergePermissions(byRole, userOverrides);
+  return (MODULES as readonly ModuleName[]).filter((m) => byUser[m]);
+}

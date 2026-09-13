@@ -30,6 +30,7 @@ interface DietPlan {
   dailyCarbs: number | null;
   dailyFat: number | null;
   student: { id: string; name: string };
+  trainer?: { id: string; name: string; role: "PERSONAL" | "NUTRITIONIST" } | null;
   meals: { foods: { protein: number | null; carbs: number | null; fat: number | null; calories: number | null }[] }[];
   createdAt: string;
 }
@@ -88,7 +89,7 @@ export default function DietsPage() {
   }, [user, authLoading, router, loadData]);
 
   async function handleCreate() {
-    if (!form.name.trim() || !form.studentId) return;
+    if (!user || !form.name.trim() || !form.studentId) return;
     setCreating(true);
     setError("");
     try {
@@ -99,6 +100,7 @@ export default function DietsPage() {
       });
       const studentName = students.find((s) => s.id === form.studentId)?.name || "";
       data.dietPlan.student = { id: form.studentId, name: studentName };
+      data.dietPlan.trainer = { id: user.id, name: user.name, role: user.role as "PERSONAL" | "NUTRITIONIST" };
       data.dietPlan.meals = [];
       setDiets((prev) => [data.dietPlan, ...prev]);
       setForm({ name: "", description: "", studentId: "" });
@@ -189,7 +191,17 @@ export default function DietsPage() {
                           {t(diet.isActive ? "common.active" : "common.inactive")}
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted">{diet.student.name}</p>
+                      <p className="text-sm text-muted">{t("diet.assignedTo")}{diet.student.name}</p>
+                      {diet.trainer && (
+                        <p className="text-xs text-muted mt-0.5 inline-flex items-center gap-1">
+                          <span className={`px-1.5 py-0.5 rounded-full font-medium text-[10px] ${
+                            diet.trainer.role === "NUTRITIONIST" ? "bg-purple-500/15 text-purple-400" : "bg-accent/15 text-accent"
+                          }`}>
+                            {diet.trainer.role === "NUTRITIONIST" ? t("admin.roleNutritionist") : t("admin.rolePersonal")}
+                          </span>
+                          {diet.trainer.name}
+                        </p>
+                      )}
                       {diet.description && (
                         <p className="text-xs text-muted mt-1 line-clamp-1">{diet.description}</p>
                       )}

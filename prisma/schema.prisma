@@ -52,6 +52,9 @@ model User {
   // Web Push
   pushSubscriptions PushSubscription[]
 
+  // Override de permissoes por pessoa
+  userPermissions  UserPermission[]
+
   // Student -> trainer (self-referential)
   trainerId     String?
   myTrainer     User?     @relation("TrainerOf", fields: [trainerId], references: [id])
@@ -447,4 +450,17 @@ model ModulePermission {
   updatedAt DateTime @updatedAt
 
   @@unique([role, module])
+}
+
+// Override de permissao POR PESSOA (admin pode dar mais/menos acessos que o padrao do perfil)
+model UserPermission {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  module    String
+  enabled   Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, module])
+  @@index([userId])
 }
