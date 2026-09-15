@@ -94,9 +94,9 @@ const ptBr: Dict = {
     "auth.nutritionOnlyNote": "Voce monta planos de dieta para seus alunos",
     "auth.chooseRole": "Meu perfil",
     "auth.heroTagline1": "Para personal trainers e nutricionistas",
-    "auth.heroTagline2": "treino e dieta em um só lugar",
+    "auth.heroTagline2": "Treino e dieta em um só lugar",
     "auth.heroSubtitle":
-      "Sua evolução começa aqui: treinos sob medida, dietas equilibradas e acompanhamento de resultados em uma plataforma completa, bonita e feita para você evoluir todo dia.",
+      "Planos sob medida, acompanhamento de perto e evolução real de cada aluno — tudo em uma plataforma bonita, simples e completa.",
 
     "dash.title": "Dashboard",
     "dash.trainerSubtitle": "Visão geral da sua atividade",
@@ -753,9 +753,9 @@ const ptPt: Dict = {
     "auth.nutritionOnlyNote": "Cria planos de dieta para os seus alunos",
     "auth.chooseRole": "O meu perfil",
     "auth.heroTagline1": "Para personal trainers e nutricionistas",
-    "auth.heroTagline2": "treino e dieta num só lugar",
+    "auth.heroTagline2": "Treino e dieta num só lugar",
     "auth.heroSubtitle":
-      "A sua evolução começa aqui: treinos à medida, dietas equilibradas e acompanhamento de resultados numa plataforma completa, bonita e feita para evoluir todos os dias.",
+      "Planos à medida, acompanhamento de perto e evolução real de cada aluno — tudo numa plataforma bonita, simples e completa.",
 
     "dash.title": "Dashboard",
     "dash.trainerSubtitle": "Visão geral da sua atividade",
@@ -1415,9 +1415,9 @@ export const dictionaries: Record<Lang, Dict> = {
     "auth.nutritionOnlyNote": "You build diet plans for your students",
     "auth.chooseRole": "My profile",
     "auth.heroTagline1": "For personal trainers and nutritionists",
-    "auth.heroTagline2": "training and diet, all in one place",
+    "auth.heroTagline2": "Training and diet, all in one place",
     "auth.heroSubtitle":
-      "Your transformation starts here: custom workouts, balanced diets and progress tracking in one complete, beautiful platform built to make you better every day.",
+      "Custom plans, close tracking and real progress for every client — all on a clean, simple and complete platform.",
 
     "dash.title": "Dashboard",
     "dash.trainerSubtitle": "Overview of your activity",
@@ -2074,9 +2074,9 @@ export const dictionaries: Record<Lang, Dict> = {
     "auth.nutritionOnlyNote": "Tú armas planes de dieta para tus alumnos",
     "auth.chooseRole": "Mi perfil",
     "auth.heroTagline1": "Para entrenadores personales y nutricionistas",
-    "auth.heroTagline2": "entrenamiento y dieta en un solo lugar",
+    "auth.heroTagline2": "Entrenamiento y dieta en un solo lugar",
     "auth.heroSubtitle":
-      "Tu evolución empieza aquí: entrenamientos a medida, dietas equilibradas y seguimiento de resultados en una plataforma completa, bonita y hecha para que mejores cada día.",
+      "Planes a medida, seguimiento cercano y progreso real de cada cliente — todo en una plataforma bonita, sencilla y completa.",
 
     "dash.title": "Panel",
     "dash.trainerSubtitle": "Resumen de tu actividad",
