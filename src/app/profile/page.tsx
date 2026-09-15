@@ -73,6 +73,14 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
+function isStandaloneMode() {
+  if (typeof window === "undefined") return false;
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (navigator as Navigator & { standalone?: boolean }).standalone === true
+  );
+}
+
 export default function ProfilePage() {
   const { user, loading: authLoading, updateUser } = useAuth();
   const { t } = useLanguage();
@@ -98,6 +106,7 @@ export default function ProfilePage() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [guideOpen, setGuideOpen] = useState(false);
   const [guidePlatform, setGuidePlatform] = useState<"android" | "ios">("android");
+  const [installed, setInstalled] = useState(false);
 
   useEffect(() => {
     if (!isStudent || !user) return;
@@ -119,8 +128,22 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (isStandaloneMode() || window.localStorage.getItem("fitpro_app_installed") === "1") {
+      setInstalled(true);
+    }
+    const onInstalled = () => {
+      window.localStorage.setItem("fitpro_app_installed", "1");
+      setInstalled(true);
+      setMessage(t("profile.downloadInstalled"));
+      setError("");
+    };
+    window.addEventListener("appinstalled", onInstalled);
+    return () => window.removeEventListener("appinstalled", onInstalled);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
     const onPrompt = (e: Event) => {
-      e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
     window.addEventListener("beforeinstallprompt", onPrompt);
@@ -267,8 +290,16 @@ export default function ProfilePage() {
   }
 
   function handleAndroidDownload() {
+    if (installed) {
+      setMessage(t("profile.downloadInstalled"));
+      setError("");
+      return;
+    }
     if (deferredPrompt) {
-      void deferredPrompt.prompt();
+      deferredPrompt.prompt().catch(() => {
+        setGuidePlatform("android");
+        setGuideOpen(true);
+      });
       deferredPrompt.userChoice.finally(() => setDeferredPrompt(null));
       return;
     }
@@ -277,6 +308,11 @@ export default function ProfilePage() {
   }
 
   function handleIosDownload() {
+    if (installed) {
+      setMessage(t("profile.downloadInstalled"));
+      setError("");
+      return;
+    }
     setGuidePlatform("ios");
     setGuideOpen(true);
   }
@@ -468,14 +504,21 @@ export default function ProfilePage() {
               <p className="text-xs text-muted mt-0.5">{t("profile.downloadSubtitle")}</p>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Button icon={<Smartphone className="w-4 h-4" />} onClick={handleAndroidDownload}>
-              {t("profile.downloadAndroid")}
-            </Button>
-            <Button variant="secondary" icon={<Apple className="w-4 h-4" />} onClick={handleIosDownload}>
-              {t("profile.downloadIos")}
-            </Button>
-          </div>
+          {installed ? (
+            <div className="rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-sm px-4 py-3 flex items-center gap-2">
+              <Check className="w-4 h-4 shrink-0" />
+              {t("profile.downloadInstalled")}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <Button icon={<Smartphone className="w-4 h-4" />} onClick={handleAndroidDownload}>
+                {t("profile.downloadAndroid")}
+              </Button>
+              <Button variant="secondary" icon={<Apple className="w-4 h-4" />} onClick={handleIosDownload}>
+                {t("profile.downloadIos")}
+              </Button>
+            </div>
+          )}
         </Card>
 
         <Card className="p-6">
