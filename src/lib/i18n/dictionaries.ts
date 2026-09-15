@@ -93,10 +93,10 @@ const ptBr: Dict = {
     "auth.nutritionist": "Nutricionista",
     "auth.nutritionOnlyNote": "Voce monta planos de dieta para seus alunos",
     "auth.chooseRole": "Meu perfil",
-    "auth.heroTagline1": "Gerencie treinos e dietas",
-    "auth.heroTagline2": "como um profissional",
+    "auth.heroTagline1": "Para personal trainers e nutricionistas",
+    "auth.heroTagline2": "treino e dieta em um só lugar",
     "auth.heroSubtitle":
-      "A plataforma completa para personal trainers e alunos. Treinos, dietas, progresso e muito mais.",
+      "A plataforma completa para personal trainers, nutricionistas e alunos. Treinos, dietas, progresso e muito mais.",
 
     "dash.title": "Dashboard",
     "dash.trainerSubtitle": "Visão geral da sua atividade",
@@ -752,10 +752,10 @@ const ptPt: Dict = {
     "auth.nutritionist": "Nutricionista",
     "auth.nutritionOnlyNote": "Cria planos de dieta para os seus alunos",
     "auth.chooseRole": "O meu perfil",
-    "auth.heroTagline1": "Gira treinos e dietas",
-    "auth.heroTagline2": "como um profissional",
+    "auth.heroTagline1": "Para personal trainers e nutricionistas",
+    "auth.heroTagline2": "treino e dieta num só lugar",
     "auth.heroSubtitle":
-      "A plataforma completa para personal trainers e alunos. Treinos, dietas, progresso e muito mais.",
+      "A plataforma completa para personal trainers, nutricionistas e alunos. Treinos, dietas, progresso e muito mais.",
 
     "dash.title": "Dashboard",
     "dash.trainerSubtitle": "Visão geral da sua atividade",
@@ -1414,10 +1414,10 @@ export const dictionaries: Record<Lang, Dict> = {
     "auth.nutritionist": "Nutritionist",
     "auth.nutritionOnlyNote": "You build diet plans for your students",
     "auth.chooseRole": "My profile",
-    "auth.heroTagline1": "Manage workouts and diets",
-    "auth.heroTagline2": "like a professional",
+    "auth.heroTagline1": "For personal trainers and nutritionists",
+    "auth.heroTagline2": "training and diet, all in one place",
     "auth.heroSubtitle":
-      "The complete platform for personal trainers and students. Workouts, diets, progress and more.",
+      "The complete platform for personal trainers, nutritionists and students. Workouts, diets, progress and much more.",
 
     "dash.title": "Dashboard",
     "dash.trainerSubtitle": "Overview of your activity",
@@ -2073,10 +2073,10 @@ export const dictionaries: Record<Lang, Dict> = {
     "auth.nutritionist": "Nutricionista",
     "auth.nutritionOnlyNote": "Tú armas planes de dieta para tus alumnos",
     "auth.chooseRole": "Mi perfil",
-    "auth.heroTagline1": "Gestiona entrenamientos y dietas",
-    "auth.heroTagline2": "como un profesional",
+    "auth.heroTagline1": "Para entrenadores personales y nutricionistas",
+    "auth.heroTagline2": "entrenamiento y dieta en un solo lugar",
     "auth.heroSubtitle":
-      "La plataforma completa para personal trainers y alumnos. Entrenamientos, dietas, progreso y más.",
+      "La plataforma completa para entrenadores personales, nutricionistas y alumnos. Entrenamientos, dietas, progreso y mucho más.",
 
     "dash.title": "Panel",
     "dash.trainerSubtitle": "Resumen de tu actividad",
