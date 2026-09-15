@@ -136,14 +136,18 @@ export default function DietsPage() {
             <p className="text-muted text-sm">{t(diets.length === 1 ? "diet.planCountOne" : "diet.planCountMany", { n: diets.length })}</p>
           </div>
           <div className="flex gap-3">
-            <Link href="/diets/templates">
-              <Button variant="secondary" icon={<Layers className="w-4 h-4" />}>
-                {t("diet.models")}
-              </Button>
-            </Link>
-            <Button icon={<Plus className="w-4 h-4" />} onClick={() => setShowCreate(true)}>
-              {t("diet.newPlan")}
-            </Button>
+            {user?.role !== "STUDENT" && (
+              <>
+                <Link href="/diets/templates">
+                  <Button variant="secondary" icon={<Layers className="w-4 h-4" />}>
+                    {t("diet.models")}
+                  </Button>
+                </Link>
+                <Button icon={<Plus className="w-4 h-4" />} onClick={() => setShowCreate(true)}>
+                  {t("diet.newPlan")}
+                </Button>
+              </>
+            )}
           </div>
         </div>
 

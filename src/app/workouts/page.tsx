@@ -251,17 +251,21 @@ export default function WorkoutsPage() {
             <p className="text-muted text-sm">{t("wk.subtitle")}</p>
           </div>
           <div className="flex gap-3">
-            <Link href="/workouts/templates">
-              <Button variant="secondary" icon={<Layers className="w-4 h-4" />}>
-                {t("wk.model")}
-              </Button>
-            </Link>
-            <Button
-              icon={<Plus className="w-4 h-4" />}
-              onClick={() => setShowCreateModal(true)}
-            >
-              {t("wk.newWorkout")}
-            </Button>
+            {user.role !== "STUDENT" && (
+              <>
+                <Link href="/workouts/templates">
+                  <Button variant="secondary" icon={<Layers className="w-4 h-4" />}>
+                    {t("wk.model")}
+                  </Button>
+                </Link>
+                <Button
+                  icon={<Plus className="w-4 h-4" />}
+                  onClick={() => setShowCreateModal(true)}
+                >
+                  {t("wk.newWorkout")}
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
