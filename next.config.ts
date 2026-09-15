@@ -29,7 +29,7 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
-      "connect-src 'self'",
+      "connect-src 'self' https://static.exercisedb.dev",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
