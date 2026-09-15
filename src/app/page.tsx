@@ -39,11 +39,11 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
       {/* Brand side */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center">
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-accent/30 via-bg to-accent/10 animate-gradient" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,#8A2BE220,transparent_70%)]" />
-        <div className="relative z-10 text-center px-12">
-          <div className="flex items-center justify-center gap-3 mb-6">
+        <div className="relative z-10 w-full px-16 pt-24">
+          <div className="flex items-center gap-3 mb-6">
             <div className="w-14 h-14 rounded-2xl bg-accent/20 flex items-center justify-center">
               <Dumbbell className="w-8 h-8 text-accent" />
             </div>
@@ -61,7 +61,7 @@ export default function LoginPage() {
       </div>
 
       {/* Login form side */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 lg:px-16">
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 lg:px-16 lg:items-start lg:justify-start lg:pt-24">
         {/* Mobile brand */}
         <div className="flex items-center gap-3 mb-10 lg:hidden">
           <div className="w-11 h-11 rounded-xl bg-accent/20 flex items-center justify-center">
