@@ -19,6 +19,8 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
   event.respondWith(
     fetch(event.request)
       .then((response) => {
@@ -40,8 +42,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
-      icon: '/icon.svg',
-      badge: '/icon.svg',
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
       data: { url: data.url },
       vibrate: [100, 50, 100],
     })
