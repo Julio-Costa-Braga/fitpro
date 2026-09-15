@@ -204,6 +204,7 @@ const ptBr: Dict = {
     "profile.guideIosStep2": "Toque no botão Compartilhar (quadrado com seta para cima).",
     "profile.guideIosStep3": "Toque em \"Adicionar à Tela de Início\".",
     "profile.guideIosStep4": "Toque em \"Adicionar\" no canto superior direito.",
+    "profile.downloadInstalled": "Aplicativo instalado! Ele está na tela de início.",
 
     "admin.errLoad": "Erro ao carregar visao geral",
     "admin.errUpdate": "Erro ao atualizar conta",
@@ -318,7 +319,7 @@ const ptBr: Dict = {
     "exlib.muscle.chest": "Peito",
     "exlib.muscle.back": "Costas",
     "exlib.muscle.shoulders": "Ombros",
-    "exlib.muscle.arms": "Bracos",
+    "exlib.muscle.arms": "Braços",
     "exlib.muscle.legs": "Pernas",
     "exlib.muscle.abs": "Abdomen",
     "exlib.muscle.cardio": "Cardio",
@@ -876,6 +877,7 @@ const ptPt: Dict = {
     "profile.guideIosStep2": "Toque no botão Partilhar (quadrado com seta para cima).",
     "profile.guideIosStep3": "Toque em \"Adicionar ao Ecrã Inicial\".",
     "profile.guideIosStep4": "Toque em \"Adicionar\" no canto superior direito.",
+    "profile.downloadInstalled": "Aplicação instalada! Está no ecrã inicial.",
 
     "admin.errLoad": "Erro ao carregar a visão geral",
     "admin.errUpdate": "Erro ao atualizar conta",
@@ -1551,6 +1553,7 @@ export const dictionaries: Record<Lang, Dict> = {
     "profile.guideIosStep2": "Tap the Share button (square with an up arrow).",
     "profile.guideIosStep3": "Tap \"Add to Home Screen\".",
     "profile.guideIosStep4": "Tap \"Add\" in the top right corner.",
+    "profile.downloadInstalled": "App installed! It's on your home screen.",
 
     "admin.errLoad": "Error loading overview",
     "admin.errUpdate": "Error updating account",
@@ -2223,6 +2226,7 @@ export const dictionaries: Record<Lang, Dict> = {
     "profile.guideIosStep2": "Toca el botón Compartir (cuadrado con flecha hacia arriba).",
     "profile.guideIosStep3": "Toca \"Añadir a la Pantalla de Inicio\".",
     "profile.guideIosStep4": "Toca \"Añadir\" en la esquina superior derecha.",
+    "profile.downloadInstalled": "¡Aplicación instalada! Está en la pantalla de inicio.",
 
     "admin.errLoad": "Error al cargar la vista general",
     "admin.errUpdate": "Error al actualizar la cuenta",

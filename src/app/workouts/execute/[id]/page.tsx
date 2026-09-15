@@ -9,6 +9,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { useMuscleLabel } from "@/lib/muscle";
 
 interface CompletedExercise {
   id: string;
@@ -87,6 +88,7 @@ export default function WorkoutExecutePage() {
   const router = useRouter();
   const params = useParams();
   const { t, tExerciseName } = useLanguage();
+  const muscleLabel = useMuscleLabel();
   const sessionId = params.id as string;
 
   const [session, setSession] = useState<Session | null>(null);
@@ -389,7 +391,7 @@ export default function WorkoutExecutePage() {
               )}
               <div>
                 <h2 className="text-xl font-bold">{tExerciseName(currentGroup.exerciseName)}</h2>
-                <p className="text-sm text-muted">{currentGroup.muscleGroup}</p>
+                <p className="text-sm text-muted">{muscleLabel(currentGroup.muscleGroup)}</p>
                 {currentAlternative && (
                   <p className="text-xs text-accent/90 mt-1 flex items-start gap-1">
                     <Repeat className="w-3.5 h-3.5 mt-0.5 shrink-0" />
