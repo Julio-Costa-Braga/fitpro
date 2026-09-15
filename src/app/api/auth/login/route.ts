@@ -6,9 +6,10 @@ import { checkRateLimit, clientIp } from "@/lib/rateLimit";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password } = body;
+    const { email = "", password } = body;
+    const emailNormalized = String(email).trim().toLowerCase();
 
-    if (!email || !password) {
+    if (!emailNormalized || !password) {
       return NextResponse.json(
         { error: "Email e senha sao obrigatorios" },
         { status: 400 }
@@ -17,7 +18,7 @@ export async function POST(request: NextRequest) {
 
     const ip = clientIp(request);
     const ipLimit = checkRateLimit(`login:ip:${ip}`);
-    const emailLimit = checkRateLimit(`login:email:${String(email).toLowerCase()}`);
+    const emailLimit = checkRateLimit(`login:email:${emailNormalized}`);
     if (!ipLimit.allowed || !emailLimit.allowed) {
       const retryAfterSec = Math.max(ipLimit.retryAfterSec, emailLimit.retryAfterSec);
       return NextResponse.json(
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: { email: emailNormalized },
       include: { referredByUser: { select: { id: true, name: true } } },
     });
     if (!user) {

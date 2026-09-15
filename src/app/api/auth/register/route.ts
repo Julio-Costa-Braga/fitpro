@@ -8,7 +8,8 @@ import { checkRateLimit, clientIp } from "@/lib/rateLimit";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, email, password, role, referralCode } = body;
+    const { name, password, role, referralCode } = body;
+    const email = String(body.email ?? "").trim().toLowerCase();
 
     if (!name || !email || !password) {
       return NextResponse.json(
