@@ -96,7 +96,7 @@ const ptBr: Dict = {
     "auth.heroTagline1": "Para personal trainers e nutricionistas",
     "auth.heroTagline2": "treino e dieta em um só lugar",
     "auth.heroSubtitle":
-      "A plataforma completa para personal trainers, nutricionistas e alunos. Treinos, dietas, progresso e muito mais.",
+      "Sua evolução começa aqui: treinos sob medida, dietas equilibradas e acompanhamento de resultados em uma plataforma completa, bonita e feita para você evoluir todo dia.",
 
     "dash.title": "Dashboard",
     "dash.trainerSubtitle": "Visão geral da sua atividade",
@@ -755,7 +755,7 @@ const ptPt: Dict = {
     "auth.heroTagline1": "Para personal trainers e nutricionistas",
     "auth.heroTagline2": "treino e dieta num só lugar",
     "auth.heroSubtitle":
-      "A plataforma completa para personal trainers, nutricionistas e alunos. Treinos, dietas, progresso e muito mais.",
+      "A sua evolução começa aqui: treinos à medida, dietas equilibradas e acompanhamento de resultados numa plataforma completa, bonita e feita para evoluir todos os dias.",
 
     "dash.title": "Dashboard",
     "dash.trainerSubtitle": "Visão geral da sua atividade",
@@ -1417,7 +1417,7 @@ export const dictionaries: Record<Lang, Dict> = {
     "auth.heroTagline1": "For personal trainers and nutritionists",
     "auth.heroTagline2": "training and diet, all in one place",
     "auth.heroSubtitle":
-      "The complete platform for personal trainers, nutritionists and students. Workouts, diets, progress and much more.",
+      "Your transformation starts here: custom workouts, balanced diets and progress tracking in one complete, beautiful platform built to make you better every day.",
 
     "dash.title": "Dashboard",
     "dash.trainerSubtitle": "Overview of your activity",
@@ -2076,7 +2076,7 @@ export const dictionaries: Record<Lang, Dict> = {
     "auth.heroTagline1": "Para entrenadores personales y nutricionistas",
     "auth.heroTagline2": "entrenamiento y dieta en un solo lugar",
     "auth.heroSubtitle":
-      "La plataforma completa para entrenadores personales, nutricionistas y alumnos. Entrenamientos, dietas, progreso y mucho más.",
+      "Tu evolución empieza aquí: entrenamientos a medida, dietas equilibradas y seguimiento de resultados en una plataforma completa, bonita y hecha para que mejores cada día.",
 
     "dash.title": "Panel",
     "dash.trainerSubtitle": "Resumen de tu actividad",
