@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { DayLetterBadge } from "@/components/ui/DayLetterBadge";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { dateLocale } from "@/lib/i18n/dictionaries";
+import { useMuscleLabel } from "@/lib/muscle";
 import Link from "next/link";
 import {
   Users,
@@ -122,6 +123,7 @@ function TrainerDashboard({ stats }: { stats: StatsResponse }) {
 
 function StudentDashboard({ stats, studentId }: { stats: StudentStatsResponse; studentId?: string }) {
   const { t, tExerciseName } = useLanguage();
+  const muscleLabel = useMuscleLabel();
   const router = useRouter();
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState("");
@@ -205,7 +207,7 @@ function StudentDashboard({ stats, studentId }: { stats: StudentStatsResponse; s
               <div key={i} className="flex items-center justify-between bg-bg rounded-lg px-3 py-2">
                 <div>
                   <p className="text-sm font-medium">{tExerciseName(we.exercise.name)}</p>
-                  <p className="text-xs text-muted">{we.exercise.muscleGroup}</p>
+                  <p className="text-xs text-muted">{muscleLabel(we.exercise.muscleGroup)}</p>
                 </div>
                 <p className="text-xs text-muted whitespace-nowrap">
                   {we.sets}x{we.reps}

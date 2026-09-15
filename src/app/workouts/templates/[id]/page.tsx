@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { ExerciseGif } from "@/components/ui/ExerciseGif";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { useMuscleLabel } from "@/lib/muscle";
 import Link from "next/link";
 
 interface Exercise {
@@ -70,6 +71,7 @@ function Dumbbell(props: React.SVGProps<SVGSVGElement>) {
 export default function WorkoutTemplateEditPage() {
   const { user, token, loading: authLoading } = useAuth();
   const { t, tExerciseName } = useLanguage();
+  const muscleLabel = useMuscleLabel();
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
@@ -353,7 +355,7 @@ export default function WorkoutTemplateEditPage() {
                     <div className="flex items-center gap-2">
                       <h3 className="font-medium text-sm">{tExerciseName(we.exercise.name)}</h3>
                       <span className={`text-xs ${muscleGroupColors[we.exercise.muscleGroup] ?? "text-muted"}`}>
-                        {we.exercise.muscleGroup}
+                        {muscleLabel(we.exercise.muscleGroup)}
                       </span>
                     </div>
                     {editingExercise === we.id ? (
@@ -465,7 +467,7 @@ export default function WorkoutTemplateEditPage() {
                       <div>
                         <p className="text-sm font-medium">{tExerciseName(ex.name)}</p>
                         <p className={`text-xs ${muscleGroupColors[ex.muscleGroup] ?? "text-muted"}`}>
-                          {ex.muscleGroup}
+                          {muscleLabel(ex.muscleGroup)}
                         </p>
                       </div>
                     </div>
