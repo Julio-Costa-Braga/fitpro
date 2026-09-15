@@ -14,6 +14,8 @@ import {
   Copy,
   Check,
   Gift,
+  Smartphone,
+  Apple,
 } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
@@ -24,6 +26,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Avatar } from "@/components/ui/Avatar";
+import { Modal } from "@/components/ui/Modal";
 import { VAPID_PUBLIC_KEY, urlBase64ToUint8Array } from "@/lib/vapid";
 
 function compressImage(file: File, maxSize = 400): Promise<string> {
@@ -65,6 +68,11 @@ interface ProfileLinks {
   nutritionist: LinkedProfessional | null;
 }
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
+
 export default function ProfilePage() {
   const { user, loading: authLoading, updateUser } = useAuth();
   const { t } = useLanguage();
@@ -87,6 +95,9 @@ export default function ProfilePage() {
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [guidePlatform, setGuidePlatform] = useState<"android" | "ios">("android");
 
   useEffect(() => {
     if (!isStudent || !user) return;
@@ -104,6 +115,16 @@ export default function ProfilePage() {
       .then((reg) => reg.pushManager.getSubscription())
       .then((sub) => setPushEnabled(!!sub))
       .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    };
+    window.addEventListener("beforeinstallprompt", onPrompt);
+    return () => window.removeEventListener("beforeinstallprompt", onPrompt);
   }, []);
 
   if (authLoading) {
@@ -243,6 +264,21 @@ export default function ProfilePage() {
     } catch {
       /* ignore */
     }
+  }
+
+  function handleAndroidDownload() {
+    if (deferredPrompt) {
+      void deferredPrompt.prompt();
+      deferredPrompt.userChoice.finally(() => setDeferredPrompt(null));
+      return;
+    }
+    setGuidePlatform("android");
+    setGuideOpen(true);
+  }
+
+  function handleIosDownload() {
+    setGuidePlatform("ios");
+    setGuideOpen(true);
   }
 
   return (
@@ -423,6 +459,26 @@ export default function ProfilePage() {
         </Card>
 
         <Card className="p-6">
+          <div className="flex items-start gap-3 mb-3">
+            <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center text-accent shrink-0">
+              <Smartphone className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold">{t("profile.downloadTitle")}</p>
+              <p className="text-xs text-muted mt-0.5">{t("profile.downloadSubtitle")}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Button icon={<Smartphone className="w-4 h-4" />} onClick={handleAndroidDownload}>
+              {t("profile.downloadAndroid")}
+            </Button>
+            <Button variant="secondary" icon={<Apple className="w-4 h-4" />} onClick={handleIosDownload}>
+              {t("profile.downloadIos")}
+            </Button>
+          </div>
+        </Card>
+
+        <Card className="p-6">
           <div className="space-y-4">
             <div>
               <p className="text-xs text-muted uppercase tracking-wide mb-1">{t("auth.name")}</p>
@@ -443,6 +499,35 @@ export default function ProfilePage() {
             </div>
           </div>
         </Card>
+
+        <Modal
+          open={guideOpen}
+          onClose={() => setGuideOpen(false)}
+          title={guidePlatform === "android" ? t("profile.guideAndroidTitle") : t("profile.guideIosTitle")}
+        >
+          <ol className="list-decimal list-inside space-y-2 text-sm text-muted">
+            {(guidePlatform === "android"
+              ? [
+                  t("profile.guideAndroidStep1"),
+                  t("profile.guideAndroidStep2"),
+                  t("profile.guideAndroidStep3"),
+                ]
+              : [
+                  t("profile.guideIosStep1"),
+                  t("profile.guideIosStep2"),
+                  t("profile.guideIosStep3"),
+                  t("profile.guideIosStep4"),
+                ]
+            ).map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
+          <div className="mt-5 flex justify-end">
+            <Button variant="secondary" size="sm" onClick={() => setGuideOpen(false)}>
+              {t("common.close")}
+            </Button>
+          </div>
+        </Modal>
       </div>
     </AppLayout>
   );
