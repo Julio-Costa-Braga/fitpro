@@ -7,10 +7,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const auth = await authorize(request, {
-      roles: ["PERSONAL", "ADMIN"],
-      module: "workouts",
-    });
+    const auth = await authorize(request, { roles: ["PERSONAL", "NUTRITIONIST", "ADMIN"] });
     if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
     const user = auth.user;
 
@@ -19,7 +16,11 @@ export async function POST(
     if (!template) {
       return NextResponse.json({ error: "Modelo nao encontrado" }, { status: 404 });
     }
-    if (user.role === "PERSONAL" && !template.isPreset && template.trainerId !== user.userId) {
+    if (
+      (user.role === "PERSONAL" || user.role === "NUTRITIONIST") &&
+      !template.isPreset &&
+      template.trainerId !== user.userId
+    ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -30,7 +31,12 @@ export async function POST(
     }
 
     const student = await prisma.student.findFirst({
-      where: user.role === "ADMIN" ? { id: studentId } : { id: studentId, personalId: user.userId },
+      where:
+        user.role === "ADMIN"
+          ? { id: studentId }
+          : user.role === "NUTRITIONIST"
+            ? { id: studentId, nutritionistId: user.userId }
+            : { id: studentId, personalId: user.userId },
     });
     if (!student) {
       return NextResponse.json({ error: "Aluno nao encontrado" }, { status: 404 });
