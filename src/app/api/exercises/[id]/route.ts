@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserFromRequest } from "@/lib/auth";
+import { authorize } from "@/lib/authz";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = getUserFromRequest(request);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await authorize(request);
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
   const { id } = await params;
@@ -22,24 +22,39 @@ export async function GET(
   return NextResponse.json(exercise);
 }
 
+// So o dono (PERSONAL que criou) ou ADMIN podem editar/excluir.
+// Exercicios legados (sem trainerId) e presets sao geridos por ADMIN.
+async function canManageExercise(
+  user: { userId: string; role: string },
+  exercise: { trainerId: string | null; isPreset: boolean }
+): Promise<boolean> {
+  if (user.role === "ADMIN") return true;
+  if (user.role !== "PERSONAL") return false;
+  return !exercise.isPreset && exercise.trainerId === user.userId;
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = getUserFromRequest(request);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await authorize(request, { roles: ["PERSONAL", "ADMIN"] });
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
-
-  if (user.role !== "PERSONAL") {
-    return NextResponse.json({ error: "Only trainers can update exercises" }, { status: 403 });
-  }
+  const user = auth.user;
 
   const { id } = await params;
 
   const existing = await prisma.exercise.findUnique({ where: { id } });
   if (!existing) {
     return NextResponse.json({ error: "Exercise not found" }, { status: 404 });
+  }
+
+  if (!(await canManageExercise(user, existing))) {
+    return NextResponse.json(
+      { error: "So e possivel editar exercicios proprios (ou presets via ADMIN)" },
+      { status: 403 }
+    );
   }
 
   const body = await request.json();
@@ -62,20 +77,24 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = getUserFromRequest(request);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await authorize(request, { roles: ["PERSONAL", "ADMIN"] });
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
-
-  if (user.role !== "PERSONAL") {
-    return NextResponse.json({ error: "Only trainers can delete exercises" }, { status: 403 });
-  }
+  const user = auth.user;
 
   const { id } = await params;
 
   const existing = await prisma.exercise.findUnique({ where: { id } });
   if (!existing) {
     return NextResponse.json({ error: "Exercise not found" }, { status: 404 });
+  }
+
+  if (!(await canManageExercise(user, existing))) {
+    return NextResponse.json(
+      { error: "So e possivel excluir exercicios proprios (ou presets via ADMIN)" },
+      { status: 403 }
+    );
   }
 
   await prisma.exercise.delete({ where: { id } });
