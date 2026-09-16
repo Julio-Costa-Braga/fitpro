@@ -9,14 +9,15 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "postinstall": "prisma generate",
-    "contract:emit": "prisma contract emit"
+    "postinstall": "prisma generate"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
     "bcryptjs": "^3.0.3",
     "date-fns": "^4.4.0",
-    "dotenv": "^17.4.2",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^1.44.0",
     "next": "16.3.4",
@@ -26,9 +27,6 @@
     "react-dom": "19.2.8",
     "web-push": "^3.6.7",
     "zod": "^4.6.1"
-  },
-  "prisma": {
-    "seed": "npx tsx prisma/seed.ts"
   },
   "overrides": {
     "deepmerge-ts": "^8.0.2"
@@ -41,6 +39,7 @@
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
     "tailwindcss": "^4",
