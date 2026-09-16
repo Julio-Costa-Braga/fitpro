@@ -62,7 +62,7 @@ async function main() {
 
   console.log("💪 Criando biblioteca de exercícios...");
   const createdExercises = await Promise.all(
-    CATALOG.map((e) => prisma.exercise.create({ data: e }))
+    CATALOG.map((e) => prisma.exercise.create({ data: { ...e, isPreset: true } }))
   );
 
   console.log("🏋️ Criando treino样品...");
