@@ -71,7 +71,8 @@ export async function POST(
       "WORKOUT_ASSIGNED",
       student.id,
       `Voce recebeu um novo treino: ${template.name}`,
-      "/workouts"
+      "/workouts",
+      { workoutName: template.name }
     );
 
     return NextResponse.json({ workout }, { status: 201 });

@@ -25,7 +25,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
-    // Cada profissional ve SOMENTE o que ele registrou. Registros legados (professionalId null) sao do personal.
     const professionalFilter =
       user.role === "PERSONAL"
         ? { OR: [{ professionalId: user.userId }, { professionalId: null }] }
@@ -41,16 +40,22 @@ export async function GET(request: NextRequest) {
       orderBy: { date: "desc" },
     });
 
-    // Reavaliacao: proxima data a partir da ultima avaliacao + frequencia (em dias).
     const base = progressLogs.length > 0 ? progressLogs[0].date : student.createdAt;
-    const nextReviewDate = new Date(
-      base.getTime() + student.reviewFrequencyDays * 24 * 60 * 60 * 1000
-    );
+    let freq = student.reviewFrequencyDays;
+    if (user.role === "PERSONAL" || user.role === "NUTRITIONIST") {
+      const setting = await prisma.studentProfessionalSetting.findUnique({
+        where: {
+          studentId_professionalId: { studentId, professionalId: user.userId },
+        },
+      });
+      freq = setting?.reviewFrequencyDays ?? student.reviewFrequencyDays;
+    }
+    const nextReviewDate = new Date(base.getTime() + freq * 24 * 60 * 60 * 1000);
     const overdue = nextReviewDate.getTime() < Date.now();
 
     return NextResponse.json({
       progress: progressLogs,
-      reviewFrequencyDays: student.reviewFrequencyDays,
+      reviewFrequencyDays: freq,
       nextReviewDate: nextReviewDate.toISOString(),
       overdue,
     });

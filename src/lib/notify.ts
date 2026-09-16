@@ -10,11 +10,12 @@ export async function notifyStudentAssignment(
   type: "WORKOUT_ASSIGNED" | "DIET_ASSIGNED",
   studentId: string,
   message: string,
-  url: string
+  url: string,
+  extra?: { workoutName?: string; dietName?: string }
 ) {
   if (!userId) return;
   await prisma.notification.create({
-    data: { type, userId, data: { studentId } },
+    data: { type, userId, data: { studentId, ...extra } },
   });
   await sendPushToUser(userId, "FitPro", message, url);
 }

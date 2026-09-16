@@ -31,6 +31,7 @@ interface NotifData {
   workoutId?: string;
   studentId?: string;
   dietId?: string;
+  dietName?: string;
   mealId?: string;
   fromWorkoutName?: string;
 }
@@ -124,6 +125,10 @@ export function Header({ title, onMenuToggle, user, onLogout }: HeaderProps) {
       router.push(`/diets/${n.data.dietId}`);
     } else if (n.type === "WORKOUT_CHANGED" && n.data?.studentId) {
       router.push(`/students/${n.data.studentId}`);
+    } else if (n.type === "WORKOUT_ASSIGNED") {
+      router.push("/workouts");
+    } else if (n.type === "DIET_ASSIGNED") {
+      router.push("/diets");
     } else if (n.type === "PROGRESS_REVIEW") {
       router.push("/progress");
     }
@@ -191,26 +196,37 @@ export function Header({ title, onMenuToggle, user, onLogout }: HeaderProps) {
                     <p className="text-center text-muted text-sm py-8">{t("notif.empty")}</p>
                   ) : (
                     notifications.map((n) => {
-const isWorkout = n.type === "WORKOUT_COMPLETED";
-                    const isChanged = n.type === "WORKOUT_CHANGED";
-                    const isProgressReview = n.type === "PROGRESS_REVIEW";
-                    const titleText = isProgressReview
-                      ? t("notif.progressReview", { student: n.data?.studentName ?? "" })
-                      : isChanged
-                        ? t("notif.workoutChanged", {
-                            student: n.data?.studentName ?? "",
-                            workout: n.data?.workoutName ?? "",
-                            fromWorkout: n.data?.fromWorkoutName ?? "",
-                          })
-                        : isWorkout
-                          ? t("notif.workoutCompleted", {
-                              student: n.data?.studentName ?? "",
-                              workout: n.data?.workoutName ?? "",
-                            })
-                          : t("notif.mealEaten", {
-                              student: n.data?.studentName ?? "",
-                              meal: n.data?.mealName ?? "",
-                            });
+                      const isWorkout = n.type === "WORKOUT_COMPLETED";
+                      const isWorkoutAssigned = n.type === "WORKOUT_ASSIGNED";
+                      const isDietAssigned = n.type === "DIET_ASSIGNED";
+                      const isChanged = n.type === "WORKOUT_CHANGED";
+                      const isProgressReview = n.type === "PROGRESS_REVIEW";
+                      let titleText = t("notif.mealEaten", {
+                        student: n.data?.studentName ?? "",
+                        meal: n.data?.mealName ?? "",
+                      });
+                      if (isProgressReview) {
+                        titleText = t("notif.progressReview");
+                      } else if (isChanged) {
+                        titleText = t("notif.workoutChanged", {
+                          student: n.data?.studentName ?? "",
+                          workout: n.data?.workoutName ?? "",
+                          fromWorkout: n.data?.fromWorkoutName ?? "",
+                        });
+                      } else if (isWorkoutAssigned) {
+                        titleText = n.data?.workoutName
+                          ? `${t("notif.workoutAssigned")}: ${n.data.workoutName}`
+                          : t("notif.workoutAssigned");
+                      } else if (isDietAssigned) {
+                        titleText = n.data?.dietName
+                          ? `${t("notif.dietAssigned")}: ${n.data.dietName}`
+                          : t("notif.dietAssigned");
+                      } else if (isWorkout) {
+                        titleText = t("notif.workoutCompleted", {
+                          student: n.data?.studentName ?? "",
+                          workout: n.data?.workoutName ?? "",
+                        });
+                      }
                       return (
                         <button
                           key={n.id}
@@ -223,7 +239,7 @@ const isWorkout = n.type === "WORKOUT_COMPLETED";
                           <span
                             className={cn(
                               "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
-                              isWorkout
+                              isWorkout || isWorkoutAssigned
                                 ? "bg-accent/10 text-accent"
                                 : isChanged
                                   ? "bg-yellow-500/10 text-yellow-400"
@@ -234,7 +250,7 @@ const isWorkout = n.type === "WORKOUT_COMPLETED";
                           >
                             {isChanged ? (
                               <Repeat className="w-4 h-4" />
-                            ) : isWorkout ? (
+                            ) : isWorkout || isWorkoutAssigned ? (
                               <Dumbbell className="w-4 h-4" />
                             ) : isProgressReview ? (
                               <TrendingUp className="w-4 h-4" />

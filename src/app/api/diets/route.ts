@@ -191,7 +191,8 @@ export async function POST(request: NextRequest) {
       "DIET_ASSIGNED",
       student.id,
       `Voce recebeu uma nova dieta: ${name}`,
-      "/diets"
+      "/diets",
+      { dietName: name }
     );
 
     return NextResponse.json({ dietPlan }, { status: 201 });

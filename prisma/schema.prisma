@@ -52,6 +52,9 @@ model User {
   // Profissional que registrou o progresso
   progressBy    ProgressLog[] @relation("ProgressBy")
 
+  // Frequencia de reavaliacao por aluno (independente por profissional)
+  studentSettings StudentProfessionalSetting[] @relation("StudentProfessionalSettings")
+
   // Web Push
   pushSubscriptions PushSubscription[]
 
@@ -121,6 +124,9 @@ model Student {
   restDays     RestDay[]
   linkRequests TraineeLinkRequest[]
 
+  // Frequencia de reavaliacao por profissional (independente por profissional)
+  settings     StudentProfessionalSetting[]
+
   @@unique([email, personalId])
   @@index([personalId])
   @@index([nutritionistId])
@@ -135,6 +141,21 @@ model RestDay {
   student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, weekday])
+}
+
+// Frequencia de reavaliacao POR (aluno, profissional): cada profissional tem o
+// proprio periodo, sem interferir na agenda de reavaliacao do outro.
+model StudentProfessionalSetting {
+  id                  String   @id @default(cuid())
+  studentId           String
+  student             Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  professionalId      String
+  professional        User     @relation("StudentProfessionalSettings", fields: [professionalId], references: [id], onDelete: Cascade)
+  reviewFrequencyDays Int      @default(30)
+  updatedAt           DateTime @updatedAt
+
+  @@unique([studentId, professionalId])
+  @@index([professionalId])
 }
 
 // Consentimento de vinculo: o aluno solicita, o profissional aceita/recusa.
@@ -336,6 +357,7 @@ model WorkoutSession {
   date      DateTime @default(now())
   completed Boolean  @default(false)
   skipped   Boolean  @default(false)
+  skipReason String?
   notes     String?
 
   workoutId String

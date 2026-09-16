@@ -9,7 +9,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { Input } from "@/components/ui/Input";
+import { Input, Textarea } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { ExerciseGif } from "@/components/ui/ExerciseGif";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
@@ -272,18 +272,22 @@ export default function WorkoutDetailPage() {
   const [starting, setStarting] = useState(false);
   const [skipping, setSkipping] = useState(false);
   const [markedSkipped, setMarkedSkipped] = useState(false);
+  const [showSkipModal, setShowSkipModal] = useState(false);
+  const [skipReason, setSkipReason] = useState("");
 
-  async function handleMarkSkipped() {
+  async function handleMarkSkipped(reason?: string) {
     if (!workout || user?.role !== "STUDENT") return;
-    if (skipping) return; // previne double-submit
+    if (skipping) return;
     setSkipping(true);
     try {
       await api.post("/api/workout-sessions", {
         workoutId: workout.id,
         studentId: workout.studentId,
         skipped: true,
+        skipReason: reason?.trim() || undefined,
       });
       setMarkedSkipped(true);
+      setShowSkipModal(false);
     } catch (err: unknown) {
       if (err instanceof Error) setError(err.message);
       setSkipping(false);
@@ -432,8 +436,7 @@ export default function WorkoutDetailPage() {
                 <Button
                   variant="secondary"
                   icon={<X className="w-4 h-4" />}
-                  onClick={handleMarkSkipped}
-                  loading={skipping}
+                  onClick={() => setShowSkipModal(true)}
                 >
                   {t("wk.markSkipped")}
                 </Button>
@@ -723,6 +726,26 @@ export default function WorkoutDetailPage() {
                 );
               })
             )}
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={showSkipModal} onClose={() => setShowSkipModal(false)} title={t("wk.markSkipped")} size="sm">
+        <div className="space-y-4">
+          <Textarea
+            label={t("wk.skipReason")}
+            placeholder={t("wk.skipReasonPlaceholder")}
+            rows={3}
+            value={skipReason}
+            onChange={(e) => setSkipReason(e.target.value)}
+          />
+          <div className="flex gap-3 pt-2">
+            <Button variant="secondary" onClick={() => { setShowSkipModal(false); setSkipReason(""); }} className="flex-1">
+              {t("common.cancel")}
+            </Button>
+            <Button onClick={() => handleMarkSkipped(skipReason)} loading={skipping} className="flex-1">
+              {t("wk.markSkippedConfirm")}
+            </Button>
           </div>
         </div>
       </Modal>
