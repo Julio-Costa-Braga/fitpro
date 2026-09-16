@@ -80,11 +80,32 @@ export async function POST(request: NextRequest) {
     // Personal cria a conta do aluno (com senha temporaria) e o registro de Student vinculado.
     let userId: string | undefined;
     if (email && password) {
-      const existingUser = await prisma.user.findUnique({ where: { email } });
+      const existingUser = await prisma.user.findUnique({
+        where: { email },
+        select: { id: true, role: true, studentRecord: { select: { id: true } } },
+      });
       if (existingUser) {
-        // Já existe conta: apenas vincula o registro a ela.
+        if (existingUser.role !== "STUDENT") {
+          return NextResponse.json(
+            { error: "Email ja usado por uma conta existente" },
+            { status: 400 }
+          );
+        }
+        if (existingUser.studentRecord) {
+          return NextResponse.json(
+            { error: "Este email ja esta vinculado a outro aluno" },
+            { status: 400 }
+          );
+        }
+        // Conta de aluno existente: apenas vincula o registro a ela.
         userId = existingUser.id;
       } else {
+        if (typeof password !== "string" || password.length < 8) {
+          return NextResponse.json(
+            { error: "A senha deve ter no minimo 8 caracteres" },
+            { status: 400 }
+          );
+        }
         const bcrypt = await import("bcryptjs");
         const hashed = await bcrypt.hash(password, 12);
         const created = await prisma.user.create({

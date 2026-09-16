@@ -26,17 +26,29 @@ export async function GET(request: NextRequest) {
   if (workoutId) where.workoutId = workoutId;
 
   if (user.role === "PERSONAL") {
-    const student = await prisma.student.findFirst({
-      where: { id: studentId ?? undefined, personalId: user.userId },
-    });
-    if (!student) {
+    const lookup = studentId
+      ? await prisma.student.findFirst({
+          where: { id: studentId, personalId: user.userId },
+        })
+      : workoutId
+        ? await prisma.workout.findFirst({
+            where: { id: workoutId, trainerId: user.userId },
+          })
+        : null;
+    if (!lookup) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
   } else if (user.role === "STUDENT") {
-    const student = await prisma.student.findFirst({
-      where: { id: studentId ?? undefined, userId: user.userId },
-    });
-    if (!student) {
+    const lookup = studentId
+      ? await prisma.student.findFirst({
+          where: { id: studentId, userId: user.userId },
+        })
+      : workoutId
+        ? await prisma.student.findFirst({
+            where: { workouts: { some: { id: workoutId } }, userId: user.userId },
+          })
+        : null;
+    if (!lookup) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
   } else if (user.role !== "ADMIN") {
@@ -80,6 +92,10 @@ export async function POST(request: NextRequest) {
 
   if (!workout) {
     return NextResponse.json({ error: "Workout not found" }, { status: 404 });
+  }
+
+  if (user.role !== "PERSONAL" && user.role !== "STUDENT" && user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   if (user.role === "PERSONAL" && workout.trainerId !== user.userId) {

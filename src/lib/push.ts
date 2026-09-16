@@ -2,10 +2,21 @@ import webpush from "web-push";
 import { prisma } from "@/lib/prisma";
 import { VAPID_PUBLIC_KEY, VAPID_SUBJECT } from "@/lib/vapid";
 
-const VAPID_PRIVATE_KEY =
-  process.env.VAPID_PRIVATE_KEY || "TG6B3IiecsRnOXIy4yvEYG6qUDbTwhu9Ab-_S2-wg7Q";
+const VAPID_PRIVATE_KEY_DEFAULT =
+  process.env.NODE_ENV === "production"
+    ? ""
+    : "TG6B3IiecsRnOXIy4yvEYG6qUDbTwhu9Ab-_S2-wg7Q";
 
-webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+let vapidConfigured = false;
+function ensureVapid(): void {
+  if (vapidConfigured) return;
+  const key = process.env.VAPID_PRIVATE_KEY || VAPID_PRIVATE_KEY_DEFAULT;
+  if (!key) {
+    throw new Error("VAPID_PRIVATE_KEY environment variable is required in production");
+  }
+  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, key);
+  vapidConfigured = true;
+}
 
 export function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -30,6 +41,7 @@ export async function sendPushToUser(
   url = "/dashboard"
 ): Promise<void> {
   try {
+    ensureVapid();
     const subs = await prisma.pushSubscription.findMany({
       where: { userId },
     });

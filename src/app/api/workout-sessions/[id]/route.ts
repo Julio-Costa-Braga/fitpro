@@ -30,6 +30,10 @@ export async function GET(
     return NextResponse.json({ error: "Session not found" }, { status: 404 });
   }
 
+  if (user.role === "NUTRITIONIST") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   if (user.role === "PERSONAL" && session.workout.trainerId !== user.userId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -66,6 +70,10 @@ export async function PUT(
     return NextResponse.json({ error: "Session not found" }, { status: 404 });
   }
 
+  if (user.role === "NUTRITIONIST") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   if (user.role === "PERSONAL" && existing.workout.trainerId !== user.userId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -90,8 +98,8 @@ export async function PUT(
 
     for (const ce of completedExercises) {
       if (ce.id) {
-        await prisma.completedExercise.update({
-          where: { id: ce.id },
+        await prisma.completedExercise.updateMany({
+          where: { id: ce.id, sessionId: id },
           data: {
             ...(ce.reps !== undefined && { reps: ce.reps }),
             ...(ce.load !== undefined && { load: ce.load }),

@@ -76,7 +76,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
   const { id } = await params;
   const existing = await prisma.weekTemplate.findFirst({
-    where: user.role === "ADMIN" ? { id } : { id, OR: [{ isPreset: true }, { trainerId: user.userId }] },
+    where: user.role === "ADMIN" ? { id } : { id, trainerId: user.userId },
   });
   if (!existing) {
     return NextResponse.json({ error: "Modelo de semana nao encontrado" }, { status: 404 });
@@ -137,7 +137,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
   const { id } = await params;
   const existing = await prisma.weekTemplate.findFirst({
-    where: user.role === "ADMIN" ? { id } : { id, OR: [{ isPreset: true }, { trainerId: user.userId }] },
+    where: user.role === "ADMIN" ? { id } : { id, trainerId: user.userId },
   });
   if (!existing) {
     return NextResponse.json({ error: "Modelo de semana nao encontrado" }, { status: 404 });

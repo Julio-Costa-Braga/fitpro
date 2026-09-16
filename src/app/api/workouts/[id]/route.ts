@@ -28,6 +28,10 @@ export async function GET(
     return NextResponse.json({ error: "Workout not found" }, { status: 404 });
   }
 
+  if (user.role === "NUTRITIONIST") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   if (user.role === "ADMIN") {
     return NextResponse.json(workout);
   }
