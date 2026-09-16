@@ -65,44 +65,45 @@ export async function PUT(
     const body = await request.json();
     const { name, description, level, meals, dailyProtein, dailyCarbs, dailyFat, dailyCalories, waterIntake, supplementation } = body;
 
-    if (meals !== undefined) {
-      await prisma.dietTemplateMeal.deleteMany({ where: { dietTemplateId: id } });
-    }
-
     const validLevels = Object.values(StudentLevel);
-    const template = await prisma.dietTemplate.update({
-      where: { id },
-      data: {
-        ...(name !== undefined && { name: name.trim() }),
-        ...(description !== undefined && { description: description?.trim() || null }),
-        ...(level !== undefined && { level: validLevels.includes(level) ? level : existing?.level }),
-        ...(dailyProtein !== undefined && { dailyProtein: dailyProtein ?? null }),
-        ...(dailyCarbs !== undefined && { dailyCarbs: dailyCarbs ?? null }),
-        ...(dailyFat !== undefined && { dailyFat: dailyFat ?? null }),
-        ...(dailyCalories !== undefined && { dailyCalories: dailyCalories ?? null }),
-        ...(waterIntake !== undefined && { waterIntake: waterIntake ?? null }),
-        ...(supplementation !== undefined && { supplementation: supplementation ?? null }),
-        ...(Array.isArray(meals) && {
-          meals: {
-            create: meals.map((meal: any) => ({
-              time: meal.time,
-              name: meal.name,
-              order: meal.order,
-              foods: {
-                create: (meal.foods ?? []).map((f: any) => ({
-                  name: f.name,
-                  quantity: f.quantity,
-                  protein: f.protein,
-                  carbs: f.carbs,
-                  fat: f.fat,
-                  calories: f.calories,
-                })),
-              },
-            })),
-          },
-        }),
-      },
-      include: include(),
+    const template = await prisma.$transaction(async (tx) => {
+      if (Array.isArray(meals)) {
+        await tx.dietTemplateMeal.deleteMany({ where: { dietTemplateId: id } });
+      }
+      return tx.dietTemplate.update({
+        where: { id },
+        data: {
+          ...(name !== undefined && { name: name.trim() }),
+          ...(description !== undefined && { description: description?.trim() || null }),
+          ...(level !== undefined && { level: validLevels.includes(level) ? level : existing?.level }),
+          ...(dailyProtein !== undefined && { dailyProtein: dailyProtein ?? null }),
+          ...(dailyCarbs !== undefined && { dailyCarbs: dailyCarbs ?? null }),
+          ...(dailyFat !== undefined && { dailyFat: dailyFat ?? null }),
+          ...(dailyCalories !== undefined && { dailyCalories: dailyCalories ?? null }),
+          ...(waterIntake !== undefined && { waterIntake: waterIntake ?? null }),
+          ...(supplementation !== undefined && { supplementation: supplementation ?? null }),
+          ...(Array.isArray(meals) && {
+            meals: {
+              create: meals.map((meal: any) => ({
+                time: meal.time,
+                name: meal.name,
+                order: meal.order,
+                foods: {
+                  create: (meal.foods ?? []).map((f: any) => ({
+                    name: f.name,
+                    quantity: f.quantity,
+                    protein: f.protein,
+                    carbs: f.carbs,
+                    fat: f.fat,
+                    calories: f.calories,
+                  })),
+                },
+              })),
+            },
+          }),
+        },
+        include: include(),
+      });
     });
 
     return NextResponse.json({ template });
