@@ -17,7 +17,8 @@ export async function POST(request: NextRequest) {
     const email = parsed.data.email.trim().toLowerCase();
 
     const ipLimit = checkRateLimit(`register:ip:${clientIp(request)}`);
-    if (!ipLimit.allowed) {
+    const emailLimit = checkRateLimit(`register:email:${email}`, 5, 24 * 60 * 60 * 1000);
+    if (!ipLimit.allowed || !emailLimit.allowed) {
       return NextResponse.json(
         { error: "Muitas tentativas de cadastro. Tente novamente mais tarde." },
         { status: 429 }
@@ -58,28 +59,49 @@ export async function POST(request: NextRequest) {
 
     const hashedPassword = await hashPassword(password);
 
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        role: registeredRole,
-        referralCode: generateReferralCode(name),
-        referredByUserId,
-        referralDiscountMonths: 0,
-        paidUntil: trialUntil(),
-        studentLimit: 10,
-        monthlyPrice: 22,
-      },
-    });
-
-    // O desconto e de QUEM INDICA (o dono do codigo), nao do indicado.
-    if (referredByUserId) {
-      await prisma.user.update({
-        where: { id: referredByUserId },
-        data: { referralDiscountMonths: { increment: REFERRAL_DISCOUNT_MONTHS } },
+    // Criacao da conta + conde de indicacao do referenciador: atomicos.
+    const user = await prisma.$transaction(async (tx) => {
+      const created = await tx.user.create({
+        data: {
+          name,
+          email,
+          password: hashedPassword,
+          role: registeredRole,
+          referralCode: generateReferralCode(name),
+          referredByUserId,
+          referralDiscountMonths: 0,
+          paidUntil: trialUntil(),
+          studentLimit: 10,
+          monthlyPrice: 22,
+        },
       });
-    }
+
+      // O desconto e de QUEM INDICA (o dono do codigo), nao do indicado.
+      if (referredByUserId) {
+        const DAYS_MS = 24 * 60 * 60 * 1000;
+        const referrer = await tx.user.findUnique({
+          where: { id: referredByUserId },
+          select: { referralDiscountExpiresAt: true },
+        });
+        const now = new Date();
+        const base =
+          referrer?.referralDiscountExpiresAt &&
+          referrer.referralDiscountExpiresAt.getTime() > now.getTime()
+            ? referrer.referralDiscountExpiresAt
+            : now;
+        await tx.user.update({
+          where: { id: referredByUserId },
+          data: {
+            referralDiscountMonths: { increment: REFERRAL_DISCOUNT_MONTHS },
+            referralDiscountExpiresAt: new Date(
+              base.getTime() + REFERRAL_DISCOUNT_MONTHS * 30 * DAYS_MS
+            ),
+          },
+        });
+      }
+
+      return created;
+    });
 
     const token = generateToken({
       userId: user.id,

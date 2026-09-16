@@ -13,7 +13,12 @@ export async function GET(
 
   const { id } = await params;
 
-  const exercise = await prisma.exercise.findUnique({ where: { id } });
+  const exercise = await prisma.exercise.findFirst({
+    where:
+      auth.user.role === "ADMIN"
+        ? { id }
+        : { id, OR: [{ isPreset: true }, { trainerId: auth.user.userId }] },
+  });
 
   if (!exercise) {
     return NextResponse.json({ error: "Exercise not found" }, { status: 404 });

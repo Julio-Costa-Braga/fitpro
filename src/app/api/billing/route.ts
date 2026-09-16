@@ -1,20 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserFromRequest } from "@/lib/auth";
+import { authorize } from "@/lib/authz";
 import { REFERRAL_DISCOUNT, EXTRA_STUDENT_PRICE } from "@/lib/billing";
 
 export async function GET(request: NextRequest) {
-  const payload = getUserFromRequest(request);
-  if (!payload) {
-    return NextResponse.json({ error: "Nao autenticado" }, { status: 401 });
-  }
-  if (!payload || (payload.role !== "PERSONAL" && payload.role !== "NUTRITIONIST")) {
-    return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+  const auth = await authorize(request, { roles: ["PERSONAL", "NUTRITIONIST"] });
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
   try {
     const user = await prisma.user.findUnique({
-      where: { id: payload.userId },
+      where: { id: auth.user.userId },
       select: {
         lifetime: true,
         paidUntil: true,
@@ -22,6 +19,7 @@ export async function GET(request: NextRequest) {
         monthlyPrice: true,
         referralCode: true,
         referralDiscountMonths: true,
+        referralDiscountExpiresAt: true,
       },
     });
 
@@ -29,27 +27,42 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Usuario nao encontrado" }, { status: 404 });
     }
 
-    const isProfessional = payload.role === "PERSONAL" || payload.role === "NUTRITIONIST";
+    // Desconto de indicacao expira na data registrada.
+    let referralMonths = user.referralDiscountMonths;
+    let referralExpiresAt = user.referralDiscountExpiresAt;
+    if (
+      referralMonths > 0 &&
+      referralExpiresAt &&
+      referralExpiresAt.getTime() <= Date.now() &&
+      !user.lifetime
+    ) {
+      referralMonths = 0;
+      referralExpiresAt = null;
+      await prisma.user.update({
+        where: { id: auth.user.userId },
+        data: { referralDiscountMonths: 0, referralDiscountExpiresAt: null },
+        select: { id: true },
+      });
+    }
+
     const [studentsCount, payments] = await Promise.all([
       prisma.student.count({
-        where: isProfessional
-          ? {
-              OR: [
-                { personalId: payload.userId },
-                { nutritionistId: payload.userId },
-              ],
-            }
-          : { userId: payload.userId },
+        where: {
+          OR: [
+            { personalId: auth.user.userId },
+            { nutritionistId: auth.user.userId },
+          ],
+        },
       }),
       prisma.payment.findMany({
-        where: { userId: payload.userId },
+        where: { userId: auth.user.userId },
         orderBy: { createdAt: "desc" },
         take: 30,
       }),
     ]);
 
     const extraStudents = Math.max(0, studentsCount - user.studentLimit);
-    const hasDiscount = user.referralDiscountMonths > 0;
+    const hasDiscount = referralMonths > 0;
     const baseFee = user.lifetime ? 0 : hasDiscount ? user.monthlyPrice - REFERRAL_DISCOUNT : user.monthlyPrice;
     const extraFee = user.lifetime ? 0 : extraStudents * EXTRA_STUDENT_PRICE;
     const totalFee = user.lifetime ? 0 : baseFee + extraFee;
@@ -57,11 +70,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       plan: {
         ...user,
+        referralDiscountMonths: referralMonths,
+        referralDiscountExpiresAt: referralExpiresAt,
         extraStudents,
         baseFee,
         extraFee,
         totalFee,
-        role: payload.role,
+        role: auth.user.role,
       },
       studentsCount,
       payments,

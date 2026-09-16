@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserFromRequest } from "@/lib/auth";
+import { authorize } from "@/lib/authz";
 
 export async function GET(request: NextRequest) {
-  const payload = getUserFromRequest(request);
-  if (!payload) {
-    return NextResponse.json({ error: "Nao autenticado" }, { status: 401 });
+  const auth = await authorize(request);
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
+  const user = auth.user;
 
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: payload.userId },
+    const profile = await prisma.user.findUnique({
+      where: { id: user.userId },
       select: {
         id: true,
         name: true,
@@ -26,18 +27,18 @@ export async function GET(request: NextRequest) {
         referralDiscountMonths: true,
         referredByUser: { select: { id: true, name: true } },
         isActive: true,
-        lifetime: true,
-        paidUntil: true,
-        studentLimit: true,
-        monthlyPrice: true,
+        // Dados de plano/fatura apenas para quem paga (profissionais).
+        ...(user.role !== "STUDENT"
+          ? { lifetime: true, paidUntil: true, studentLimit: true, monthlyPrice: true }
+          : {}),
       },
     });
 
-    if (!user) {
+    if (!profile) {
       return NextResponse.json({ error: "Usuario nao encontrado" }, { status: 404 });
     }
 
-    return NextResponse.json({ user });
+    return NextResponse.json({ user: profile });
   } catch (error) {
     console.error("Me error:", error);
     return NextResponse.json(

@@ -75,7 +75,8 @@ async function resolveTodayWorkout(studentId: string) {
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await authorize(request, { module: "students" });
+    // Autenticado (nao so profissionais): o where de ownership abaixo ja protege.
+    const auth = await authorize(request);
     if (!auth.ok) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }

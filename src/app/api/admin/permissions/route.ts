@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserFromRequest } from "@/lib/auth";
+import { authorize } from "@/lib/authz";
 import {
   MODULES,
   MODULE_ROLES,
@@ -19,9 +19,9 @@ function emptyMap(): Record<string, RolePermissions> {
 }
 
 export async function GET(request: NextRequest) {
-  const payload = getUserFromRequest(request);
-  if (!payload || payload.role !== "ADMIN") {
-    return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+  const auth = await authorize(request, { roles: ["ADMIN"] });
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
   try {
@@ -45,9 +45,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  const payload = getUserFromRequest(request);
-  if (!payload || payload.role !== "ADMIN") {
-    return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+  const auth = await authorize(request, { roles: ["ADMIN"] });
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
   try {

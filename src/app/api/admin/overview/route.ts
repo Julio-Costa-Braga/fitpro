@@ -1,15 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserFromRequest } from "@/lib/auth";
+import { authorize } from "@/lib/authz";
 
 export async function GET(request: NextRequest) {
-  const user = getUserFromRequest(request);
-  if (!user) {
-    return NextResponse.json({ error: "Nao autenticado" }, { status: 401 });
-  }
-
-  if (user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+  const auth = await authorize(request, { roles: ["ADMIN"] });
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
   try {
@@ -45,6 +41,7 @@ export async function GET(request: NextRequest) {
         personal: { select: { name: true } },
       },
       orderBy: { createdAt: "desc" },
+      take: 500,
     });
 
     return NextResponse.json({

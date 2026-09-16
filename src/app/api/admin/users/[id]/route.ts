@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserFromRequest } from "@/lib/auth";
+import { authorize } from "@/lib/authz";
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const admin = getUserFromRequest(request);
-  if (!admin) {
-    return NextResponse.json({ error: "Nao autenticado" }, { status: 401 });
+  const auth = await authorize(request, { roles: ["ADMIN"] });
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
-  if (admin.role !== "ADMIN") {
-    return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
-  }
+  const admin = auth.user;
 
   const { id } = await params;
   if (id === admin.userId) {
@@ -80,35 +78,40 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   try {
-    const updateData = { ...data };
-    if (planNotes) {
-      Object.assign(updateData, {
-        studentLimit: planNotes.studentLimit,
-        monthlyPrice: planNotes.monthlyPrice,
+    // Upgrade de plano + zera desconto de indicacao se virar PERSONAL: atomicos.
+    const { updated } = await prisma.$transaction(async (tx) => {
+      const updateData = { ...data };
+      if (planNotes) {
+        Object.assign(updateData, {
+          studentLimit: planNotes.studentLimit,
+          monthlyPrice: planNotes.monthlyPrice,
+        });
+      }
+      const updatedUser = await tx.user.update({
+        where: { id },
+        data: updateData,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          isActive: true,
+          lifetime: true,
+          paidUntil: true,
+          studentLimit: true,
+          monthlyPrice: true,
+        },
       });
-    }
-    const updated = await prisma.user.update({
-      where: { id },
-      data: updateData,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        isActive: true,
-        lifetime: true,
-        paidUntil: true,
-        studentLimit: true,
-        monthlyPrice: true,
-      },
-    });
 
-    if (data.role === "PERSONAL") {
-      await prisma.user.update({
-        where: { id: updated.id },
-        data: { referralDiscountMonths: 0 },
-      });
-    }
+      if (data.role === "PERSONAL") {
+        await tx.user.update({
+          where: { id: updatedUser.id },
+          data: { referralDiscountMonths: 0, referralDiscountExpiresAt: null },
+        });
+      }
+
+      return { updated: updatedUser };
+    });
 
     return NextResponse.json({ user: updated });
   } catch (error) {
@@ -121,13 +124,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const admin = getUserFromRequest(request);
-  if (!admin) {
-    return NextResponse.json({ error: "Nao autenticado" }, { status: 401 });
+  const auth = await authorize(request, { roles: ["ADMIN"] });
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
-  if (admin.role !== "ADMIN") {
-    return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
-  }
+  const admin = auth.user;
 
   const { id } = await params;
   if (id === admin.userId) {
@@ -149,8 +150,11 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   }
 
   try {
-    await prisma.student.deleteMany({ where: { userId: id } });
-    await prisma.user.delete({ where: { id } });
+    // Exclusao atomica: estudante vinculado + conta. Se algo falhar, nada e excluido.
+    await prisma.$transaction(async (tx) => {
+      await tx.student.deleteMany({ where: { userId: id } });
+      await tx.user.delete({ where: { id } });
+    });
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Admin delete user error:", error);

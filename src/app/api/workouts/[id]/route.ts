@@ -80,41 +80,68 @@ export async function PUT(
   const body = await request.json();
   const { name, description, dayLetter, dayOfWeek, isActive, autoAdvance, deadlineDays, exercises } = body;
 
-  if (exercises?.length) {
-    await prisma.workoutExercise.deleteMany({ where: { workoutId: id } });
+  // A8: exercicios referenciados precisam ser presets ou do proprio personal (ou ADMIN).
+  const exerciseIds = Array.isArray(exercises)
+    ? exercises
+        .map((ex: { exerciseId?: unknown }) => ex?.exerciseId)
+        .filter((x: unknown): x is string => typeof x === "string")
+    : [];
+  if (exerciseIds.length > 0) {
+    const found = await prisma.exercise.findMany({
+      where: {
+        id: { in: exerciseIds },
+        ...(user.role === "ADMIN"
+          ? {}
+          : { OR: [{ isPreset: true }, { trainerId: user.userId }] }),
+      },
+      select: { id: true },
+    });
+    if (found.length !== exerciseIds.length) {
+      return NextResponse.json(
+        { error: "Um ou mais exercicios nao existem ou nao pertencem a voce" },
+        { status: 400 }
+      );
+    }
   }
 
-  const workout = await prisma.workout.update({
-    where: { id },
-    data: {
-      ...(name !== undefined && { name }),
-      ...(description !== undefined && { description }),
-      ...(dayLetter !== undefined && { dayLetter }),
-      ...(dayOfWeek !== undefined && { dayOfWeek }),
-      ...(isActive !== undefined && { isActive }),
-      ...(autoAdvance !== undefined && { autoAdvance }),
-      ...(deadlineDays !== undefined && { deadlineDays }),
-      ...(exercises?.length && {
-        exercises: {
-          create: exercises.map((ex: any) => ({
-            order: ex.order,
-            sets: ex.sets ?? 3,
-            reps: ex.reps,
-            initialLoad: ex.initialLoad,
-            restTime: ex.restTime ?? 60,
-            notes: ex.notes,
-            exerciseId: ex.exerciseId,
-            alternative: ex.alternative,
-          })),
-        },
-      }),
-    },
-    include: {
-      exercises: {
-        include: { exercise: true },
-        orderBy: { order: "asc" },
+  // A7: substituicao de exercicios + update do treino sao atomicos.
+  const workout = await prisma.$transaction(async (tx) => {
+    if (exercises?.length) {
+      await tx.workoutExercise.deleteMany({ where: { workoutId: id } });
+    }
+
+    return tx.workout.update({
+      where: { id },
+      data: {
+        ...(name !== undefined && { name }),
+        ...(description !== undefined && { description }),
+        ...(dayLetter !== undefined && { dayLetter }),
+        ...(dayOfWeek !== undefined && { dayOfWeek }),
+        ...(isActive !== undefined && { isActive }),
+        ...(autoAdvance !== undefined && { autoAdvance }),
+        ...(deadlineDays !== undefined && { deadlineDays }),
+        ...(exercises?.length && {
+          exercises: {
+            create: exercises.map((ex: any) => ({
+              order: ex.order,
+              sets: ex.sets ?? 3,
+              reps: ex.reps,
+              initialLoad: ex.initialLoad,
+              restTime: ex.restTime ?? 60,
+              notes: ex.notes,
+              exerciseId: ex.exerciseId,
+              alternative: ex.alternative,
+            })),
+          },
+        }),
       },
-    },
+      include: {
+        exercises: {
+          include: { exercise: true },
+          orderBy: { order: "asc" },
+        },
+      },
+    });
   });
 
   return NextResponse.json(workout);

@@ -3,9 +3,12 @@ import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev-only-insecure-secret";
+const JWT_ISSUER = "fitpro";
+const JWT_AUDIENCE = "fitpro";
 
-if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
-  throw new Error("JWT_SECRET environment variable is required in production");
+// Exige JWT_SECRET fora do ambiente local de desenvolvimento.
+if (process.env.NODE_ENV !== "development" && !process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable is required");
 }
 
 export type UserRole = "ADMIN" | "PERSONAL" | "NUTRITIONIST" | "STUDENT";
@@ -31,18 +34,26 @@ export async function comparePassword(
 }
 
 export function generateToken(payload: TokenPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
+  return jwt.sign(payload, JWT_SECRET, {
+    expiresIn: "7d",
+    issuer: JWT_ISSUER,
+    audience: JWT_AUDIENCE,
+  });
 }
 
 export function verifyToken(token: string): TokenPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as TokenPayload;
+    return jwt.verify(token, JWT_SECRET, {
+      algorithms: ["HS256"],
+      issuer: JWT_ISSUER,
+      audience: JWT_AUDIENCE,
+    }) as TokenPayload;
   } catch {
     return null;
   }
 }
 
-export const TOKEN_COOKIE_NAME = "fitpro_token";
+export const TOKEN_COOKIE_NAME = "__Host-fitpro_token";
 export const TOKEN_COOKIE_MAX_AGE = 7 * 24 * 60 * 60;
 
 function cookieAttributes() {

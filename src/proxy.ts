@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 // NAO importar libs de Node aqui (edge runtime).
-const TOKEN_COOKIE = "fitpro_token";
+const TOKEN_COOKIE = "__Host-fitpro_token";
 
 export function proxy(request: NextRequest) {
   if (!request.cookies.has(TOKEN_COOKIE)) {
@@ -24,5 +24,7 @@ export const config = {
     "/workouts/:path*",
     "/diets/:path*",
     "/exercises/:path*",
+    "/billing/:path*",
+    "/notifications/:path*",
   ],
 };

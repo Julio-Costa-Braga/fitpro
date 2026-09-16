@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserFromRequest } from "@/lib/auth";
+import { authorize } from "@/lib/authz";
 
 const MAX_AVATAR_BYTES = 400_000;
 
 export async function PUT(request: NextRequest) {
-  const payload = getUserFromRequest(request);
-  if (!payload) {
-    return NextResponse.json({ error: "Nao autenticado" }, { status: 401 });
+  const auth = await authorize(request);
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
+  const user = auth.user;
 
   const body = await request.json();
   const { avatarUrl, name } = body as {
@@ -53,8 +54,8 @@ export async function PUT(request: NextRequest) {
   }
 
   try {
-    const user = await prisma.user.update({
-      where: { id: payload.userId },
+    const dbUser = await prisma.user.update({
+      where: { id: user.userId },
       data,
       select: {
         id: true,
@@ -69,14 +70,13 @@ export async function PUT(request: NextRequest) {
         referredByUserId: true,
         referredByUser: { select: { id: true, name: true } },
         isActive: true,
-        lifetime: true,
-        paidUntil: true,
-        studentLimit: true,
-        monthlyPrice: true,
+        ...(user.role !== "STUDENT"
+          ? { lifetime: true, paidUntil: true, studentLimit: true, monthlyPrice: true }
+          : {}),
       },
     });
 
-    return NextResponse.json({ user });
+    return NextResponse.json({ user: dbUser });
   } catch (error) {
     console.error("Profile update error:", error);
     return NextResponse.json(
