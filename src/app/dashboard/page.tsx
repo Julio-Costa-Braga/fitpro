@@ -18,7 +18,6 @@ import {
   Users,
   Dumbbell,
   Apple,
-  Plus,
   Calendar,
   TrendingUp,
   ChevronRight,
@@ -54,39 +53,6 @@ function TrainerDashboard({ stats }: { stats: StatsResponse }) {
         <StatCard icon={<Users className="w-5 h-5" />} label={t("dash.students")} value={stats.totalStudents} />
         <StatCard icon={<Dumbbell className="w-5 h-5" />} label={t("dash.activeWorkouts")} value={stats.activeWorkouts} />
         <StatCard icon={<Apple className="w-5 h-5" />} label={t("dash.activeDiets")} value={stats.activeDiets} />
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Link
-          href="/students/new"
-          className="flex items-center gap-3 bg-card border border-border rounded-xl p-4 hover:border-accent/50 transition-colors group"
-        >
-          <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center text-accent group-hover:bg-accent/20 transition-colors">
-            <Plus className="w-4 h-4" />
-          </div>
-          <span className="font-medium text-sm">{t("dash.addStudent")}</span>
-          <ChevronRight className="w-4 h-4 text-muted ml-auto" />
-        </Link>
-        <Link
-          href="/workouts/new"
-          className="flex items-center gap-3 bg-card border border-border rounded-xl p-4 hover:border-accent/50 transition-colors group"
-        >
-          <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center text-accent group-hover:bg-accent/20 transition-colors">
-            <Dumbbell className="w-4 h-4" />
-          </div>
-          <span className="font-medium text-sm">{t("dash.addWorkout")}</span>
-          <ChevronRight className="w-4 h-4 text-muted ml-auto" />
-        </Link>
-        <Link
-          href="/diets/new"
-          className="flex items-center gap-3 bg-card border border-border rounded-xl p-4 hover:border-accent/50 transition-colors group"
-        >
-          <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center text-accent group-hover:bg-accent/20 transition-colors">
-            <Apple className="w-4 h-4" />
-          </div>
-          <span className="font-medium text-sm">{t("dash.addDiet")}</span>
-          <ChevronRight className="w-4 h-4 text-muted ml-auto" />
-        </Link>
       </div>
 
       <Card>
@@ -133,11 +99,11 @@ function StudentDashboard({ stats, studentId }: { stats: StudentStatsResponse; s
   useEffect(() => {
     if (!stats.todayWorkout?.id || !studentId) return;
     api
-      .get<{ id: string; completed: boolean }[]>(
+      .get<{ id: string; completed: boolean; skipped: boolean }[]>(
         `/api/workout-sessions?workoutId=${stats.todayWorkout.id}`
       )
       .then((sessions) => {
-        const open = sessions.find((s) => !s.completed);
+        const open = sessions.find((s) => !s.completed && !s.skipped);
         setOpenSessionId(open?.id ?? null);
       })
       .catch(() => {});
@@ -169,10 +135,10 @@ function StudentDashboard({ stats, studentId }: { stats: StudentStatsResponse; s
     setOtherStartingId(workoutId);
     setStartError("");
     try {
-      const sessions = await api.get<{ id: string; completed: boolean }[]>(
+      const sessions = await api.get<{ id: string; completed: boolean; skipped?: boolean }[]>(
         `/api/workout-sessions?workoutId=${workoutId}`
       );
-      const open = sessions.find((s) => !s.completed);
+      const open = sessions.find((s) => !s.completed && !s.skipped);
       if (open) {
         router.push(`/workouts/execute/${open.id}`);
         return;

@@ -270,6 +270,25 @@ export default function WorkoutDetailPage() {
   }
 
   const [starting, setStarting] = useState(false);
+  const [skipping, setSkipping] = useState(false);
+  const [markedSkipped, setMarkedSkipped] = useState(false);
+
+  async function handleMarkSkipped() {
+    if (!workout || user?.role !== "STUDENT") return;
+    if (skipping) return; // previne double-submit
+    setSkipping(true);
+    try {
+      await api.post("/api/workout-sessions", {
+        workoutId: workout.id,
+        studentId: workout.studentId,
+        skipped: true,
+      });
+      setMarkedSkipped(true);
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
+      setSkipping(false);
+    }
+  }
 
   async function handleStartSession() {
     if (!workout || (user?.role !== "PERSONAL" && user?.role !== "STUDENT")) return;
@@ -278,10 +297,10 @@ export default function WorkoutDetailPage() {
     try {
       let openId: string | undefined;
       try {
-        const sessions = await api.get<{ id: string; completed: boolean }[]>(
+        const sessions = await api.get<{ id: string; completed: boolean; skipped?: boolean }[]>(
           `/api/workout-sessions?workoutId=${workout.id}`
         );
-        openId = sessions.find((s) => !s.completed)?.id;
+        openId = sessions.find((s) => !s.completed && !s.skipped)?.id;
       } catch {
         openId = undefined;
       }
@@ -401,10 +420,24 @@ export default function WorkoutDetailPage() {
               <Button
                 icon={<Play className="w-4 h-4" />}
                 onClick={handleStartSession}
-                disabled={workout.exercises.length === 0}
+                disabled={workout.exercises.length === 0 || markedSkipped}
               >
                 {t("wk.startWorkout")}
               </Button>
+            )}
+            {user.role === "STUDENT" && (
+              markedSkipped ? (
+                <Badge variant="warning">{t("wk.skippedToday")}</Badge>
+              ) : (
+                <Button
+                  variant="secondary"
+                  icon={<X className="w-4 h-4" />}
+                  onClick={handleMarkSkipped}
+                  loading={skipping}
+                >
+                  {t("wk.markSkipped")}
+                </Button>
+              )
             )}
             {user.role === "PERSONAL" && (
               <Button

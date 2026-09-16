@@ -335,6 +335,7 @@ model WorkoutSession {
   id        String   @id @default(cuid())
   date      DateTime @default(now())
   completed Boolean  @default(false)
+  skipped   Boolean  @default(false)
   notes     String?
 
   workoutId String
@@ -478,6 +479,7 @@ model Payment {
 model MealLog {
   id         String   @id @default(cuid())
   date       DateTime @default(now())
+  skipped    Boolean  @default(false)
 
   mealId     String
   meal       Meal     @relation(fields: [mealId], references: [id], onDelete: Cascade)

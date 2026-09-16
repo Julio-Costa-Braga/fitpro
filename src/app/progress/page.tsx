@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Plus, TrendingUp, ChevronDown, CalendarDays, AlertTriangle, CheckCircle2, Calculator } from "lucide-react";
+import { Loader2, Plus, TrendingUp, ChevronDown, CalendarDays, AlertTriangle, CheckCircle2, Calculator, Dumbbell, Apple } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { api } from "@/lib/api";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -13,7 +13,7 @@ import { Select } from "@/components/ui/Select";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
-import { dateLocale } from "@/lib/i18n/dictionaries";
+import { dateLocale, type Lang } from "@/lib/i18n/dictionaries";
 
 interface Student {
   id: string;
@@ -47,6 +47,31 @@ interface ProgressInput {
   waist?: number | null;
   arm?: number | null;
   thigh?: number | null;
+}
+
+interface ProgressionDay {
+  date: string;
+  completed: number;
+  skipped: number;
+  eaten: number;
+}
+
+interface ProgressionOverview {
+  periodDays: number;
+  workouts: {
+    completed: number;
+    skipped: number;
+    total: number;
+    completionRate: number;
+    daily: ProgressionDay[];
+  };
+  diet: {
+    eaten: number;
+    skipped: number;
+    total: number;
+    adherenceRate: number;
+    daily: ProgressionDay[];
+  };
 }
 
 const MEASURES: { key: keyof ProgressInput; label: string; unit: string }[] = [
@@ -84,6 +109,41 @@ function Delta({ value }: { value: number }) {
   );
 }
 
+function MiniBarChart({ data, valueKey, altKey, lang }: {
+  data: ProgressionDay[];
+  valueKey: "completed" | "eaten";
+  altKey: "skipped";
+  lang: Lang;
+}) {
+  const max = Math.max(...data.map((d) => (d[valueKey] || 0) + (d[altKey] || 0)), 1);
+  return (
+    <div className="flex items-end gap-1 h-14">
+      {data.map((d) => {
+        const v = d[valueKey] || 0;
+        const a = d[altKey] || 0;
+        const t = v + a;
+        return (
+          <div key={d.date} className="flex-1 flex flex-col items-center gap-0.5 min-w-0">
+            <div className="w-full flex flex-col justify-end h-12 rounded overflow-hidden">
+              {t === 0 ? (
+                <div className="w-full h-full bg-border/40" />
+              ) : (
+                <>
+                  <div className="w-full bg-red-500/60" style={{ height: `${(a / max) * 100}%` }} />
+                  <div className="w-full bg-green-500/60" style={{ height: `${(v / max) * 100}%` }} />
+                </>
+              )}
+            </div>
+            <span className="text-[9px] text-muted leading-none truncate">
+              {new Date(d.date).toLocaleDateString(dateLocale(lang), { day: "2-digit" })}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function ProgressPage() {
   const { user, loading: authLoading } = useAuth();
   const { t, lang } = useLanguage();
@@ -99,6 +159,8 @@ export default function ProgressPage() {
   const [loadingProgress, setLoadingProgress] = useState(false);
   const [savingFreq, setSavingFreq] = useState(false);
   const [error, setError] = useState("");
+
+  const [overview, setOverview] = useState<ProgressionOverview | null>(null);
 
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
@@ -131,11 +193,15 @@ export default function ProgressPage() {
     if (!studentId) return;
     setLoadingProgress(true);
     try {
-      const data = await api.get<ProgressResponse>(`/api/progress?studentId=${studentId}`);
-      setProgress(data.progress);
-      setReviewFrequencyDays(data.reviewFrequencyDays);
-      setNextReviewDate(data.nextReviewDate);
-      setOverdue(data.overdue);
+      const [progressData, overviewData] = await Promise.all([
+        api.get<ProgressResponse>(`/api/progress?studentId=${studentId}`),
+        api.get<ProgressionOverview>(`/api/progress/overview?studentId=${studentId}`).catch(() => null),
+      ]);
+      setProgress(progressData.progress);
+      setReviewFrequencyDays(progressData.reviewFrequencyDays);
+      setNextReviewDate(progressData.nextReviewDate);
+      setOverdue(progressData.overdue);
+      setOverview(overviewData);
     } catch {
       setError(t("prog.errLoad"));
     } finally {
@@ -423,6 +489,51 @@ export default function ProgressPage() {
                   })}
                 </div>
               </Card>
+            )}
+
+            {overview && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <Card className="p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Dumbbell className="w-4 h-4 text-accent" />
+                    <h2 className="font-semibold text-sm">{t("prog.workoutProgression")}</h2>
+                  </div>
+                  {overview.workouts.total === 0 ? (
+                    <p className="text-xs text-muted">{t("prog.noSessionRecords", { days: overview.periodDays })}</p>
+                  ) : (
+                    <>
+                      <div className="flex items-baseline gap-2 mb-1">
+                        <span className="text-2xl font-bold">{overview.workouts.completionRate}%</span>
+                        <span className="text-xs text-muted">{t("prog.adherenceRate")}</span>
+                      </div>
+                      <p className="text-[11px] text-muted mb-3">
+                        {overview.workouts.completed} {t("prog.completed")} &middot; {overview.workouts.skipped} {t("prog.skipped")}
+                      </p>
+                      <MiniBarChart data={overview.workouts.daily} valueKey="completed" altKey="skipped" lang={lang} />
+                    </>
+                  )}
+                </Card>
+                <Card className="p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Apple className="w-4 h-4 text-accent" />
+                    <h2 className="font-semibold text-sm">{t("prog.dietProgression")}</h2>
+                  </div>
+                  {overview.diet.total === 0 ? (
+                    <p className="text-xs text-muted">{t("prog.noMealRecords", { days: overview.periodDays })}</p>
+                  ) : (
+                    <>
+                      <div className="flex items-baseline gap-2 mb-1">
+                        <span className="text-2xl font-bold">{overview.diet.adherenceRate}%</span>
+                        <span className="text-xs text-muted">{t("prog.adherenceRate")}</span>
+                      </div>
+                      <p className="text-[11px] text-muted mb-3">
+                        {overview.diet.eaten} {t("prog.eaten")} &middot; {overview.diet.skipped} {t("prog.skippedMeals")}
+                      </p>
+                      <MiniBarChart data={overview.diet.daily} valueKey="eaten" altKey="skipped" lang={lang} />
+                    </>
+                  )}
+                </Card>
+              </div>
             )}
 
             {viewProgress.length === 0 && !loadingProgress && (

@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
   const workoutIds = workouts.map((w) => w.id);
   const sessions = workoutIds.length
     ? await prisma.workoutSession.findMany({
-        where: { workoutId: { in: workoutIds }, completed: false },
+        where: { workoutId: { in: workoutIds }, completed: false, skipped: false },
         orderBy: { date: "desc" },
         select: {
           id: true,

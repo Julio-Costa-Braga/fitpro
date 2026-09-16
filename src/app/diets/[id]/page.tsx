@@ -50,7 +50,7 @@ interface DietPlan {
   supplementation: string | null;
   student: { id: string; name: string };
   meals: Meal[];
-  mealLogs: { id: string; mealId: string; date: string }[];
+  mealLogs: { id: string; mealId: string; date: string; skipped: boolean }[];
 }
 
 function ProgressBar({ current, target, color }: { current: number; target: number; color: string }) {
@@ -87,13 +87,14 @@ function isSameDay(d1: Date, d2: Date): boolean {
   );
 }
 
-function todayEatenIds(logs: { mealId: string; date: string }[]): Set<string> {
+function todayMealStates(logs: { mealId: string; date: string; skipped: boolean }[]): Map<string, { eaten: boolean; skipped: boolean }> {
   const now = new Date();
-  return new Set(
-    logs
-      .filter((l) => isSameDay(new Date(l.date), now))
-      .map((l) => l.mealId)
-  );
+  const map = new Map<string, { eaten: boolean; skipped: boolean }>();
+  for (const l of logs) {
+    if (!isSameDay(new Date(l.date), now)) continue;
+    map.set(l.mealId, { eaten: !l.skipped, skipped: l.skipped });
+  }
+  return map;
 }
 
 export default function DietDetailPage() {
@@ -113,7 +114,7 @@ export default function DietDetailPage() {
   const [savingMeal, setSavingMeal] = useState(false);
 
   const [expandedMealId, setExpandedMealId] = useState<string | null>(null);
-  const [eatenMealIds, setEatenMealIds] = useState<Set<string>>(new Set());
+  const [mealStates, setMealStates] = useState<Map<string, { eaten: boolean; skipped: boolean }>>(new Map());
   const [togglingMeal, setTogglingMeal] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const [foodFormMap, setFoodFormMap] = useState<Record<string, { name: string; quantity: string; protein: string; carbs: string; fat: string; calories: string }>>({});
@@ -130,7 +131,7 @@ export default function DietDetailPage() {
     try {
       const data = await api.get<{ dietPlan: DietPlan }>(`/api/diets/${dietId}`);
       setDiet(data.dietPlan);
-      setEatenMealIds(todayEatenIds(data.dietPlan.mealLogs ?? []));
+      setMealStates(todayMealStates(data.dietPlan.mealLogs ?? []));
     } catch {
       setError(t("diet.errLoadPlan"));
     } finally {
@@ -184,18 +185,25 @@ export default function DietDetailPage() {
     }
   }
 
-  async function toggleEaten(meal: Meal) {
+  async function markMeal(meal: Meal, target: "eaten" | "skipped") {
     if (user?.role !== "STUDENT") return;
-    const wasEaten = eatenMealIds.has(meal.id);
+    const current = mealStates.get(meal.id);
+    // Clique no botao ja ativo desmarca (volta ao estado neutro).
+    const active =
+      (target === "eaten" && current?.eaten) || (target === "skipped" && current?.skipped);
     setTogglingMeal(meal.id);
     try {
-      const res = await api.post<{ eaten: boolean }>(
+      const res = await api.post<{ eaten: boolean; skipped: boolean }>(
         `/api/diets/${dietId}/meals/${meal.id}/eat`,
-        { eaten: !wasEaten }
+        active
+          ? { eaten: false }
+          : target === "skipped"
+            ? { skipped: true }
+            : { eaten: true }
       );
-      setEatenMealIds((prev) => {
-        const next = new Set(prev);
-        if (res.eaten) next.add(meal.id);
+      setMealStates((prev) => {
+        const next = new Map(prev);
+        if (res.eaten || res.skipped) next.set(meal.id, { eaten: res.eaten, skipped: res.skipped });
         else next.delete(meal.id);
         return next;
       });
@@ -477,25 +485,35 @@ export default function DietDetailPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       {user?.role === "STUDENT" && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleEaten(meal);
-                          }}
-                          disabled={togglingMeal === meal.id}
-                          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                            eatenMealIds.has(meal.id)
-                              ? "bg-green-500/15 text-green-400"
-                              : "bg-card border border-border text-muted hover:text-white"
-                          }`}
-                        >
-                          {togglingMeal === meal.id ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Check className="w-3.5 h-3.5" />
-                          )}
-                          {eatenMealIds.has(meal.id) ? t("diet.eaten") : t("diet.markEaten")}
-                        </button>
+                        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => markMeal(meal, "eaten")}
+                            disabled={togglingMeal === meal.id}
+                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                              mealStates.get(meal.id)?.eaten
+                                ? "bg-green-500/15 text-green-400"
+                                : "bg-card border border-border text-muted hover:text-white"
+                            }`}
+                          >
+                            {togglingMeal === meal.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Check className="w-3.5 h-3.5" />
+                            )}
+                            {mealStates.get(meal.id)?.eaten ? t("diet.eaten") : t("diet.markEaten")}
+                          </button>
+                          <button
+                            onClick={() => markMeal(meal, "skipped")}
+                            disabled={togglingMeal === meal.id}
+                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                              mealStates.get(meal.id)?.skipped
+                                ? "bg-red-500/15 text-red-400"
+                                : "bg-card border border-border text-muted hover:text-white"
+                            }`}
+                          >
+                            {mealStates.get(meal.id)?.skipped ? t("diet.skipped") : t("diet.markSkipped")}
+                          </button>
+                        </div>
                       )}
                       <div className="hidden sm:flex gap-2 text-xs text-muted">
                         <span>P: {mealTotals.protein.toFixed(0)}g</span>

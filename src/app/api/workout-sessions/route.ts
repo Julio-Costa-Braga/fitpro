@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
   const user = auth.user;
 
   const body = await request.json();
-  const { workoutId, studentId } = body;
+  const { workoutId, studentId, skipped } = body;
 
   if (!workoutId || !studentId) {
     return NextResponse.json(
@@ -123,6 +123,55 @@ export async function POST(request: NextRequest) {
     if (!student) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
+  }
+
+  // Aluno marcou o treino como NAO REALIZADO hoje: cria sessao vazia com skipped=true,
+  // sem exercicios. Idempotente: se ja existir sessao hoje, converte para skipped
+  // (ou devolve a sessao de skip existente).
+  if (skipped === true) {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const existingToday = await prisma.workoutSession.findFirst({
+      where: {
+        workoutId,
+        studentId,
+        date: { gte: startOfToday },
+      },
+    });
+
+    if (existingToday) {
+      if (!existingToday.completed && !existingToday.skipped) {
+        const converted = await prisma.workoutSession.update({
+          where: { id: existingToday.id },
+          data: { skipped: true },
+          include: {
+            completedExercises: {
+              include: { exercise: true },
+              orderBy: { setNumber: "asc" },
+            },
+          },
+        });
+        return NextResponse.json(converted, { status: 200 });
+      }
+      return NextResponse.json(existingToday, { status: 200 });
+    }
+
+    const skippedSession = await prisma.workoutSession.create({
+      data: {
+        workoutId,
+        studentId,
+        skipped: true,
+      },
+      include: {
+        completedExercises: {
+          include: { exercise: true },
+          orderBy: { setNumber: "asc" },
+        },
+      },
+    });
+
+    return NextResponse.json(skippedSession, { status: 201 });
   }
 
   const session = await prisma.workoutSession.create({
