@@ -2,17 +2,15 @@ import webpush from "web-push";
 import { prisma } from "@/lib/prisma";
 import { VAPID_PUBLIC_KEY, VAPID_SUBJECT } from "@/lib/vapid";
 
-const VAPID_PRIVATE_KEY_DEFAULT =
-  process.env.NODE_ENV === "production"
-    ? ""
-    : "TG6B3IiecsRnOXIy4yvEYG6qUDbTwhu9Ab-_S2-wg7Q";
-
 let vapidConfigured = false;
 function ensureVapid(): void {
   if (vapidConfigured) return;
-  const key = process.env.VAPID_PRIVATE_KEY || VAPID_PRIVATE_KEY_DEFAULT;
-  if (!key) {
-    throw new Error("VAPID_PRIVATE_KEY environment variable is required in production");
+  // O par VAPID (privada + publica) e obrigatorio; nunca usar fallback hardcoded.
+  const key = process.env.VAPID_PRIVATE_KEY;
+  if (!key || !VAPID_PUBLIC_KEY) {
+    throw new Error(
+      "VAPID_PRIVATE_KEY and NEXT_PUBLIC_VAPID_PUBLIC_KEY are required to send push"
+    );
   }
   webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, key);
   vapidConfigured = true;

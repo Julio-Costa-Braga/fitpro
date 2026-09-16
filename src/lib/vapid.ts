@@ -1,8 +1,8 @@
-// Chave PUBLIC nao e segredo (e distribuida ao navegador).
-export const VAPID_PUBLIC_KEY =
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
-  "BMm1fR9c-Ng1PXXh0Sy4aVF5rHoyqtl3ncH2ayHNoskf6fLVQJMRRiOab7Ij6E62W27TOyaGbO3DnON_VALql8M";
-export const VAPID_SUBJECT = "mailto:contato@fitpro.app";
+// Chave PUBLIC nao e segredo (e distribuida ao navegador), mas vem de env:
+// sem NEXT_PUBLIC_VAPID_PUBLIC_KEY o push fica indisponivel (nunca cair em fallback).
+export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
+export const VAPID_SUBJECT =
+  process.env.VAPID_SUBJECT || "mailto:contato@fitpro.app";
 
 export const PUSH_SUPPORTED_TEXT = {
   pt: "Ative para receber notificacoes no celular mesmo com o app fechado.",

@@ -72,6 +72,7 @@ model User {
   referredByUser        User?   @relation("ReferredBy", fields: [referredByUserId], references: [id], onDelete: SetNull)
   myReferrals           User[]  @relation("ReferredBy")
   referralDiscountMonths Int     @default(0)
+  referralDiscountExpiresAt DateTime?
 
   // Planos e faturamento
 isActive            Boolean                 @default(true)
@@ -121,6 +122,8 @@ model Student {
   linkRequests TraineeLinkRequest[]
 
   @@unique([email, personalId])
+  @@index([personalId])
+  @@index([nutritionistId])
 }
 
 model RestDay {
@@ -147,6 +150,8 @@ model TraineeLinkRequest {
   updatedAt      DateTime @updatedAt
 
   @@unique([studentId, professionalId, type])
+  @@index([professionalId])
+  @@index([studentId])
 }
 
 model Workout {
@@ -169,6 +174,9 @@ model Workout {
 
   exercises  WorkoutExercise[]
   sessions   WorkoutSession[]
+
+  @@index([studentId])
+  @@index([trainerId])
 }
 
 model Exercise {
@@ -203,6 +211,8 @@ model WorkoutExercise {
   workout     Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
   exerciseId  String
   exercise    Exercise @relation(fields: [exerciseId], references: [id])
+
+  @@index([workoutId])
 }
 
 model WorkoutTemplate {
@@ -219,6 +229,8 @@ model WorkoutTemplate {
 
   exercises WorkoutTemplateExercise[]
   weekDays  WeekTemplateDay[]
+
+  @@index([trainerId])
 }
 
 model WorkoutTemplateExercise {
@@ -235,6 +247,8 @@ model WorkoutTemplateExercise {
 
   exerciseId String
   exercise   Exercise @relation(fields: [exerciseId], references: [id])
+
+  @@index([workoutTemplateId])
 }
 
 model WeekTemplate {
@@ -250,6 +264,8 @@ model WeekTemplate {
   trainer   User?   @relation(fields: [trainerId], references: [id], onDelete: SetNull)
 
   days WeekTemplateDay[]
+
+  @@index([trainerId])
 }
 
 model WeekTemplateDay {
@@ -284,6 +300,8 @@ model DietTemplate {
   trainer   User?   @relation(fields: [trainerId], references: [id], onDelete: SetNull)
 
   meals DietTemplateMeal[]
+
+  @@index([trainerId])
 }
 
 model DietTemplateMeal {
@@ -296,6 +314,8 @@ model DietTemplateMeal {
   dietTemplate   DietTemplate @relation(fields: [dietTemplateId], references: [id], onDelete: Cascade)
 
   foods DietTemplateFood[]
+
+  @@index([dietTemplateId])
 }
 
 model DietTemplateFood {
@@ -324,6 +344,9 @@ model WorkoutSession {
   student   Student @relation(fields: [studentId], references: [id])
 
   completedExercises CompletedExercise[]
+
+  @@index([studentId])
+  @@index([workoutId])
 }
 
 model CompletedExercise {
@@ -338,6 +361,8 @@ model CompletedExercise {
 
   exerciseId  String
   exercise    Exercise @relation(fields: [exerciseId], references: [id])
+
+  @@index([sessionId])
 }
 
 model DietPlan {
@@ -365,6 +390,9 @@ model DietPlan {
 
   meals Meal[]
   mealLogs MealLog[]
+
+  @@index([studentId])
+  @@index([trainerId])
 }
 
 model Meal {
@@ -379,6 +407,8 @@ model Meal {
 
   foods MealFood[]
   logs  MealLog[]
+
+  @@index([dietPlanId])
 }
 
 model MealFood {
@@ -392,6 +422,8 @@ model MealFood {
 
   mealId String
   meal   Meal @relation(fields: [mealId], references: [id], onDelete: Cascade)
+
+  @@index([mealId])
 }
 
 model ProgressLog {
@@ -412,6 +444,9 @@ model ProgressLog {
   // Profissional que registrou (personal ou nutricionista)
   professionalId String?
   professional   User? @relation("ProgressBy", fields: [professionalId], references: [id], onDelete: SetNull)
+
+  @@index([studentId])
+  @@index([professionalId])
 }
 
 model Notification {
@@ -453,6 +488,7 @@ model MealLog {
   dietPlanId String
   dietPlan   DietPlan @relation(fields: [dietPlanId], references: [id], onDelete: Cascade)
 
+  @@unique([mealId, studentId, date])
   @@index([studentId, date])
 }
 

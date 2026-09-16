@@ -1,30 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserFromRequest } from "@/lib/auth";
+import { authorize } from "@/lib/authz";
 import { MODULES, buildEffectiveModules } from "@/lib/permissions";
 
 export async function GET(request: NextRequest) {
-  const payload = getUserFromRequest(request);
-  if (!payload) {
-    return NextResponse.json({ error: "Nao autenticado" }, { status: 401 });
+  const auth = await authorize(request);
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
-  if (payload.role === "ADMIN") {
+  if (auth.user.role === "ADMIN") {
     return NextResponse.json({ modules: MODULES });
   }
 
   try {
     const [byRole, byUser] = await Promise.all([
       prisma.modulePermission.findMany({
-        where: { role: payload.role },
+        where: { role: auth.user.role },
         select: { module: true, enabled: true },
       }),
       prisma.userPermission.findMany({
-        where: { userId: payload.userId },
+        where: { userId: auth.user.userId },
         select: { module: true, enabled: true },
       }),
     ]);
-    const modules = buildEffectiveModules(payload.role, byRole, byUser);
+    const modules = buildEffectiveModules(auth.user.role, byRole, byUser);
     return NextResponse.json({ modules });
   } catch (error) {
     console.error("Permissions me error:", error);

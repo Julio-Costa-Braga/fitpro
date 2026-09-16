@@ -85,6 +85,28 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Student not found" }, { status: 404 });
   }
 
+  // A8: exercicios referenciados precisam ser presets ou do proprio personal.
+  const exerciseIds = Array.isArray(exercises)
+    ? exercises
+        .map((ex: { exerciseId?: unknown }) => ex?.exerciseId)
+        .filter((x: unknown): x is string => typeof x === "string")
+    : [];
+  if (exerciseIds.length > 0) {
+    const found = await prisma.exercise.findMany({
+      where: {
+        id: { in: exerciseIds },
+        OR: [{ isPreset: true }, { trainerId: user.userId }],
+      },
+      select: { id: true },
+    });
+    if (found.length !== exerciseIds.length) {
+      return NextResponse.json(
+        { error: "Um ou mais exercicios nao existem ou nao pertencem a voce" },
+        { status: 400 }
+      );
+    }
+  }
+
   const workout = await prisma.workout.create({
     data: {
       name,

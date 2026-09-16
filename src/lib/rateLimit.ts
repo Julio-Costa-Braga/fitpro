@@ -38,7 +38,15 @@ export function checkRateLimit(
 }
 
 export function clientIp(request: Request): string {
+  // Em proxies que APPENDAM o IP real (Vercel, nginx), a entrada mais a direita
+  // e a mais confiavel. O atacante controla apenas as entradas a esquerda.
   const fwd = request.headers.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0].trim();
+  if (fwd) {
+    const entries = fwd
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (entries.length > 0) return entries[entries.length - 1];
+  }
   return request.headers.get("x-real-ip") ?? "unknown";
 }

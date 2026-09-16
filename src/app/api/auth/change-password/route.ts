@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { hashPassword, getUserFromRequest } from "@/lib/auth";
+import { hashPassword, generateToken, setAuthCookie } from "@/lib/auth";
+import { authorize } from "@/lib/authz";
 import { checkRateLimit, clientIp } from "@/lib/rateLimit";
 
 export async function POST(request: NextRequest) {
-  const payload = getUserFromRequest(request);
-  if (!payload) {
-    return NextResponse.json({ error: "Nao autenticado" }, { status: 401 });
+  const auth = await authorize(request);
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
   const ipLimit = checkRateLimit(`change-password:ip:${clientIp(request)}`, 10, 15 * 60 * 1000);
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const user = await prisma.user.findUnique({ where: { id: payload.userId } });
+    const user = await prisma.user.findUnique({ where: { id: auth.user.userId } });
     if (!user) {
       return NextResponse.json({ error: "Usuario nao encontrado" }, { status: 404 });
     }
@@ -43,12 +44,24 @@ export async function POST(request: NextRequest) {
     }
 
     const hashed = await hashPassword(newPassword);
+
+    // Troca de senha revoga as demais sessoes (bump de tokenVersion).
+    const newVersion = (user.tokenVersion ?? 0) + 1;
     await prisma.user.update({
       where: { id: user.id },
-      data: { password: hashed, mustChangePassword: false },
+      data: { password: hashed, mustChangePassword: false, tokenVersion: newVersion },
     });
 
-    return NextResponse.json({ ok: true });
+    const token = generateToken({
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      name: user.name,
+      ver: newVersion,
+    });
+    const response = NextResponse.json({ ok: true });
+    setAuthCookie(response, token);
+    return response;
   } catch (error) {
     console.error("Change password error:", error);
     return NextResponse.json(

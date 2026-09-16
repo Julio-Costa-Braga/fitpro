@@ -1,12 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserFromRequest } from "@/lib/auth";
+import { authorize } from "@/lib/authz";
 import { checkRateLimit, clientIp } from "@/lib/rateLimit";
 
+// Servicos de push confiaveis. Apenas endpoints https desses hosts sao aceitos
+// (previne SSRF para hosts arbitrarios).
+const PUSH_HOST_SUFFIXES = [
+  "fcm.googleapis.com",
+  "fcmregistrations.googleapis.com",
+  "android.googleapis.com",
+  "web.push.apple.com",
+  "api.push.apple.com",
+  "push.services.mozilla.com",
+  "updates.push.services.mozilla.com",
+  "push.allizom.org",
+  "notify.windows.com",
+  "windows.com",
+];
+
+function isSafePushEndpoint(endpoint: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(endpoint);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== "https:") return false;
+  const host = url.hostname.toLowerCase();
+  return PUSH_HOST_SUFFIXES.some((s) => host === s || host.endsWith(`.${s}`));
+}
+
 export async function POST(request: NextRequest) {
-  const payload = getUserFromRequest(request);
-  if (!payload) {
-    return NextResponse.json({ error: "Nao autenticado" }, { status: 401 });
+  const auth = await authorize(request);
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
   const ipLimit = checkRateLimit(`push:ip:${clientIp(request)}`, 20, 60 * 60 * 1000);
@@ -19,23 +46,28 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { endpoint, p256dh, auth } = body as {
+    const { endpoint, p256dh, auth: authKey } = body as {
       endpoint?: string;
       p256dh?: string;
       auth?: string;
     };
-    if (!endpoint || !p256dh || !auth) {
+    if (!endpoint || !p256dh || !authKey) {
       return NextResponse.json(
         { error: "Subscription invalida" },
         { status: 400 }
       );
     }
-    if (!endpoint.startsWith("https://") && !endpoint.startsWith("http://")) {
+    // SSRF: somente https em servicos de push conhecidos.
+    if (!isSafePushEndpoint(endpoint)) {
       return NextResponse.json({ error: "Endpoint invalido" }, { status: 400 });
+    }
+    // Tamanhos esperados: p256dh = 65 bytes (88 em base64url), auth = 16 bytes.
+    if (p256dh.length < 80 || p256dh.length > 100 || authKey.length < 20 || authKey.length > 40) {
+      return NextResponse.json({ error: "Chaves de subscription invalidas" }, { status: 400 });
     }
 
     const existing = await prisma.pushSubscription.findUnique({ where: { endpoint } });
-    if (existing && existing.userId !== payload.userId) {
+    if (existing && existing.userId !== auth.user.userId) {
       return NextResponse.json(
         { error: "Endpoint ja registrado para outra conta" },
         { status: 403 }
@@ -44,8 +76,8 @@ export async function POST(request: NextRequest) {
 
     await prisma.pushSubscription.upsert({
       where: { endpoint },
-      update: { p256dh, auth },
-      create: { userId: payload.userId, endpoint, p256dh, auth },
+      update: { p256dh, auth: authKey },
+      create: { userId: auth.user.userId, endpoint, p256dh, auth: authKey },
     });
 
     return NextResponse.json({ ok: true });
@@ -59,9 +91,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const payload = getUserFromRequest(request);
-  if (!payload) {
-    return NextResponse.json({ error: "Nao autenticado" }, { status: 401 });
+  const auth = await authorize(request);
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
   try {
@@ -69,7 +101,7 @@ export async function DELETE(request: NextRequest) {
     const endpoint = searchParams.get("endpoint");
     if (endpoint) {
       await prisma.pushSubscription.deleteMany({
-        where: { endpoint, userId: payload.userId },
+        where: { endpoint, userId: auth.user.userId },
       });
     }
     return NextResponse.json({ ok: true });

@@ -11,8 +11,17 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const muscleGroup = searchParams.get("muscleGroup");
 
+  // ADMIN ve tudo. Demais perfis veem apenas presets + exercicios proprios.
+  const scope =
+    auth.user.role === "ADMIN"
+      ? {}
+      : { OR: [{ isPreset: true }, { trainerId: auth.user.userId }] };
+  const where = muscleGroup
+    ? { ...scope, AND: [{ muscleGroup }] }
+    : scope;
+
   const exercises = await prisma.exercise.findMany({
-    where: muscleGroup ? { muscleGroup } : undefined,
+    where,
     orderBy: { name: "asc" },
   });
 

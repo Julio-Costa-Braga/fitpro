@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { hashPassword, getUserFromRequest } from "@/lib/auth";
+import { hashPassword } from "@/lib/auth";
+import { authorize } from "@/lib/authz";
 import { generateReferralCode } from "@/lib/referral";
 import { trialUntil } from "@/lib/billing";
 import { checkRateLimit, clientIp } from "@/lib/rateLimit";
@@ -12,13 +13,11 @@ import { createAccountSchema, firstValidationMessage } from "@/lib/validation";
  * - PERSONAL: pode criar apenas STUDENT (sempre como seu próprio aluno).
  */
 export async function POST(request: NextRequest) {
-  const creator = getUserFromRequest(request);
-  if (!creator) {
-    return NextResponse.json({ error: "Nao autenticado" }, { status: 401 });
+  const auth = await authorize(request, { roles: ["ADMIN", "PERSONAL"] });
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
-  if (creator.role !== "ADMIN" && creator.role !== "PERSONAL") {
-    return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
-  }
+  const creator = auth.user;
 
   const ipLimit = checkRateLimit(`accounts:ip:${clientIp(request)}`, 20, 15 * 60 * 1000);
   if (!ipLimit.allowed) {
@@ -87,31 +86,35 @@ export async function POST(request: NextRequest) {
 
     const hashedPassword = await hashPassword(password);
 
-    // ADMIN e não pode criar outro ADMIN.
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        phone: phone || null,
-        role: (targetRole || "STUDENT") as "PERSONAL" | "STUDENT",
-        mustChangePassword: true,
-        referralCode: generateReferralCode(name),
-        paidUntil: trialUntil(),
-      },
-    });
-
-    if (user.role === "STUDENT") {
-      await prisma.student.create({
+    // ADMIN e não pode criar outro ADMIN. Conta + Student vinculado: atomicos.
+    const { user } = await prisma.$transaction(async (tx) => {
+      const created = await tx.user.create({
         data: {
-          name: user.name,
-          email: user.email,
-          phone: user.phone,
-          personalId: finalTrainerId!,
-          userId: user.id,
+          name,
+          email,
+          password: hashedPassword,
+          phone: phone || null,
+          role: (targetRole || "STUDENT") as "PERSONAL" | "STUDENT",
+          mustChangePassword: true,
+          referralCode: generateReferralCode(name),
+          paidUntil: trialUntil(),
         },
       });
-    }
+
+      if (created.role === "STUDENT") {
+        await tx.student.create({
+          data: {
+            name: created.name,
+            email: created.email,
+            phone: created.phone,
+            personalId: finalTrainerId!,
+            userId: created.id,
+          },
+        });
+      }
+
+      return { user: created };
+    });
 
     return NextResponse.json(
       {
