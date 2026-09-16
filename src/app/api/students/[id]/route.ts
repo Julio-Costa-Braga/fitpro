@@ -1,15 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { authorize, findOwnedStudent } from "@/lib/authz";
+import { authorize, canUseModule, findOwnedStudent } from "@/lib/authz";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(request: NextRequest, { params }: Params) {
-  const auth = await authorize(request, { module: "students" });
+  const auth = await authorize(request);
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
   const payload = auth.user;
+
+  // Self-service: aluno so pode ler o proprio registro (findOwnedStudent garante isso).
+  if (payload.role !== "STUDENT" && !(await canUseModule(payload, "students"))) {
+    return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+  }
 
   try {
     const { id } = await params;

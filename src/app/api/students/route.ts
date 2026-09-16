@@ -1,15 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { authorize } from "@/lib/authz";
+import { authorize, canUseModule } from "@/lib/authz";
 import { checkRateLimit, clientIp } from "@/lib/rateLimit";
 import { createStudentSchema, firstValidationMessage } from "@/lib/validation";
 
 export async function GET(request: NextRequest) {
-  const auth = await authorize(request, { module: "students" });
+  const auth = await authorize(request);
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
   const payload = auth.user;
+
+  // Leitura do proprio registro e self-service (o where abaixo so devolve o proprio aluno).
+  // O modulo "students" vale para quem gerencia alunos (PERSONAL/NUTRITIONIST/ADMIN).
+  if (payload.role !== "STUDENT" && !(await canUseModule(payload, "students"))) {
+    return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+  }
 
   try {
     const students = await prisma.student.findMany({
