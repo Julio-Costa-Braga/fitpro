@@ -5,7 +5,7 @@ import { authorize, studentWhereOwned } from "@/lib/authz";
 type Params = { params: Promise<{ id: string }> };
 
 export async function PUT(request: NextRequest, { params }: Params) {
-  const auth = await authorize(request, { roles: ["PERSONAL", "ADMIN"] });
+  const auth = await authorize(request, { roles: ["PERSONAL", "NUTRITIONIST", "ADMIN"] });
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }

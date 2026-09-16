@@ -54,8 +54,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // O aluno ve SOMENTE as dietas que a nutricionista vinculada passa.
+    // Sem nutricionista vinculada, volta a ver todas as dietas do proprio registro.
+    const trainerFilter =
+      user.role === "STUDENT" && student.nutritionistId
+        ? { trainerId: student.nutritionistId }
+        : undefined;
+
     const dietPlans = await prisma.dietPlan.findMany({
-      where: { studentId },
+      where: { studentId, ...trainerFilter },
       include: {
         meals: {
           orderBy: { order: "asc" },

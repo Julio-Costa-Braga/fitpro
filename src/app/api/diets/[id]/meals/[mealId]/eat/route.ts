@@ -20,7 +20,8 @@ export async function POST(
 
     const { id, mealId } = await params;
     const body = await request.json().catch(() => ({}));
-    const eaten = body.eaten !== false;
+    const skipped = body.skipped === true;
+    const eaten = skipped ? false : body.eaten !== false;
 
     const dietPlan = await prisma.dietPlan.findUnique({
       where: { id },
@@ -47,49 +48,54 @@ export async function POST(
 
     const since = startOfToday();
 
-    if (eaten) {
-      // Log atomico, com date canonico (inicio do dia) para o campo unico
-      // deduplicar double-submit e races. Sem notificacao de refeicao.
-      const { log, didCreate } = await prisma.$transaction(async (tx) => {
-        const pre = await tx.mealLog.findFirst({
-          where: { mealId, studentId: dietPlan.student.id, date: { gte: since } },
-          orderBy: { date: "desc" },
-        });
-        if (pre) return { log: pre, didCreate: false };
+    // Desmarca a refeicao de hoje (sem estado comido/skip).
+    if (!eaten && !skipped) {
+      await prisma.mealLog.deleteMany({
+        where: { mealId, studentId: dietPlan.student.id, date: { gte: since } },
+      });
+      return NextResponse.json({ eaten: false, skipped: false, logId: null });
+    }
 
-        let created: Awaited<ReturnType<typeof tx.mealLog.create>>;
-        try {
-          created = await tx.mealLog.create({
-            data: {
-              mealId,
-              studentId: dietPlan.student.id,
-              dietPlanId: id,
-              date: since,
-            },
+    // Marca como COMIDO ou como NAO REALIZADO. Log atomico com date canonico
+    // (inicio do dia) para o campo unico deduplicar double-submit e races.
+    const { log } = await prisma.$transaction(async (tx) => {
+      const pre = await tx.mealLog.findFirst({
+        where: { mealId, studentId: dietPlan.student.id, date: { gte: since } },
+        orderBy: { date: "desc" },
+      });
+      if (pre) {
+        return { log: await tx.mealLog.update({ where: { id: pre.id }, data: { skipped } }) };
+      }
+
+      let created: Awaited<ReturnType<typeof tx.mealLog.create>>;
+      try {
+        created = await tx.mealLog.create({
+          data: {
+            mealId,
+            studentId: dietPlan.student.id,
+            dietPlanId: id,
+            date: since,
+            skipped,
+          },
+        });
+      } catch (err) {
+        if (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "P2002") {
+          const winner = await tx.mealLog.findFirst({
+            where: { mealId, studentId: dietPlan.student.id, date: { gte: since } },
+            orderBy: { date: "asc" },
           });
-        } catch (err) {
-          if (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "P2002") {
-            const winner = await tx.mealLog.findFirst({
-              where: { mealId, studentId: dietPlan.student.id, date: { gte: since } },
-              orderBy: { date: "asc" },
-            });
-            if (winner) return { log: winner, didCreate: false };
-            throw err;
+          if (winner) {
+            return { log: await tx.mealLog.update({ where: { id: winner.id }, data: { skipped } }) };
           }
           throw err;
         }
+        throw err;
+      }
 
-        return { log: created, didCreate: true };
-      });
-
-      return NextResponse.json({ eaten: true, logId: log.id });
-    }
-
-    await prisma.mealLog.deleteMany({
-      where: { mealId, studentId: dietPlan.student.id, date: { gte: since } },
+      return { log: created };
     });
 
-    return NextResponse.json({ eaten: false, logId: null });
+    return NextResponse.json({ eaten: !skipped, skipped, logId: log.id });
   } catch (error) {
     console.error("Update meal eaten error:", error);
     return NextResponse.json(
