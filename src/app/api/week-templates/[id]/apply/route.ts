@@ -1,17 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserFromRequest } from "@/lib/auth";
+import { authorize } from "@/lib/authz";
 
 const WEEKDAYS = ["Segunda", "Terca", "Quarta", "Quinta", "Sexta", "Sabado", "Domingo"];
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const user = getUserFromRequest(request);
-  if (!user) {
-    return NextResponse.json({ error: "Nao autenticado" }, { status: 401 });
+  const auth = await authorize(request, { roles: ["PERSONAL", "ADMIN"] });
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
-  if (user.role !== "PERSONAL" && user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
-  }
+  const user = auth.user;
 
   const { id } = await params;
   const body = await request.json();

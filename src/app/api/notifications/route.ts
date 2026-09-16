@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserFromRequest } from "@/lib/auth";
+import { authorize } from "@/lib/authz";
 
 export async function GET(request: NextRequest) {
-  const user = getUserFromRequest(request);
-  if (!user) {
-    return NextResponse.json({ error: "Nao autenticado" }, { status: 401 });
+  const auth = await authorize(request);
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
+  const user = auth.user;
 
   try {
     const [notifications, unreadCount] = await Promise.all([
@@ -31,10 +32,11 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const user = getUserFromRequest(request);
-  if (!user) {
-    return NextResponse.json({ error: "Nao autenticado" }, { status: 401 });
+  const auth = await authorize(request);
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
+  const user = auth.user;
 
   try {
     const body = await request.json().catch(() => ({}));

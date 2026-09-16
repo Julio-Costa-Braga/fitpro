@@ -1,20 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserFromRequest } from "@/lib/auth";
+import { authorize } from "@/lib/authz";
 
 export async function GET(request: NextRequest) {
   try {
-    const user = getUserFromRequest(request);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const auth = await authorize(request, { roles: ["PERSONAL", "NUTRITIONIST"] });
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
-
-    if (user.role !== "PERSONAL" && user.role !== "NUTRITIONIST") {
-      return NextResponse.json(
-        { error: "Only trainers can view stats" },
-        { status: 403 }
-      );
-    }
+    const user = auth.user;
 
     const trainerId = user.userId;
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);

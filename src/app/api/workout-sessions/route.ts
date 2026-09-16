@@ -1,14 +1,18 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserFromRequest } from "@/lib/auth";
+import { authorize } from "@/lib/authz";
 import { sendPushToUser } from "@/lib/push";
 import { getDayLetter, getDayName } from "@/lib/utils";
 
 export async function GET(request: NextRequest) {
-  const user = getUserFromRequest(request);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await authorize(request, {
+    roles: ["PERSONAL", "STUDENT", "ADMIN"],
+    module: "workouts",
+  });
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
+  const user = auth.user;
 
   const { searchParams } = new URL(request.url);
   const studentId = searchParams.get("studentId");
@@ -51,8 +55,6 @@ export async function GET(request: NextRequest) {
     if (!lookup) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
-  } else if (user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
   }
 
   const sessions = await prisma.workoutSession.findMany({
@@ -70,10 +72,14 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const user = getUserFromRequest(request);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await authorize(request, {
+    roles: ["PERSONAL", "STUDENT", "ADMIN"],
+    module: "workouts",
+  });
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
+  const user = auth.user;
 
   const body = await request.json();
   const { workoutId, studentId } = body;
@@ -92,10 +98,6 @@ export async function POST(request: NextRequest) {
 
   if (!workout) {
     return NextResponse.json({ error: "Workout not found" }, { status: 404 });
-  }
-
-  if (user.role !== "PERSONAL" && user.role !== "STUDENT" && user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   if (user.role === "PERSONAL" && workout.trainerId !== user.userId) {

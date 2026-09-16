@@ -1,15 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserFromRequest } from "@/lib/auth";
+import { authorize, type ApiUser } from "@/lib/authz";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
+function ownsProgressLog(user: ApiUser, log: {
+  professionalId: string | null;
+  student: { userId: string | null; personalId: string | null; nutritionistId: string | null };
+}): boolean {
+  if (user.role === "PERSONAL")
+    return !!log.student.personalId &&
+      log.student.personalId === user.userId &&
+      (!log.professionalId || log.professionalId === user.userId);
+  if (user.role === "NUTRITIONIST")
+    return !!log.student.nutritionistId &&
+      log.student.nutritionistId === user.userId &&
+      (!log.professionalId || log.professionalId === user.userId);
+  if (user.role === "STUDENT") return log.student.userId === user.userId;
+  return user.role === "ADMIN";
+}
+
 export async function GET(request: NextRequest, { params }: RouteContext) {
   try {
-    const user = getUserFromRequest(request);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const auth = await authorize(request);
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
+    const user = auth.user;
 
     const { id } = await params;
 
@@ -21,20 +38,8 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
       return NextResponse.json({ error: "Progress log not found" }, { status: 404 });
     }
 
-    if (user.role === "PERSONAL" || user.role === "NUTRITIONIST") {
-      const owned =
-        user.role === "NUTRITIONIST"
-          ? progressLog.student.nutritionistId === user.userId
-          : progressLog.student.personalId === user.userId;
-      const ownsLog =
-        !progressLog.professionalId || progressLog.professionalId === user.userId;
-      if (!owned || !ownsLog) {
-        return NextResponse.json({ error: "Progress log not found" }, { status: 404 });
-      }
-    } else if (user.role === "STUDENT") {
-      if (progressLog.student.id !== user.userId) {
-        return NextResponse.json({ error: "Progress log not found" }, { status: 404 });
-      }
+    if (!ownsProgressLog(user, progressLog)) {
+      return NextResponse.json({ error: "Progress log not found" }, { status: 404 });
     }
 
     const { student, ...log } = progressLog;
@@ -50,10 +55,11 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
 
 export async function PUT(request: NextRequest, { params }: RouteContext) {
   try {
-    const user = getUserFromRequest(request);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const auth = await authorize(request);
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
+    const user = auth.user;
 
     const { id } = await params;
 
@@ -65,20 +71,8 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
       return NextResponse.json({ error: "Progress log not found" }, { status: 404 });
     }
 
-    if (user.role === "PERSONAL" || user.role === "NUTRITIONIST") {
-      const owned =
-        user.role === "NUTRITIONIST"
-          ? progressLog.student.nutritionistId === user.userId
-          : progressLog.student.personalId === user.userId;
-      const ownsLog =
-        !progressLog.professionalId || progressLog.professionalId === user.userId;
-      if (!owned || !ownsLog) {
-        return NextResponse.json({ error: "Progress log not found" }, { status: 404 });
-      }
-    } else if (user.role === "STUDENT") {
-      if (progressLog.student.id !== user.userId) {
-        return NextResponse.json({ error: "Progress log not found" }, { status: 404 });
-      }
+    if (!ownsProgressLog(user, progressLog)) {
+      return NextResponse.json({ error: "Progress log not found" }, { status: 404 });
     }
 
     const body = await request.json();
@@ -110,10 +104,11 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
 
 export async function DELETE(request: NextRequest, { params }: RouteContext) {
   try {
-    const user = getUserFromRequest(request);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const auth = await authorize(request);
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
+    const user = auth.user;
 
     const { id } = await params;
 
@@ -125,20 +120,8 @@ export async function DELETE(request: NextRequest, { params }: RouteContext) {
       return NextResponse.json({ error: "Progress log not found" }, { status: 404 });
     }
 
-    if (user.role === "PERSONAL" || user.role === "NUTRITIONIST") {
-      const owned =
-        user.role === "NUTRITIONIST"
-          ? progressLog.student.nutritionistId === user.userId
-          : progressLog.student.personalId === user.userId;
-      const ownsLog =
-        !progressLog.professionalId || progressLog.professionalId === user.userId;
-      if (!owned || !ownsLog) {
-        return NextResponse.json({ error: "Progress log not found" }, { status: 404 });
-      }
-    } else if (user.role === "STUDENT") {
-      if (progressLog.student.id !== user.userId) {
-        return NextResponse.json({ error: "Progress log not found" }, { status: 404 });
-      }
+    if (!ownsProgressLog(user, progressLog)) {
+      return NextResponse.json({ error: "Progress log not found" }, { status: 404 });
     }
 
     await prisma.progressLog.delete({ where: { id } });

@@ -1,24 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserFromRequest } from "@/lib/auth";
+import { authorize, findOwnedStudent } from "@/lib/authz";
 
 type Params = { params: Promise<{ id: string }> };
 
-async function getStudentOwned(id: string, userId: string) {
-  return prisma.student.findFirst({
-    where: { id, personalId: userId },
-  });
-}
-
 export async function GET(request: NextRequest, { params }: Params) {
-  const payload = getUserFromRequest(request);
-  if (!payload) {
-    return NextResponse.json({ error: "Nao autenticado" }, { status: 401 });
+  const auth = await authorize(request, { module: "students" });
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
+  const payload = auth.user;
 
   try {
     const { id } = await params;
-    const student = await getStudentOwned(id, payload.userId);
+    const student = await findOwnedStudent(payload, id);
 
     if (!student) {
       return NextResponse.json(
@@ -38,14 +33,15 @@ export async function GET(request: NextRequest, { params }: Params) {
 }
 
 export async function PUT(request: NextRequest, { params }: Params) {
-  const payload = getUserFromRequest(request);
-  if (!payload) {
-    return NextResponse.json({ error: "Nao autenticado" }, { status: 401 });
+  const auth = await authorize(request, { module: "students", roles: ["PERSONAL", "NUTRITIONIST", "ADMIN"] });
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
+  const payload = auth.user;
 
   try {
     const { id } = await params;
-    const existing = await getStudentOwned(id, payload.userId);
+    const existing = await findOwnedStudent(payload, id);
 
     if (!existing) {
       return NextResponse.json(
@@ -57,7 +53,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
     const body = await request.json();
     const { name, email, phone, reviewFrequencyDays } = body;
 
-    if (email && email !== existing.email) {
+    if (email && email !== existing.email && payload.role === "PERSONAL") {
       const duplicate = await prisma.student.findFirst({
         where: { email, personalId: payload.userId, NOT: { id } },
       });
@@ -98,14 +94,15 @@ export async function PUT(request: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(request: NextRequest, { params }: Params) {
-  const payload = getUserFromRequest(request);
-  if (!payload) {
-    return NextResponse.json({ error: "Nao autenticado" }, { status: 401 });
+  const auth = await authorize(request, { module: "students", roles: ["PERSONAL", "NUTRITIONIST", "ADMIN"] });
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
+  const payload = auth.user;
 
   try {
     const { id } = await params;
-    const existing = await getStudentOwned(id, payload.userId);
+    const existing = await findOwnedStudent(payload, id);
 
     if (!existing) {
       return NextResponse.json(

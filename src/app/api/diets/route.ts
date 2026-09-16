@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserFromRequest } from "@/lib/auth";
+import { authorize, studentWhereOwned } from "@/lib/authz";
 
 interface FoodInput {
   name: string;
@@ -29,10 +29,11 @@ const DAYS = ["Segunda", "Terca", "Quarta", "Quinta", "Sexta", "Sabado", "Doming
 
 export async function GET(request: NextRequest) {
   try {
-    const user = getUserFromRequest(request);
-    if (!user) {
-      return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
+    const auth = await authorize(request, { module: "diets" });
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
+    const user = auth.user;
 
     const studentId = request.nextUrl.searchParams.get("studentId");
     if (!studentId) {
@@ -43,14 +44,7 @@ export async function GET(request: NextRequest) {
     }
 
     const student = await prisma.student.findFirst({
-      where:
-        user.role === "ADMIN"
-          ? { id: studentId }
-          : user.role === "PERSONAL"
-            ? { id: studentId, personalId: user.userId }
-            : user.role === "NUTRITIONIST"
-              ? { id: studentId, nutritionistId: user.userId }
-              : { id: studentId, userId: user.userId },
+      where: studentWhereOwned(user, studentId),
     });
     if (!student) {
       return NextResponse.json(
@@ -83,10 +77,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = getUserFromRequest(request);
-    if (!user) {
-      return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
+    const auth = await authorize(request, { module: "diets" });
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
+    const user = auth.user;
 
     const body = await request.json();
     const {
@@ -127,14 +122,7 @@ export async function POST(request: NextRequest) {
     }
 
     const student = await prisma.student.findFirst({
-      where:
-        user.role === "ADMIN"
-          ? { id: studentId }
-          : user.role === "PERSONAL"
-            ? { id: studentId, personalId: user.userId }
-            : user.role === "NUTRITIONIST"
-              ? { id: studentId, nutritionistId: user.userId }
-              : { id: studentId, userId: user.userId },
+      where: studentWhereOwned(user, studentId),
     });
     if (!student) {
       return NextResponse.json(

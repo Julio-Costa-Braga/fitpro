@@ -3,6 +3,7 @@ import type { TokenPayload } from "@/lib/auth";
 export type StudentMini = {
   id: string;
   personalId?: string | null;
+  nutritionistId?: string | null;
   userId?: string | null;
 };
 
@@ -13,6 +14,7 @@ export function isAdminOrTrainerOfStudent(
   if (!student) return false;
   if (user.role === "ADMIN") return true;
   if (user.role === "PERSONAL") return student.personalId === user.userId;
+  if (user.role === "NUTRITIONIST") return student.nutritionistId === user.userId;
   if (user.role === "STUDENT") return student.userId === user.userId;
   return false;
 }

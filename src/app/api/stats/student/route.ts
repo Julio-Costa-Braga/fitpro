@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserFromRequest } from "@/lib/auth";
+import { authorize, studentWhereOwned } from "@/lib/authz";
 import { getDayLetter, getDayName } from "@/lib/utils";
 
 function isSameDay(d1: Date, d2: Date): boolean {
@@ -75,10 +75,11 @@ async function resolveTodayWorkout(studentId: string) {
 
 export async function GET(request: NextRequest) {
   try {
-    const user = getUserFromRequest(request);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const auth = await authorize(request, { module: "students" });
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
+    const user = auth.user;
 
     const { searchParams } = new URL(request.url);
     const studentId = searchParams.get("studentId");
@@ -88,12 +89,7 @@ export async function GET(request: NextRequest) {
     }
 
     const student = await prisma.student.findFirst({
-      where:
-        user.role === "ADMIN"
-          ? { id: studentId }
-          : user.role === "PERSONAL"
-            ? { id: studentId, personalId: user.userId }
-            : { id: studentId, userId: user.userId },
+      where: studentWhereOwned(user, studentId),
     });
     if (!student) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });

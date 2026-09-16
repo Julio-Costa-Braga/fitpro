@@ -1,14 +1,15 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserFromRequest } from "@/lib/auth";
+import { authorize, studentWhereOwned } from "@/lib/authz";
 import { sendPushToUser } from "@/lib/push";
 
 export async function GET(request: NextRequest) {
   try {
-    const user = getUserFromRequest(request);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const auth = await authorize(request);
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
+    const user = auth.user;
 
     const { searchParams } = new URL(request.url);
     const studentId = searchParams.get("studentId");
@@ -18,14 +19,7 @@ export async function GET(request: NextRequest) {
     }
 
     const student = await prisma.student.findFirst({
-      where:
-        user.role === "ADMIN"
-          ? { id: studentId }
-          : user.role === "PERSONAL"
-            ? { id: studentId, personalId: user.userId }
-            : user.role === "NUTRITIONIST"
-              ? { id: studentId, nutritionistId: user.userId }
-              : { id: studentId, userId: user.userId },
+      where: studentWhereOwned(user, studentId),
     });
     if (!student) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
@@ -71,10 +65,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = getUserFromRequest(request);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const auth = await authorize(request, { roles: ["PERSONAL", "NUTRITIONIST", "ADMIN"] });
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
+    const user = auth.user;
 
     const body = await request.json();
     const { date, weight, bodyFat, chest, waist, arm, thigh, notes, photoUrl, studentId } = body;
@@ -85,21 +80,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    if (user.role !== "PERSONAL" && user.role !== "NUTRITIONIST" && user.role !== "ADMIN") {
-      return NextResponse.json(
-        { error: "Acesso negado" },
-        { status: 403 }
-      );
-    }
-
-    const student = await prisma.student.findFirst({
-      where:
-        user.role === "ADMIN"
-          ? { id: studentId }
-          : user.role === "PERSONAL"
-            ? { id: studentId, personalId: user.userId }
-            : { id: studentId, nutritionistId: user.userId },
+      const student = await prisma.student.findFirst({
+      where: studentWhereOwned(user, studentId),
     });
     if (!student) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });

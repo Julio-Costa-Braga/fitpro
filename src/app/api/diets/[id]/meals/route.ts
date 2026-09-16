@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserFromRequest } from "@/lib/auth";
+import { authorize, type ApiUser } from "@/lib/authz";
 
 interface FoodInput {
   name: string;
@@ -11,9 +11,20 @@ interface FoodInput {
   calories?: number;
 }
 
-async function getOwnedDiet(id: string, trainerId: string) {
+async function getOwnedDiet(user: ApiUser, id: string) {
   return prisma.dietPlan.findFirst({
-    where: { id, trainerId },
+    where:
+      user.role === "ADMIN"
+        ? { id }
+        : {
+            id,
+            student: {
+              OR:
+                user.role === "STUDENT"
+                  ? [{ userId: user.userId }]
+                  : [{ personalId: user.userId }, { nutritionistId: user.userId }],
+            },
+          },
     select: { id: true },
   });
 }
@@ -25,13 +36,14 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = getUserFromRequest(request);
-    if (!user) {
-      return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
+    const auth = await authorize(request, { module: "diets", roles: ["PERSONAL", "NUTRITIONIST", "ADMIN"] });
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
+    const user = auth.user;
 
     const { id } = await params;
-    const dietPlan = await getOwnedDiet(id, user.userId);
+    const dietPlan = await getOwnedDiet(user, id);
     if (!dietPlan) {
       return NextResponse.json(
         { error: "Plano alimentar nao encontrado" },
@@ -60,13 +72,14 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = getUserFromRequest(request);
-    if (!user) {
-      return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
+    const auth = await authorize(request, { module: "diets", roles: ["PERSONAL", "NUTRITIONIST", "ADMIN"] });
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
+    const user = auth.user;
 
     const { id } = await params;
-    const dietPlan = await getOwnedDiet(id, user.userId);
+    const dietPlan = await getOwnedDiet(user, id);
     if (!dietPlan) {
       return NextResponse.json(
         { error: "Plano alimentar nao encontrado" },

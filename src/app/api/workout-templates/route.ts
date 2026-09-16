@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserFromRequest } from "@/lib/auth";
+import { authorize } from "@/lib/authz";
 import { StudentLevel } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   try {
-    const user = getUserFromRequest(request);
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const auth = await authorize(request);
+    if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
+    const user = auth.user;
     if (user.role === "STUDENT") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -34,11 +35,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = getUserFromRequest(request);
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    if (user.role !== "PERSONAL" && user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Only trainers can create templates" }, { status: 403 });
-    }
+    const auth = await authorize(request, {
+      roles: ["PERSONAL", "ADMIN"],
+      module: "workouts",
+    });
+    if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
+    const user = auth.user;
 
     const body = await request.json();
     const { name, description, level } = body;
