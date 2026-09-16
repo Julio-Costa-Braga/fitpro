@@ -17,6 +17,15 @@ export async function canAccessDietTemplate(
   return template.isPreset || template.trainerId === user.userId;
 }
 
+export async function canEditDietTemplate(
+  user: { userId: string; role: string },
+  template: { trainerId: string | null; isPreset: boolean } | null
+): Promise<boolean> {
+  if (!template) return false;
+  if (template.isPreset) return user.role === "ADMIN";
+  return template.trainerId === user.userId;
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -50,7 +59,7 @@ export async function PUT(
 
     const { id } = await params;
     const existing = await prisma.dietTemplate.findUnique({ where: { id } });
-    if (!(await canAccessDietTemplate(user, existing))) {
+    if (!(await canEditDietTemplate(user, existing))) {
       return NextResponse.json({ error: "Modelo nao encontrado" }, { status: 404 });
     }
 
@@ -117,7 +126,7 @@ export async function DELETE(
 
     const { id } = await params;
     const existing = await prisma.dietTemplate.findUnique({ where: { id } });
-    if (!(await canAccessDietTemplate(user, existing))) {
+    if (!(await canEditDietTemplate(user, existing))) {
       return NextResponse.json({ error: "Modelo nao encontrado" }, { status: 404 });
     }
 

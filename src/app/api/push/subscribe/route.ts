@@ -25,9 +25,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Endpoint invalido" }, { status: 400 });
     }
 
+    const existing = await prisma.pushSubscription.findUnique({ where: { endpoint } });
+    if (existing && existing.userId !== payload.userId) {
+      return NextResponse.json(
+        { error: "Endpoint ja registrado para outra conta" },
+        { status: 403 }
+      );
+    }
+
     await prisma.pushSubscription.upsert({
       where: { endpoint },
-      update: { p256dh, auth, userId: payload.userId },
+      update: { p256dh, auth },
       create: { userId: payload.userId, endpoint, p256dh, auth },
     });
 

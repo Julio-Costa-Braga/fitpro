@@ -41,7 +41,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const payStatus = status === "PENDING" ? "PENDING" : "PAID";
+  if (status !== "PAID" && status !== "PENDING") {
+    return NextResponse.json({ error: "Status invalido" }, { status: 400 });
+  }
+  const payStatus = status;
   const payAmount =
     Number.isInteger(amount) && amount !== undefined && amount > 0
       ? amount!
