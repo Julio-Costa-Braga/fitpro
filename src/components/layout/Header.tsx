@@ -50,7 +50,7 @@ function formatRelative(iso: string, lang: Lang, t: (key: string) => string): st
   if (mins < 1) return t("header.justNow");
   if (mins < 60) return `${mins}${t("header.minAgo")}`;
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h`;
+  if (hours < 24) return `${hours}${t("header.hoursAgo")}`;
   return date.toLocaleDateString(dateLocale(lang), {
     day: "2-digit",
     month: "2-digit",
