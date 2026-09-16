@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromRequest } from "@/lib/auth";
+import { checkRateLimit, clientIp } from "@/lib/rateLimit";
 
 export async function POST(request: NextRequest) {
   const payload = getUserFromRequest(request);
   if (!payload) {
     return NextResponse.json({ error: "Nao autenticado" }, { status: 401 });
+  }
+
+  const ipLimit = checkRateLimit(`push:ip:${clientIp(request)}`, 20, 60 * 60 * 1000);
+  if (!ipLimit.allowed) {
+    return NextResponse.json(
+      { error: "Muitas subscriptions. Tente novamente mais tarde." },
+      { status: 429 }
+    );
   }
 
   try {

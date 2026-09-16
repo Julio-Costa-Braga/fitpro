@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword, getUserFromRequest } from "@/lib/auth";
 import { generateReferralCode } from "@/lib/referral";
 import { trialUntil } from "@/lib/billing";
+import { checkRateLimit, clientIp } from "@/lib/rateLimit";
+import { createAccountSchema, firstValidationMessage } from "@/lib/validation";
 
 /**
  * Cria contas de PERSONAL ou STUDENT.
@@ -18,23 +20,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
   }
 
-  const body = await request.json();
-  const { name, email, password, phone, role, trainerId } = body;
-
-  if (!name || !email || !password) {
+  const ipLimit = checkRateLimit(`accounts:ip:${clientIp(request)}`, 20, 15 * 60 * 1000);
+  if (!ipLimit.allowed) {
     return NextResponse.json(
-      { error: "Nome, email e senha sao obrigatorios" },
-      { status: 400 }
-    );
-  }
-  if (password.length < 8) {
-    return NextResponse.json(
-      { error: "A senha deve ter no minimo 8 caracteres" },
-      { status: 400 }
+      { error: "Muitas criacoes de conta. Tente novamente mais tarde." },
+      { status: 429 }
     );
   }
 
-  const targetRole = role === "ADMIN" ? undefined : role;
+  const body = await request.json().catch(() => ({}));
+  const parsed = createAccountSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: firstValidationMessage(parsed.error) }, { status: 400 });
+  }
+  const { name, email, password, phone, role, trainerId } = parsed.data;
+
+  const targetRole = role || undefined;
   if (targetRole && !["PERSONAL", "STUDENT"].includes(targetRole)) {
     return NextResponse.json(
       { error: "Role invalida. Use PERSONAL ou STUDENT" },

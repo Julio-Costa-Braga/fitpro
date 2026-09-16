@@ -2,19 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { comparePassword, generateToken, setAuthCookie } from "@/lib/auth";
 import { checkRateLimit, clientIp } from "@/lib/rateLimit";
+import { loginSchema, firstValidationMessage } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { email = "", password } = body;
-    const emailNormalized = String(email).trim().toLowerCase();
-
-    if (!emailNormalized || !password) {
-      return NextResponse.json(
-        { error: "Email e senha sao obrigatorios" },
-        { status: 400 }
-      );
+    const body = await request.json().catch(() => ({}));
+    const parsed = loginSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: firstValidationMessage(parsed.error) }, { status: 400 });
     }
+    const { email: emailNormalized, password } = parsed.data;
 
     const ip = clientIp(request);
     const ipLimit = checkRateLimit(`login:ip:${ip}`);
