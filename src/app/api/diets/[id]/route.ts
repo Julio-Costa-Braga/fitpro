@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserFromRequest } from "@/lib/auth";
+import { authorize } from "@/lib/authz";
 
 function parseDate(value: string | null | undefined): Date | null {
   if (!value) return null;
@@ -27,14 +27,16 @@ async function getDietById(id: string) {
 
 async function canAccessDiet(
   user: { userId: string; role: string },
-  diet: { trainerId: string; student?: { userId?: string | null; personalId?: string | null } | null }
+  diet: { trainerId: string | null; student?: { userId?: string | null; personalId?: string | null; nutritionistId?: string | null } | null }
 ): Promise<boolean> {
   if (user.role === "ADMIN") return true;
-  if (user.role === "PERSONAL" || user.role === "NUTRITIONIST")
-    return diet.trainerId === user.userId;
+  const student = diet.student;
+  if (user.role === "PERSONAL")
+    return diet.trainerId === user.userId || !!student && student.personalId === user.userId;
+  if (user.role === "NUTRITIONIST")
+    return diet.trainerId === user.userId || !!student && student.nutritionistId === user.userId;
   if (user.role === "STUDENT") {
     if (diet.trainerId === user.userId) return false;
-    const student = diet.student;
     return !!student && student.userId === user.userId;
   }
   return false;
@@ -45,10 +47,11 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = getUserFromRequest(request);
-    if (!user) {
-      return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
+    const auth = await authorize(request, { module: "diets" });
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
+    const user = auth.user;
 
 const { id } = await params;
     const existing = await getDietById(id);
@@ -74,10 +77,11 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = getUserFromRequest(request);
-    if (!user) {
-      return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
+    const auth = await authorize(request, { module: "diets" });
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
+    const user = auth.user;
 
     const { id } = await params;
     const existing = await getDietById(id);
@@ -167,10 +171,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = getUserFromRequest(request);
-    if (!user) {
-      return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
+    const auth = await authorize(request, { module: "diets" });
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
+    const user = auth.user;
 
     const { id } = await params;
     const existing = await getDietById(id);

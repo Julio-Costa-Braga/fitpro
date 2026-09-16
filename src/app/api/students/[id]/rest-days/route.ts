@@ -1,27 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserFromRequest } from "@/lib/auth";
+import { authorize, studentWhereOwned } from "@/lib/authz";
 
 type Params = { params: Promise<{ id: string }> };
 
 const WEEKDAYS = ["Segunda", "Terca", "Quarta", "Quinta", "Sexta", "Sabado", "Domingo"];
 
 export async function GET(request: NextRequest, { params }: Params) {
-  const payload = getUserFromRequest(request);
-  if (!payload) {
-    return NextResponse.json({ error: "Nao autenticado" }, { status: 401 });
+  const auth = await authorize(request, { module: "students" });
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
+  const payload = auth.user;
 
   try {
     const { id } = await params;
 
     const student = await prisma.student.findFirst({
-      where:
-        payload.role === "ADMIN"
-          ? { id }
-          : payload.role === "PERSONAL"
-            ? { id, personalId: payload.userId }
-            : { id, userId: payload.userId },
+      where: studentWhereOwned(payload, id),
       include: { restDays: true },
     });
     if (!student) {
@@ -46,23 +42,17 @@ export async function GET(request: NextRequest, { params }: Params) {
 }
 
 export async function PUT(request: NextRequest, { params }: Params) {
-  const payload = getUserFromRequest(request);
-  if (!payload) {
-    return NextResponse.json({ error: "Nao autenticado" }, { status: 401 });
+  const auth = await authorize(request, { roles: ["PERSONAL", "ADMIN"] });
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
-
-  if (payload.role !== "PERSONAL" && payload.role !== "ADMIN") {
-    return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
-  }
+  const payload = auth.user;
 
   try {
     const { id } = await params;
 
     const student = await prisma.student.findFirst({
-      where:
-        payload.role === "ADMIN"
-          ? { id }
-          : { id, personalId: payload.userId },
+      where: studentWhereOwned(payload, id),
     });
     if (!student) {
       return NextResponse.json(

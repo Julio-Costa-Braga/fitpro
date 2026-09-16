@@ -1,50 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserFromRequest } from "@/lib/auth";
+import { authorize, studentWhereOwned } from "@/lib/authz";
 
 export async function GET(request: NextRequest) {
-  const user = getUserFromRequest(request);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await authorize(request, { module: "workouts" });
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
+  const user = auth.user;
 
   const { searchParams } = new URL(request.url);
   const studentId = searchParams.get("studentId");
 
   let where: { studentId?: string; trainerId?: string } = {};
   if (studentId) {
-    if (user.role === "PERSONAL") {
-      const student = await prisma.student.findFirst({
-        where: { id: studentId, personalId: user.userId },
-      });
-      if (!student) {
-        return NextResponse.json({ error: "Student not found" }, { status: 404 });
-      }
-    } else if (user.role === "STUDENT") {
-      const student = await prisma.student.findFirst({
-        where: { id: studentId, userId: user.userId },
-      });
-      if (!student) {
-        return NextResponse.json({ error: "Student not found" }, { status: 404 });
-      }
-    } else if (user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+    const student = await prisma.student.findFirst({
+      where: studentWhereOwned(user, studentId),
+    });
+    if (!student) {
+      return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
     where = { studentId };
-  } else {
-    if (user.role === "PERSONAL") {
-      where = { trainerId: user.userId };
-    } else if (user.role === "STUDENT") {
-      const student = await prisma.student.findFirst({
-        where: { userId: user.userId },
-      });
-      if (!student) {
-        return NextResponse.json([], { status: 200 });
-      }
-      where = { studentId: student.id };
-    } else if (user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+  } else if (user.role === "PERSONAL") {
+    where = { trainerId: user.userId };
+  } else if (user.role === "STUDENT") {
+    const student = await prisma.student.findFirst({
+      where: { userId: user.userId },
+    });
+    if (!student) {
+      return NextResponse.json([], { status: 200 });
     }
+    where = { studentId: student.id };
+  } else if (user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
   }
 
   const workouts = await prisma.workout.findMany({
@@ -74,14 +62,11 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const user = getUserFromRequest(request);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await authorize(request, { roles: ["PERSONAL"], module: "workouts" });
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
-
-  if (user.role !== "PERSONAL") {
-    return NextResponse.json({ error: "Only trainers can create workouts" }, { status: 403 });
-  }
+  const user = auth.user;
 
   const body = await request.json();
   const { name, description, dayLetter, dayOfWeek, studentId, exercises } = body;
@@ -94,7 +79,7 @@ export async function POST(request: NextRequest) {
   }
 
   const student = await prisma.student.findFirst({
-    where: { id: studentId, personalId: user.userId },
+    where: studentWhereOwned(user, studentId),
   });
   if (!student) {
     return NextResponse.json({ error: "Student not found" }, { status: 404 });

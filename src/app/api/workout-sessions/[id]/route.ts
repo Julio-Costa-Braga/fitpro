@@ -1,16 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserFromRequest } from "@/lib/auth";
+import { authorize } from "@/lib/authz";
 import { sendPushToUser } from "@/lib/push";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = getUserFromRequest(request);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await authorize(request, {
+    roles: ["PERSONAL", "STUDENT", "ADMIN"],
+    module: "workouts",
+  });
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
+  const user = auth.user;
 
   const { id } = await params;
 
@@ -28,10 +32,6 @@ export async function GET(
 
   if (!session) {
     return NextResponse.json({ error: "Session not found" }, { status: 404 });
-  }
-
-  if (user.role === "NUTRITIONIST") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   if (user.role === "PERSONAL" && session.workout.trainerId !== user.userId) {
@@ -54,10 +54,14 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = getUserFromRequest(request);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await authorize(request, {
+    roles: ["PERSONAL", "STUDENT", "ADMIN"],
+    module: "workouts",
+  });
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
+  const user = auth.user;
 
   const { id } = await params;
 
@@ -68,10 +72,6 @@ export async function PUT(
 
   if (!existing) {
     return NextResponse.json({ error: "Session not found" }, { status: 404 });
-  }
-
-  if (user.role === "NUTRITIONIST") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   if (user.role === "PERSONAL" && existing.workout.trainerId !== user.userId) {

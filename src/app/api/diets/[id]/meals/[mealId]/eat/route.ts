@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserFromRequest } from "@/lib/auth";
+import { authorize } from "@/lib/authz";
 import { sendPushToUser } from "@/lib/push";
 
 function startOfToday(): Date {
@@ -13,14 +13,11 @@ export async function POST(
   { params }: { params: Promise<{ id: string; mealId: string }> }
 ) {
   try {
-    const user = getUserFromRequest(request);
-    if (!user) {
-      return NextResponse.json({ error: "Nao autenticado" }, { status: 401 });
+    const auth = await authorize(request, { roles: ["STUDENT"] });
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
-
-    if (user.role !== "STUDENT") {
-      return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
-    }
+    const user = auth.user;
 
     const { id, mealId } = await params;
     const body = await request.json().catch(() => ({}));
