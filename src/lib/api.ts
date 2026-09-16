@@ -33,13 +33,26 @@ async function request<T = unknown>(path: string, options: RequestOptions = {}):
     body: body ? JSON.stringify(body) : undefined,
   });
 
-  const data = await res.json();
+  // Parse seguro: respostas 204/empty/HTML nao podem ir para JSON.parse.
+  const text = await res.text();
+  let data: unknown = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = null;
+    }
+  }
 
   if (!res.ok) {
     if (res.status === 401 && !AUTH_REDIRECT_EXEMPT.has(path)) {
       window.location.href = "/";
     }
-    throw new ApiError(data.error || "Erro na requisicao", res.status);
+    const message =
+      data && typeof data === "object" && "error" in data
+        ? String((data as { error: unknown }).error)
+        : "Erro na requisicao";
+    throw new ApiError(message, res.status);
   }
 
   return data as T;

@@ -269,8 +269,12 @@ export default function WorkoutDetailPage() {
     }
   }
 
+  const [starting, setStarting] = useState(false);
+
   async function handleStartSession() {
     if (!workout || (user?.role !== "PERSONAL" && user?.role !== "STUDENT")) return;
+    if (starting) return; // previne double-submit
+    setStarting(true);
     try {
       let openId: string | undefined;
       try {
@@ -292,6 +296,7 @@ export default function WorkoutDetailPage() {
       router.push(`/workouts/execute/${session.id}`);
     } catch (err: unknown) {
       if (err instanceof Error) setError(err.message);
+      setStarting(false);
     }
   }
 

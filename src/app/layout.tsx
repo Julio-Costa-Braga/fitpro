@@ -44,17 +44,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <PermissionsProvider>{children}</PermissionsProvider>
           </AuthProvider>
         </LanguageProvider>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function () {
-                  navigator.serviceWorker.register('/sw.js');
-                });
-              }
-            `,
-          }}
-        />
+        <script src="/sw-register.js" defer />
       </body>
     </html>
   );

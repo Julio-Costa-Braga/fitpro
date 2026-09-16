@@ -182,6 +182,7 @@ const ptBr: Dict = {
     "profile.linkAs": "Vincular como:",
     "profile.linkSuccess": "Profissional vinculado com sucesso.",
     "profile.linkErrorNonProf": "Codigo nao encontrado ou nao e de um profissional.",
+    "profile.linkBtn": "Vincular",
     "profile.unlinkBtn": "Desvincular",
     "profile.linkPendingSent": "Convite enviado! Aguarde o profissional aceitar.",
     "profile.linkWaiting": "Aguardando aceite do profissional",
@@ -620,6 +621,7 @@ const ptBr: Dict = {
     "cp.submit": "Alterar e Entrar",
     "header.justNow": "agora",
     "header.minAgo": " min",
+    "header.hoursAgo": "h",
 
     "common.copy": "Copiar",
     "common.copied": "Copiado!",
@@ -865,6 +867,7 @@ const ptPt: Dict = {
     "profile.linkAs": "Vincular como:",
     "profile.linkSuccess": "Profissional vinculado com sucesso.",
     "profile.linkErrorNonProf": "Código não encontrado ou não corresponde a um profissional.",
+    "profile.linkBtn": "Vincular",
     "profile.unlinkBtn": "Desvincular",
     "profile.linkPendingSent": "Convite enviado! Aguarde o profissional aceitar.",
     "profile.linkWaiting": "Aguardando aceite do profissional",
@@ -1303,6 +1306,7 @@ const ptPt: Dict = {
     "cp.submit": "Alterar e Iniciar Sessão",
     "header.justNow": "agora",
     "header.minAgo": " min",
+    "header.hoursAgo": "h",
 
     "common.copy": "Copiar",
     "common.copied": "Copiado!",
@@ -1551,6 +1555,7 @@ export const dictionaries: Record<Lang, Dict> = {
     "profile.linkAs": "Link as:",
     "profile.linkSuccess": "Professional linked successfully.",
     "profile.linkErrorNonProf": "Code not found or not a professional.",
+    "profile.linkBtn": "Link",
     "profile.unlinkBtn": "Unlink",
     "profile.linkPendingSent": "Invitation sent! Waiting for the professional to accept.",
     "profile.linkWaiting": "Waiting for the professional to accept",
@@ -1989,6 +1994,7 @@ export const dictionaries: Record<Lang, Dict> = {
     "cp.submit": "Change and Sign In",
     "header.justNow": "just now",
     "header.minAgo": " min",
+    "header.hoursAgo": "h",
 
     "common.copy": "Copy",
     "common.copied": "Copied!",
@@ -2234,6 +2240,7 @@ export const dictionaries: Record<Lang, Dict> = {
     "profile.linkAs": "Vincular como:",
     "profile.linkSuccess": "Profesional vinculado correctamente.",
     "profile.linkErrorNonProf": "Código no encontrado o no es de un profesional.",
+    "profile.linkBtn": "Vincular",
     "profile.unlinkBtn": "Desvincular",
     "profile.linkPendingSent": "¡Invitación enviada! Esperando que el profesional acepte.",
     "profile.linkWaiting": "Esperando la aceptación del profesional",
@@ -2672,6 +2679,7 @@ export const dictionaries: Record<Lang, Dict> = {
     "cp.submit": "Cambiar y Entrar",
     "header.justNow": "ahora",
     "header.minAgo": " min",
+    "header.hoursAgo": "h",
 
     "common.copy": "Copiar",
     "common.copied": "¡Copiado!",
