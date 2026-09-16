@@ -87,35 +87,42 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
-    const progressLog = await prisma.progressLog.create({
-      data: {
-        date: date ? new Date(date) : undefined,
-        weight: weight ?? undefined,
-        bodyFat: bodyFat ?? undefined,
-        chest: chest ?? undefined,
-        waist: waist ?? undefined,
-        arm: arm ?? undefined,
-        thigh: thigh ?? undefined,
-        notes,
-        photoUrl,
-        studentId,
-        professionalId: user.role === "ADMIN" ? null : user.userId,
-      },
-    });
-
-    // Notifica o aluno que uma nova avaliacao foi registrada.
-    if (student.userId) {
-      await prisma.notification.create({
+    const progressLog = await prisma.$transaction(async (tx) => {
+      const log = await tx.progressLog.create({
         data: {
-          type: "PROGRESS_REVIEW",
-          userId: student.userId,
-          data: {
-            studentId,
-            progressId: progressLog.id,
-            date: progressLog.date.toISOString(),
-          },
+          date: date ? new Date(date) : undefined,
+          weight: weight ?? undefined,
+          bodyFat: bodyFat ?? undefined,
+          chest: chest ?? undefined,
+          waist: waist ?? undefined,
+          arm: arm ?? undefined,
+          thigh: thigh ?? undefined,
+          notes,
+          photoUrl,
+          studentId,
+          professionalId: user.role === "ADMIN" ? null : user.userId,
         },
       });
+
+      // Notifica o aluno que uma nova avaliacao foi registrada.
+      if (student.userId) {
+        await tx.notification.create({
+          data: {
+            type: "PROGRESS_REVIEW",
+            userId: student.userId,
+            data: {
+              studentId,
+              progressId: log.id,
+              date: log.date.toISOString(),
+            },
+          },
+        });
+      }
+      return log;
+    });
+
+    // Push apos o commit da transacao (efeito externo).
+    if (student.userId) {
       await sendPushToUser(
         student.userId,
         "FitPro",

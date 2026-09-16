@@ -43,22 +43,36 @@ export async function GET(request: NextRequest) {
         include: { exercise: true },
         orderBy: { order: "asc" },
       },
-      sessions: {
-        where: { completed: false },
-        orderBy: { date: "desc" },
-        take: 1,
-        select: {
-          id: true,
-          date: true,
-          _count: { select: { completedExercises: true } },
-          completedExercises: { where: { completed: true }, select: { id: true } },
-        },
-      },
     },
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json(workouts);
+  const workoutIds = workouts.map((w) => w.id);
+  const sessions = workoutIds.length
+    ? await prisma.workoutSession.findMany({
+        where: { workoutId: { in: workoutIds }, completed: false },
+        orderBy: { date: "desc" },
+        select: {
+          id: true,
+          workoutId: true,
+          date: true,
+          _count: { select: { completedExercises: true } },
+          completedExercises: { where: { completed: true }, select: { id: true } },
+        },
+      })
+    : [];
+  const sessionsByWorkout = new Map<string, typeof sessions>();
+  for (const session of sessions) {
+    const list = sessionsByWorkout.get(session.workoutId);
+    if (!list) sessionsByWorkout.set(session.workoutId, [session]);
+    else if (list.length < 1) list.push(session);
+  }
+  const result = workouts.map((w) => ({
+    ...w,
+    sessions: sessionsByWorkout.get(w.id) ?? [],
+  }));
+
+  return NextResponse.json(result);
 }
 
 export async function POST(request: NextRequest) {
