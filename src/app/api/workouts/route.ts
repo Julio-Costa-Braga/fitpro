@@ -157,7 +157,8 @@ export async function POST(request: NextRequest) {
     "WORKOUT_ASSIGNED",
     student.id,
     `Voce recebeu um novo treino: ${name}`,
-    "/workouts"
+    "/workouts",
+    { workoutName: name }
   );
 
   return NextResponse.json(workout, { status: 201 });

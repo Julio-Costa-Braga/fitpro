@@ -74,6 +74,36 @@ interface ProgressionOverview {
   };
 }
 
+interface WorkoutDaySession {
+  id: string;
+  workoutId: string;
+  workoutName: string;
+  completed: boolean;
+  skipped: boolean;
+  skipReason: string | null;
+}
+
+interface WorkoutDay {
+  date: string;
+  hasRecord: boolean;
+  sessions: WorkoutDaySession[];
+}
+
+interface DietDayMeal {
+  mealId: string;
+  name: string;
+  time: string;
+  foods: { name: string; quantity: string }[];
+  status: "eaten" | "skipped" | null;
+}
+
+interface DietDay {
+  date: string;
+  eaten: number;
+  skipped: number;
+  meals: DietDayMeal[];
+}
+
 const MEASURES: { key: keyof ProgressInput; label: string; unit: string }[] = [
   { key: "weight", label: "Peso", unit: "kg" },
   { key: "bodyFat", label: "Gordura", unit: "%" },
@@ -162,6 +192,13 @@ export default function ProgressPage() {
 
   const [overview, setOverview] = useState<ProgressionOverview | null>(null);
 
+  const [showWorkoutDetail, setShowWorkoutDetail] = useState(false);
+  const [workoutDays, setWorkoutDays] = useState<WorkoutDay[] | null>(null);
+  const [showDietDetail, setShowDietDetail] = useState(false);
+  const [dietPlanName, setDietPlanName] = useState<string | null>(null);
+  const [dietDays, setDietDays] = useState<DietDay[] | null>(null);
+  const [selectedDietDay, setSelectedDietDay] = useState<DietDay | null>(null);
+
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     weight: "", bodyFat: "", chest: "", waist: "", arm: "", thigh: "", notes: "",
@@ -243,7 +280,8 @@ export default function ProgressPage() {
     setSavingFreq(true);
     setError("");
     try {
-      await api.put(`/api/students/${selectedStudentId}`, {
+      await api.put("/api/progress/settings", {
+        studentId: selectedStudentId,
         reviewFrequencyDays,
       });
       await loadProgress(selectedStudentId);
@@ -251,6 +289,39 @@ export default function ProgressPage() {
       setError(err instanceof Error ? err.message : t("prog.errSavePeriod"));
     } finally {
       setSavingFreq(false);
+    }
+  }
+
+  async function openWorkoutDetail() {
+    if (!selectedStudentId) return;
+    setWorkoutDays(null);
+    setShowWorkoutDetail(true);
+    try {
+      const data = await api.get<{ days: WorkoutDay[] }>(
+        `/api/progress/workout-days?studentId=${selectedStudentId}`
+      );
+      setWorkoutDays(data.days);
+    } catch {
+      setError(t("prog.errLoad"));
+    }
+  }
+
+  async function openDietDetail() {
+    if (!selectedStudentId) return;
+    setDietDays(null);
+    setSelectedDietDay(null);
+    setShowDietDetail(true);
+    try {
+      const data = await api.get<{
+        dietName: string | null;
+        days: DietDay[];
+      }>(`/api/progress/diet-days?studentId=${selectedStudentId}`);
+      setDietPlanName(data.dietName);
+      setDietDays(data.days);
+      const last = data.days[data.days.length - 1];
+      if (last) setSelectedDietDay(last);
+    } catch {
+      setError(t("prog.errLoad"));
     }
   }
 
@@ -493,8 +564,8 @@ export default function ProgressPage() {
 
             {overview && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <Card className="p-5">
-                  <div className="flex items-center gap-2 mb-3">
+                <Card className="p-5 cursor-pointer hover:border-accent/50 transition-colors" onClick={openWorkoutDetail}>
+                  <div className="flex items-center gap-2 mb-3 pointer-events-none">
                     <Dumbbell className="w-4 h-4 text-accent" />
                     <h2 className="font-semibold text-sm">{t("prog.workoutProgression")}</h2>
                   </div>
@@ -512,9 +583,10 @@ export default function ProgressPage() {
                       <MiniBarChart data={overview.workouts.daily} valueKey="completed" altKey="skipped" lang={lang} />
                     </>
                   )}
+                  <p className="mt-3 text-xs text-accent">{t("prog.seeDays")}</p>
                 </Card>
-                <Card className="p-5">
-                  <div className="flex items-center gap-2 mb-3">
+                <Card className="p-5 cursor-pointer hover:border-accent/50 transition-colors" onClick={openDietDetail}>
+                  <div className="flex items-center gap-2 mb-3 pointer-events-none">
                     <Apple className="w-4 h-4 text-accent" />
                     <h2 className="font-semibold text-sm">{t("prog.dietProgression")}</h2>
                   </div>
@@ -532,6 +604,7 @@ export default function ProgressPage() {
                       <MiniBarChart data={overview.diet.daily} valueKey="eaten" altKey="skipped" lang={lang} />
                     </>
                   )}
+                  <p className="mt-3 text-xs text-accent">{t("prog.seeMonth")}</p>
                 </Card>
               </div>
             )}
@@ -638,6 +711,137 @@ export default function ProgressPage() {
               <Button onClick={handleSave} loading={saving} className="flex-1">{t("common.save")}</Button>
             </div>
           </div>
+        </Modal>
+
+        <Modal open={showWorkoutDetail} onClose={() => setShowWorkoutDetail(false)} title={t("prog.workoutDaysTitle")} size="lg">
+          {workoutDays === null ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-5 h-5 text-accent animate-spin" />
+            </div>
+          ) : (
+            <div className="max-h-[60vh] overflow-y-auto space-y-2">
+              {workoutDays.map((d) => (
+                <div key={d.date} className="bg-bg rounded-lg p-3">
+                  <p className="text-xs font-medium text-muted mb-1 capitalize">
+                    {new Date(d.date).toLocaleDateString(dateLocale(lang), {
+                      weekday: "long",
+                      day: "2-digit",
+                      month: "long",
+                    })}
+                  </p>
+                  {d.sessions.length === 0 ? (
+                    <p className="text-xs text-muted/70">{t("prog.noWorkoutRecord")}</p>
+                  ) : (
+                    d.sessions.map((s) => (
+                      <div key={s.id} className="space-y-1">
+                        {s.skipped && s.skipReason && (
+                          <p className="text-xs text-yellow-400 font-medium">
+                            {t("prog.skipReasonTop")}: {s.skipReason}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm">{s.workoutName}</span>
+                          {s.completed ? (
+                            <Badge variant="success">{t("prog.dayCompleted")}</Badge>
+                          ) : s.skipped ? (
+                            <Badge variant="danger">{t("prog.daySkipped")}</Badge>
+                          ) : (
+                            <Badge variant="default">{t("prog.dayOpen")}</Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </Modal>
+
+        <Modal open={showDietDetail} onClose={() => setShowDietDetail(false)} title={t("prog.dietMonthTitle")} size="lg">
+          {dietDays === null ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-5 h-5 text-accent animate-spin" />
+            </div>
+          ) : dietPlanName === null ? (
+            <p className="text-sm text-muted py-4">{t("prog.noDietPlan")}</p>
+          ) : (
+            <>
+              <p className="text-sm text-muted mb-3">
+                {t("prog.dietFor")}: <span className="text-white font-medium">{dietPlanName}</span>
+              </p>
+              <div className="grid grid-cols-7 gap-1 mb-1">
+                {Array.from({ length: 7 }, (_, i) => (
+                  <span key={i} className="text-center text-[10px] text-muted font-medium">
+                    {new Date(2024, 0, 7 + i).toLocaleDateString(dateLocale(lang), { weekday: "short" })}
+                  </span>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-1">
+                {Array.from({ length: new Date(dietDays[0].date).getDay() }, (_, i) => (
+                  <div key={`e${i}`} />
+                ))}
+                {dietDays.map((d) => {
+                  const none = d.eaten === 0 && d.skipped === 0;
+                  const color = none
+                    ? "bg-border/30 text-muted"
+                    : d.skipped === 0
+                      ? "bg-green-500/20 text-green-300"
+                      : d.eaten === 0
+                        ? "bg-red-500/20 text-red-300"
+                        : "bg-yellow-500/20 text-yellow-200";
+                  const isSelected = selectedDietDay?.date === d.date;
+                  return (
+                    <button
+                      key={d.date}
+                      onClick={() => setSelectedDietDay(d)}
+                      className={`aspect-square rounded-lg text-sm font-medium flex items-center justify-center transition-colors ${color} ${isSelected ? "ring-2 ring-accent" : "hover:ring-1 hover:ring-border"}`}
+                    >
+                      {new Date(d.date).getDate()}
+                    </button>
+                  );
+                })}
+              </div>
+              {selectedDietDay && (
+                <div className="mt-4 rounded-lg bg-bg p-3 space-y-2">
+                  <p className="text-xs font-medium text-muted capitalize">
+                    {new Date(selectedDietDay.date).toLocaleDateString(dateLocale(lang), {
+                      weekday: "long",
+                      day: "2-digit",
+                      month: "long",
+                    })}{" "}
+                    · {selectedDietDay.meals.length} {t("prog.meals")}
+                  </p>
+                  {selectedDietDay.meals.map((m) => (
+                    <div key={m.mealId} className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span
+                          className={`w-2 h-2 rounded-full shrink-0 ${
+                            m.status === "eaten"
+                              ? "bg-green-400"
+                              : m.status === "skipped"
+                                ? "bg-red-400"
+                                : "bg-border"
+                          }`}
+                        />
+                        <span className="text-sm truncate">
+                          {m.time && <span className="text-muted">{m.time} · </span>}
+                          {m.name}
+                        </span>
+                      </div>
+                      {m.status === "eaten" ? (
+                        <Badge variant="success">{t("prog.dayEaten")}</Badge>
+                      ) : m.status === "skipped" ? (
+                        <Badge variant="danger">{t("prog.daySkipped")}</Badge>
+                      ) : (
+                        <span className="text-xs text-muted/60">{t("prog.noMealLog")}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
         </Modal>
       </div>
     </AppLayout>

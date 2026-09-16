@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
   const user = auth.user;
 
   const body = await request.json();
-  const { workoutId, studentId, skipped } = body;
+  const { workoutId, studentId, skipped, skipReason } = body;
 
   if (!workoutId || !studentId) {
     return NextResponse.json(
@@ -125,9 +125,6 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Aluno marcou o treino como NAO REALIZADO hoje: cria sessao vazia com skipped=true,
-  // sem exercicios. Idempotente: se ja existir sessao hoje, converte para skipped
-  // (ou devolve a sessao de skip existente).
   if (skipped === true) {
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
@@ -144,7 +141,7 @@ export async function POST(request: NextRequest) {
       if (!existingToday.completed && !existingToday.skipped) {
         const converted = await prisma.workoutSession.update({
           where: { id: existingToday.id },
-          data: { skipped: true },
+          data: { skipped: true, skipReason: skipReason ?? null },
           include: {
             completedExercises: {
               include: { exercise: true },
@@ -154,6 +151,13 @@ export async function POST(request: NextRequest) {
         });
         return NextResponse.json(converted, { status: 200 });
       }
+      if (existingToday.skipped && skipReason) {
+        const updated = await prisma.workoutSession.update({
+          where: { id: existingToday.id },
+          data: { skipReason },
+        });
+        return NextResponse.json(updated, { status: 200 });
+      }
       return NextResponse.json(existingToday, { status: 200 });
     }
 
@@ -162,6 +166,7 @@ export async function POST(request: NextRequest) {
         workoutId,
         studentId,
         skipped: true,
+        skipReason: skipReason ?? null,
       },
       include: {
         completedExercises: {
@@ -172,6 +177,19 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(skippedSession, { status: 201 });
+  }
+
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const existingToday = await prisma.workoutSession.findFirst({
+    where: { workoutId, studentId, date: { gte: startOfToday } },
+  });
+  if (existingToday) {
+    if (existingToday.skipped) {
+      await prisma.workoutSession.delete({ where: { id: existingToday.id } });
+    } else {
+      return NextResponse.json(existingToday, { status: 200 });
+    }
   }
 
   const session = await prisma.workoutSession.create({

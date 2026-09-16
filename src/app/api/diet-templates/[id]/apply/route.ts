@@ -83,7 +83,8 @@ export async function POST(
       "DIET_ASSIGNED",
       student.id,
       `Voce recebeu uma nova dieta: ${template.name}`,
-      "/diets"
+      "/diets",
+      { dietName: template.name }
     );
 
     return NextResponse.json({ dietPlan: { id: dietPlan.id } }, { status: 201 });
