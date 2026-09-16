@@ -15,6 +15,8 @@ export interface TokenPayload {
   email: string;
   role: UserRole;
   name: string;
+  /** tokenVersion embutido para revogacao (bump de tokenVersion invalida o JWT). */
+  ver?: number;
 }
 
 export async function hashPassword(password: string): Promise<string> {

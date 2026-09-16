@@ -74,7 +74,8 @@ model User {
   referralDiscountMonths Int     @default(0)
 
   // Planos e faturamento
-  isActive  Boolean   @default(true)
+isActive            Boolean                 @default(true)
+  tokenVersion        Int                     @default(0)
   lifetime  Boolean   @default(false)
   paidUntil DateTime?
 

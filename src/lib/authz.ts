@@ -25,9 +25,11 @@ export async function freshUser(request: NextRequest): Promise<ApiUser | null> {
 
   const db = await prisma.user.findUnique({
     where: { id: payload.userId },
-    select: { id: true, role: true, isActive: true },
+    select: { id: true, role: true, isActive: true, tokenVersion: true },
   });
   if (!db || !db.isActive) return null;
+  // JWT revogado via tokenVersion (ex.: "encerrar todas as sessoes").
+  if ((payload.ver ?? 0) !== db.tokenVersion) return null;
 
   return {
     userId: db.id,
@@ -35,6 +37,7 @@ export async function freshUser(request: NextRequest): Promise<ApiUser | null> {
     role: db.role,
     name: payload.name,
     isActive: db.isActive,
+    ver: db.tokenVersion,
   };
 }
 

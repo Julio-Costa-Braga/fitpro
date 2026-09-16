@@ -19,8 +19,12 @@ const passwordSchema = z
 const phoneSchema = z.string().trim().max(20).optional().nullable();
 
 export const loginSchema = z.object({
-  email: z.string().trim().toLowerCase().min(1, { message: "Email e senha sao obrigatorios" }),
-  password: z.string().min(1, { message: "Email e senha sao obrigatorios" }),
+  email: z
+    .string({ message: "Email e senha sao obrigatorios" })
+    .trim()
+    .toLowerCase()
+    .min(1, { message: "Email e senha sao obrigatorios" }),
+  password: z.string({ message: "Email e senha sao obrigatorios" }).min(1),
 });
 
 export const registerSchema = z.object({

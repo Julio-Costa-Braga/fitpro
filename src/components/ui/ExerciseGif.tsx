@@ -42,7 +42,7 @@ export function ExerciseGif({
         className={`group relative overflow-hidden shrink-0 cursor-zoom-in ${className}`}
         aria-label={t("common.zoom")}
       >
-        <img src={src} alt={alt} className={imgClassName} />
+        <img src={src} alt={alt} loading="lazy" decoding="async" className={imgClassName} />
         <span className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
           <Maximize2 className="w-5 h-5 text-white" />
         </span>
@@ -69,6 +69,8 @@ export function ExerciseGif({
           <img
             src={src}
             alt={title ?? alt}
+            loading="lazy"
+            decoding="async"
             className="max-w-full max-h-[80vh] object-contain select-none"
           />
           <p className="text-xs text-white/50 mt-4">{t("ex.closeViewer")}</p>
