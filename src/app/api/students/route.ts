@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { authorize } from "@/lib/authz";
+import { checkRateLimit, clientIp } from "@/lib/rateLimit";
+import { createStudentSchema, firstValidationMessage } from "@/lib/validation";
 
 export async function GET(request: NextRequest) {
   const auth = await authorize(request, { module: "students" });
@@ -48,18 +50,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
   }
 
+  const ipLimit = checkRateLimit(`students:ip:${clientIp(request)}`, 30, 15 * 60 * 1000);
+  if (!ipLimit.allowed) {
+    return NextResponse.json(
+      { error: "Muitas criacoes de aluno. Tente novamente mais tarde." },
+      { status: 429 }
+    );
+  }
+
   // Limite removido: fatura cobra automaticamente +R$2 por aluno excedente.
 
   try {
-    const body = await request.json();
-    const { name, email, phone, password } = body;
-
-    if (!name) {
-      return NextResponse.json(
-        { error: "Nome e obrigatorio" },
-        { status: 400 }
-      );
+    const body = await request.json().catch(() => ({}));
+    const parsed = createStudentSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: firstValidationMessage(parsed.error) }, { status: 400 });
     }
+    const { name, email, phone, password } = parsed.data;
 
     if (email) {
       const existing = await prisma.student.findFirst({

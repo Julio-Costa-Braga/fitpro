@@ -4,26 +4,17 @@ import { hashPassword, generateToken, setAuthCookie } from "@/lib/auth";
 import { generateReferralCode } from "@/lib/referral";
 import { REFERRAL_DISCOUNT_MONTHS, trialUntil } from "@/lib/billing";
 import { checkRateLimit, clientIp } from "@/lib/rateLimit";
+import { registerSchema, firstValidationMessage } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { name, password, role, referralCode } = body;
-    const email = String(body.email ?? "").trim().toLowerCase();
-
-    if (!name || !email || !password) {
-      return NextResponse.json(
-        { error: "Nome, email e senha sao obrigatorios" },
-        { status: 400 }
-      );
+    const body = await request.json().catch(() => ({}));
+    const parsed = registerSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: firstValidationMessage(parsed.error) }, { status: 400 });
     }
-
-    if (typeof password !== "string" || password.length < 8) {
-      return NextResponse.json(
-        { error: "A senha deve ter no minimo 8 caracteres" },
-        { status: 400 }
-      );
-    }
+    const { name, password, role, referralCode } = parsed.data;
+    const email = parsed.data.email.trim().toLowerCase();
 
     const ipLimit = checkRateLimit(`register:ip:${clientIp(request)}`);
     if (!ipLimit.allowed) {

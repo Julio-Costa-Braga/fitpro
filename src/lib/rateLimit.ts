@@ -1,9 +1,21 @@
 const hits = new Map<string, number[]>();
+const MAX_KEYS = 5000;
+const DEFAULT_WINDOW_MS = 15 * 60 * 1000;
+let sweepCounter = 0;
+
+function sweep(now: number) {
+  const ttl = DEFAULT_WINDOW_MS;
+  for (const [key, timestamps] of hits) {
+    const fresh = timestamps.filter((t) => t > now - ttl);
+    if (fresh.length === 0) hits.delete(key);
+    else hits.set(key, fresh);
+  }
+}
 
 export function checkRateLimit(
   key: string,
   max = 5,
-  windowMs = 15 * 60 * 1000
+  windowMs = DEFAULT_WINDOW_MS
 ): { allowed: boolean; retryAfterSec: number } {
   const now = Date.now();
   const windowStart = now - windowMs;
@@ -16,6 +28,12 @@ export function checkRateLimit(
 
   recent.push(now);
   hits.set(key, recent);
+
+  sweepCounter++;
+  if (sweepCounter % 100 === 0 || hits.size > MAX_KEYS) {
+    sweep(now);
+  }
+
   return { allowed: true, retryAfterSec: 0 };
 }
 
