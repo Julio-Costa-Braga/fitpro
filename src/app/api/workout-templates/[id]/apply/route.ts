@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { authorize } from "@/lib/authz";
+import { notifyStudentAssignment } from "@/lib/notify";
 
 export async function POST(
   request: NextRequest,
@@ -64,6 +65,14 @@ export async function POST(
       },
       include: { exercises: { include: { exercise: true }, orderBy: { order: "asc" } } },
     });
+
+    await notifyStudentAssignment(
+      student.userId,
+      "WORKOUT_ASSIGNED",
+      student.id,
+      `Voce recebeu um novo treino: ${template.name}`,
+      "/workouts"
+    );
 
     return NextResponse.json({ workout }, { status: 201 });
   } catch (error) {

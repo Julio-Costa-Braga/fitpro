@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { authorize, studentWhereOwned } from "@/lib/authz";
+import { notifyStudentAssignment } from "@/lib/notify";
 
 interface FoodInput {
   name: string;
@@ -177,6 +178,14 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    await notifyStudentAssignment(
+      student.userId,
+      "DIET_ASSIGNED",
+      student.id,
+      `Voce recebeu uma nova dieta: ${name}`,
+      "/diets"
+    );
 
     return NextResponse.json({ dietPlan }, { status: 201 });
   } catch (error) {

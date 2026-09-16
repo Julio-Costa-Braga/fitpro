@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { authorize } from "@/lib/authz";
+import { notifyStudentAssignment } from "@/lib/notify";
 
 export async function POST(
   request: NextRequest,
@@ -76,6 +77,14 @@ export async function POST(
         },
       },
       });
+
+    await notifyStudentAssignment(
+      student.userId,
+      "DIET_ASSIGNED",
+      student.id,
+      `Voce recebeu uma nova dieta: ${template.name}`,
+      "/diets"
+    );
 
     return NextResponse.json({ dietPlan: { id: dietPlan.id } }, { status: 201 });
   } catch (error) {

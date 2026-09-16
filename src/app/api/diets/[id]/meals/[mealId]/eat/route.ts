@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { authorize } from "@/lib/authz";
-import { sendPushToUser } from "@/lib/push";
 
 function startOfToday(): Date {
   const now = new Date();
@@ -49,8 +48,8 @@ export async function POST(
     const since = startOfToday();
 
     if (eaten) {
-      // Log + notificacao atomica, com date canonico (inicio do dia) para o
-      // campo unico deduplicar double-submit e races.
+      // Log atomico, com date canonico (inicio do dia) para o campo unico
+      // deduplicar double-submit e races. Sem notificacao de refeicao.
       const { log, didCreate } = await prisma.$transaction(async (tx) => {
         const pre = await tx.mealLog.findFirst({
           where: { mealId, studentId: dietPlan.student.id, date: { gte: since } },
@@ -80,41 +79,8 @@ export async function POST(
           throw err;
         }
 
-        if (dietPlan.trainerId) {
-          await tx.notification.deleteMany({
-            where: {
-              userId: dietPlan.trainerId,
-              type: "MEAL_EATEN",
-              data: { path: ["mealId"], equals: mealId },
-            },
-          });
-          await tx.notification.create({
-            data: {
-              type: "MEAL_EATEN",
-              userId: dietPlan.trainerId,
-              data: {
-                studentName: dietPlan.student.name,
-                mealName: meal.name,
-                dietName: dietPlan.name,
-                dietId: id,
-                mealId,
-                studentId: dietPlan.student.id,
-              },
-            },
-          });
-        }
-
         return { log: created, didCreate: true };
       });
-
-      if (didCreate && dietPlan.trainerId) {
-        await sendPushToUser(
-          dietPlan.trainerId,
-          "FitPro",
-          `Refeicao marcada: ${dietPlan.student.name} consumiu ${meal.name}`,
-          "/dashboard"
-        );
-      }
 
       return NextResponse.json({ eaten: true, logId: log.id });
     }

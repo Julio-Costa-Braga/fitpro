@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { authorize, studentWhereOwned } from "@/lib/authz";
+import { notifyStudentAssignment } from "@/lib/notify";
 
 export async function GET(request: NextRequest) {
   const auth = await authorize(request, { module: "workouts" });
@@ -150,6 +151,14 @@ export async function POST(request: NextRequest) {
       },
     },
   });
+
+  await notifyStudentAssignment(
+    student.userId,
+    "WORKOUT_ASSIGNED",
+    student.id,
+    `Voce recebeu um novo treino: ${name}`,
+    "/workouts"
+  );
 
   return NextResponse.json(workout, { status: 201 });
 }
