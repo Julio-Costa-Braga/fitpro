@@ -68,6 +68,14 @@ interface ProfileLinks {
   nutritionist: LinkedProfessional | null;
 }
 
+interface LinkInvite {
+  id: string;
+  type: "personal" | "nutritionist";
+  createdAt: string;
+  professional?: LinkedProfessional;
+  student?: { id: string; name: string; email: string | null; phone: string | null };
+}
+
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
@@ -95,9 +103,14 @@ export default function ProfilePage() {
 
   // Vinculo do aluno
   const [links, setLinks] = useState<ProfileLinks | null>(null);
+  const [pendingInvites, setPendingInvites] = useState<LinkInvite[]>([]);
   const [linkCode, setLinkCode] = useState("");
   const [linkType, setLinkType] = useState<"personal" | "nutritionist">("personal");
   const [linking, setLinking] = useState(false);
+
+  // Convites recebidos (profissional)
+  const [invites, setInvites] = useState<LinkInvite[]>([]);
+  const [inviteBusy, setInviteBusy] = useState<Record<string, boolean>>({});
 
   // Push
   const [pushEnabled, setPushEnabled] = useState(false);
@@ -111,10 +124,21 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!isStudent || !user) return;
     api
-      .get<{ links: ProfileLinks }>("/api/profile/link")
-      .then((res) => setLinks(res.links))
+      .get<{ links: ProfileLinks; pending: LinkInvite[] }>("/api/profile/link")
+      .then((res) => {
+        setLinks(res.links);
+        setPendingInvites(res.pending);
+      })
       .catch(() => {});
   }, [isStudent, user]);
+
+  useEffect(() => {
+    if (!isProfessional) return;
+    api
+      .get<{ requests: LinkInvite[] }>("/api/profile/link/requests")
+      .then((res) => setInvites(res.requests))
+      .catch(() => {});
+  }, [isProfessional]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window)) {
@@ -208,13 +232,17 @@ export default function ProfilePage() {
     setError("");
     setMessage("");
     try {
-      const res = await api.put<{ links: ProfileLinks }>("/api/profile/link", {
+      await api.put<{ success: boolean }>("/api/profile/link", {
         code: linkCode.trim(),
         type: linkType,
       });
-      setLinks(res.links);
       setLinkCode("");
-      setMessage(t("profile.linkSuccess"));
+      setMessage(t("profile.linkPendingSent"));
+      const res = await api.get<{ links: ProfileLinks; pending: LinkInvite[] }>(
+        "/api/profile/link"
+      );
+      setLinks(res.links);
+      setPendingInvites(res.pending);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t("profile.linkErrorNonProf"));
     } finally {
@@ -226,10 +254,33 @@ export default function ProfilePage() {
     setError("");
     setMessage("");
     try {
-      const res = await api.delete<{ links: ProfileLinks }>(`/api/profile/link?type=${type}`);
+      const res = await api.delete<{ links: ProfileLinks; pending: LinkInvite[] }>(
+        `/api/profile/link?type=${type}`
+      );
       setLinks(res.links);
+      setPendingInvites(res.pending);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t("profile.error"));
+    }
+  }
+
+  async function handleInvite(id: string, action: "accept" | "reject") {
+    setInviteBusy((prev) => ({ ...prev, [id]: true }));
+    setError("");
+    setMessage("");
+    try {
+      if (action === "accept") {
+        await api.put<{ success: boolean }>(`/api/profile/link/requests/${id}`, {});
+        setMessage(t("profile.invitesAccepted"));
+      } else {
+        await api.delete(`/api/profile/link/requests/${id}`);
+        setMessage(t("profile.invitesRejected"));
+      }
+      setInvites((prev) => prev.filter((i) => i.id !== id));
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t("profile.error"));
+    } finally {
+      setInviteBusy((prev) => ({ ...prev, [id]: false }));
     }
   }
 
@@ -376,6 +427,57 @@ export default function ProfilePage() {
           </div>
         </Card>
 
+        {isProfessional && (
+          <Card className="p-6">
+            <div className="flex items-start gap-3 mb-3">
+              <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center text-accent shrink-0">
+                <Link2 className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold">{t("profile.invitesTitle")}</p>
+                <p className="text-xs text-muted mt-0.5">{t("profile.invitesSubtitle")}</p>
+              </div>
+            </div>
+            {invites.length === 0 ? (
+              <p className="text-sm text-muted">{t("profile.invitesEmpty")}</p>
+            ) : (
+              <div className="space-y-2">
+                {invites.map((inv) => (
+                  <div
+                    key={inv.id}
+                    className="rounded-lg bg-bg border border-border p-3 flex items-center justify-between gap-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{inv.student?.name}</p>
+                      <p className="text-xs text-muted truncate">
+                        {inv.student?.email} · {t(`profile.my${inv.type === "personal" ? "Personal" : "Nutritionist"}`)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        loading={!!inviteBusy[inv.id]}
+                        onClick={() => handleInvite(inv.id, "accept")}
+                      >
+                        {t("profile.invitesAccept")}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={!!inviteBusy[inv.id]}
+                        onClick={() => handleInvite(inv.id, "reject")}
+                      >
+                        {t("profile.invitesReject")}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        )}
+
         {isProfessional && user.referralCode && (
           <Card className="p-6">
             <div className="flex items-start gap-3 mb-3">
@@ -449,6 +551,30 @@ export default function ProfilePage() {
               </div>
               <p className="text-xs text-muted">{t("profile.linkAll")}</p>
             </div>
+
+            {pendingInvites.length > 0 && (
+              <div className="space-y-2 mb-4">
+                {pendingInvites.map((inv) => (
+                  <div
+                    key={inv.id}
+                    className="rounded-lg bg-bg border border-border p-3 flex items-center justify-between gap-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{inv.professional?.name}</p>
+                      <p className="text-xs text-muted truncate">
+                        {inv.professional?.email} · {t("profile.linkWaiting")}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleUnlink(inv.type)}
+                      className="text-xs text-muted hover:text-red-400 transition-colors shrink-0 underline"
+                    >
+                      {t("profile.linkCancelPending")}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="space-y-3">
               <Input

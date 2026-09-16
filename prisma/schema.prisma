@@ -46,6 +46,9 @@ model User {
   dietTemplates    DietTemplate[]
   weekTemplates    WeekTemplate[]
 
+  // Exercicios criados pelo proprio profissional
+  ownedExercises  Exercise[] @relation("OwnedExercises")
+
   // Profissional que registrou o progresso
   progressBy    ProgressLog[] @relation("ProgressBy")
 
@@ -81,6 +84,9 @@ model User {
 
   notifications Notification[]
   payments     Payment[] @relation("UserPayments")
+
+  // Convites de vinculo recebidos (aluno quer se vincular a este profissional)
+  receivedLinkRequests TraineeLinkRequest[] @relation("LinkRequestProfessional")
 }
 
 model Student {
@@ -111,6 +117,7 @@ model Student {
   sessions     WorkoutSession[]
   mealLogs     MealLog[]
   restDays     RestDay[]
+  linkRequests TraineeLinkRequest[]
 
   @@unique([email, personalId])
 }
@@ -124,6 +131,21 @@ model RestDay {
   student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, weekday])
+}
+
+// Consentimento de vinculo: o aluno solicita, o profissional aceita/recusa.
+model TraineeLinkRequest {
+  id             String   @id @default(cuid())
+  studentId      String
+  student        Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  professionalId String
+  professional   User     @relation("LinkRequestProfessional", fields: [professionalId], references: [id], onDelete: Cascade)
+  type           String // "personal" | "nutritionist"
+  status         String   @default("PENDING") // PENDING | ACCEPTED | REJECTED
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([studentId, professionalId, type])
 }
 
 model Workout {
@@ -154,6 +176,11 @@ model Exercise {
   muscleGroup String
   gifUrl      String?
   description String?
+
+  // Dono: exercicios sem dono (legado) sao tratados como preset e so ADMIN edita/exclui.
+  trainerId String?
+  trainer   User?   @relation("OwnedExercises", fields: [trainerId], references: [id], onDelete: SetNull)
+  isPreset  Boolean @default(false)
 
   workoutExercises WorkoutExercise[]
   workoutTemplates WorkoutTemplateExercise[]
