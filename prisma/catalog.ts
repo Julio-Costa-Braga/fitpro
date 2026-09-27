@@ -164,7 +164,7 @@ export const CATALOG: CatalogExercise[] = [
   { name: "Pulldown Pegada Neutra", muscleGroup: "Costas", gifUrl: "https://static.exercisedb.dev/media/4c9BhzB.gif", description: "Puxada com pegada neutra (V-bar)" },
   { name: "Desenvolvimento Maquina Pegada Aberta", muscleGroup: "Ombros", gifUrl: "https://static.exercisedb.dev/media/67n3r98.gif", description: "Press de ombro na maquina com pegada aberta" },
   { name: "Elevacao Lateral com Halter", muscleGroup: "Ombros", gifUrl: "https://static.exercisedb.dev/media/DsgkuIt.gif", description: "Deltoide lateral com halteres" },
-  { name: "Face Pull", muscleGroup: "Ombros", gifUrl: "", description: "Deltoide posterior e rotadores no cabo" },
+  { name: "Face Pull", muscleGroup: "Ombros", gifUrl: "https://static.exercisedb.dev/media/ZfyAGhK.gif", description: "Deltoide posterior e rotadores no cabo" },
   { name: "Triceps Frances com Halter", muscleGroup: "Bracos", gifUrl: "https://static.exercisedb.dev/media/kont8Ut.gif", description: "Extensao de triceps acima da cabeca" },
   { name: "Rosca Direta com Barra", muscleGroup: "Bracos", gifUrl: "https://static.exercisedb.dev/media/25GPyDY.gif", description: "Curl classico com barra" },
   { name: "Rosca Martelo com Halteres", muscleGroup: "Bracos", gifUrl: "https://static.exercisedb.dev/media/slDvUAU.gif", description: "Biceps e braquial com halteres" },
